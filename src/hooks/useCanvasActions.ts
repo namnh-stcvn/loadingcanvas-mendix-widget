@@ -1,0 +1,45 @@
+import { useCallback } from "react";
+import type { CanvasActionDispatcher } from "../state/CanvasActionDispatcher";
+import type { CargoItem } from "../viewModels/CargoItem";
+import type { Point } from "../types/geometry";
+
+export const useCanvasActions = (dispatcher: CanvasActionDispatcher) => {
+  return {
+    startDrag: useCallback(
+      (itemId: string, mouse: Point) => {
+        dispatcher.dispatch({ type: "START_DRAG", activeId: itemId, mouse });
+      },
+      [dispatcher]
+    ),
+    dragMove: useCallback(
+      (mouse: Point) => {
+        dispatcher.dispatch({ type: "DRAG_MOVE", mouse });
+      },
+      [dispatcher]
+    ),
+    endDrag: useCallback(() => {
+      dispatcher.dispatch({ type: "END_DRAG" });
+    }, [dispatcher]),
+    rotateItem: useCallback(
+      (itemId: string) => {
+        dispatcher.dispatch({ type: "ROTATE", itemId });
+      },
+      [dispatcher]
+    ),
+    addItem: useCallback(
+      (item: CargoItem) => {
+        dispatcher.dispatch({ type: "ADD_ITEM", item });
+      },
+      [dispatcher]
+    ),
+    setItems: useCallback(
+      (items: CargoItem[]) => {
+        dispatcher.dispatch({ type: "SET_ITEMS", items });
+      },
+      [dispatcher]
+    ),
+    deselect: useCallback(() => {
+      dispatcher.dispatch({ type: "DESELECT" });
+    }, [dispatcher]),
+  };
+};
