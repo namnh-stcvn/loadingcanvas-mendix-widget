@@ -2,39 +2,39 @@
  * Basic coordinate
  */
 export interface Point {
-  x: number;
-  y: number;
+    x: number;
+    y: number;
 }
 
 /**
  * Width / Height
  */
 export interface Size {
-  width: number;
-  height: number;
+    width: number;
+    height: number;
 }
 
 /**
  * Position only
  */
 export interface Positionable {
-  x: number;
-  y: number;
+    x: number;
+    y: number;
 }
 
 /**
  * Dimension only
  */
 export interface Sizeable {
-  width: number;
-  height: number;
+    width: number;
+    height: number;
 }
 
 /**
  * Rotation support
  */
 export interface Rotatable {
-  rotation: Rotation;
+    rotation: Rotation;
 }
 
 /**
@@ -52,10 +52,10 @@ export interface GeometryItem extends Positionable, Sizeable, Rotatable {}
  * Bounding rectangle
  */
 export interface Rectangle {
-  left: number;
-  top: number;
-  right: number;
-  bottom: number;
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
 }
 
 /**

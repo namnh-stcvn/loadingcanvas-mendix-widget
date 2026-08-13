@@ -38,7 +38,7 @@ store the saved packing arrangement for each truck (TruckSelection).
 | `Width`          | Decimal                                       | Yes      | Item width in meters                              |
 | `Height`         | Decimal                                       | Yes      | Item height in meters                             |
 | `Rotation`       | Integer                                       | Yes      | Rotation: 0, 90, 180, or 270                      |
-| `Color`          | String                                        | Yes      | Display color (e.g., "orange", "blue")            |
+| `Color`          | String                                        | No       | Display color (e.g., "orange", "blue")            |
 | `HeightMeters`   | Decimal                                       | No       | Item height in meters (for height validation)     |
 | `WeightKg`       | Decimal                                       | No       | Item weight in kg (for payload validation)        |
 

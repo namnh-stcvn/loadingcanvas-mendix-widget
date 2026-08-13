@@ -1,0 +1,11 @@
+[4mrollup v4.62.4[24m
+[36mbundles [1mD:\source\loadingcanvas-mendix-widget\src\LoadingCanvas.tsx[22m → [1mdist/tmp/widgets/stcvn/loadingcanvas/LoadingCanvas.js[22m...[39m
+[32mcreated [1mdist/tmp/widgets/stcvn/loadingcanvas/LoadingCanvas.js[22m in [1m15s[22m[39m
+[36mbundles [1mD:\source\loadingcanvas-mendix-widget\src\LoadingCanvas.tsx[22m → [1mdist/tmp/widgets/stcvn/loadingcanvas/LoadingCanvas.mjs[22m...[39m
+[32mcreated [1mdist/tmp/widgets/stcvn/loadingcanvas/LoadingCanvas.mjs[22m in [1m647ms[22m[39m
+[36mbundles [1mD:\source\loadingcanvas-mendix-widget\src\LoadingCanvas.editorPreview.tsx[22m → [1mdist/tmp/widgets/LoadingCanvas.editorPreview.js[22m...[39m
+[32mcreated [1mdist/tmp/widgets/LoadingCanvas.editorPreview.js[22m in [1m600ms[22m[39m
+[36mbundles [1mD:\source\loadingcanvas-mendix-widget\src\LoadingCanvas.editorConfig.ts[22m → [1mdist/tmp/widgets/LoadingCanvas.editorConfig.js[22m...[39m
+[32mcreated [1mdist/tmp/widgets/LoadingCanvas.editorConfig.js[22m in [1m609ms[22m[39m
+
+[2026-08-13 09:12:03] waiting for changes...

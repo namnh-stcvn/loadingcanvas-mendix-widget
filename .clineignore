@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+dev_error.txt
+dev_output.txt
+
+# IDE
+.vscode/
+.idea/
+.agents/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+
+# Large data files
+*.csv
+*.json
+*.xml
+*.md
+
+# Test files (nếu không cần thiết)
+*.test.*
+*.spec.*
+__tests__/
+
+# Type definitions
+typings/
+
+# Documentation
+docs/
+ARCHITECTURE.md
+README.md

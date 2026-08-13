@@ -14,10 +14,9 @@
 
 import type { CargoItem } from "../viewModels/CargoItem";
 import type { TrailerItem } from "../viewModels/TrailerItem";
-import type { PackingPlanData, PackingPlanItemData } from "./stateAdapter";
+import { deserializePlan, serializePlan, type PackingPlanData, type PackingPlanItemData } from "./stateAdapter";
 import { truckSelectionToTrailerItem, type TruckSelectionData } from "./trailerAdapter";
 import { transportOrdersToCargoItems, type TransportOrderData } from "./cargoAdapter";
-import { deserializePlan, serializePlan } from "./stateAdapter";
 import type { CanvasState } from "../state/CanvasState";
 
 /**
@@ -31,7 +30,9 @@ const isMendixRuntime = (): boolean => {
  * Safely access the global `mx` object.
  */
 const getMx = (): Window["mx"]["data"] | null => {
-    if (!isMendixRuntime()) return null;
+    if (!isMendixRuntime()) {
+        return null;
+    }
     return window.mx.data;
 };
 
@@ -114,11 +115,15 @@ export const executeMendixAction = async (actionId: string, params: Record<strin
  * @returns TrailerItem view model, or null if not available
  */
 export const loadTrailerItem = async (truckRef: string | undefined, scale: number): Promise<TrailerItem | null> => {
-    if (!truckRef) return null;
+    if (!truckRef) {
+        return null;
+    }
 
     try {
         const truckData = (await loadMendixObject(truckRef)) as TruckSelectionData | null;
-        if (!truckData) return null;
+        if (!truckData) {
+            return null;
+        }
         return truckSelectionToTrailerItem(truckData, scale);
     } catch (err) {
         console.error("Failed to load TruckSelection:", err);
@@ -139,7 +144,9 @@ export const loadTrailerItem = async (truckRef: string | undefined, scale: numbe
  * @returns Array of CargoItem view models
  */
 export const loadCargoItems = async (ordersGuids: string[], scale: number): Promise<CargoItem[]> => {
-    if (!ordersGuids || ordersGuids.length === 0) return [];
+    if (!ordersGuids || ordersGuids.length === 0) {
+        return [];
+    }
 
     try {
         const ordersData = await Promise.all(ordersGuids.map(guid => loadMendixObject(guid)));
@@ -162,18 +169,24 @@ export const loadCargoItems = async (ordersGuids: string[], scale: number): Prom
  * @returns Array of CargoItem view models restored from the plan
  */
 export const loadPackingPlan = async (truckGuid: string | null, scale: number): Promise<CargoItem[]> => {
-    if (!truckGuid) return [];
+    if (!truckGuid) {
+        return [];
+    }
 
     try {
         // XPath to find the PackingPlan for this truck
         const xpath = `//TCSLoadingMeter.PackingPlan[TruckSelection = '${truckGuid}']`;
         const plans = await loadMendixList(xpath);
 
-        if (plans.length === 0) return [];
+        if (plans.length === 0) {
+            return [];
+        }
 
         // Get the first (and only) plan
         const planObj = plans[0] as { guid: string; items?: unknown[] };
-        if (!planObj) return [];
+        if (!planObj) {
+            return [];
+        }
 
         // Load plan items
         const itemsXPath = `//TCSLoadingMeter.PackingPlanItem[PackingPlan = '${planObj.guid}']`;

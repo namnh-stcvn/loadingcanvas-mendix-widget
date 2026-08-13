@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
 import { LoadingCanvas } from "./LoadingCanvas";
 import type { LoadingCanvasProps, LoadingCanvasViewModelProps } from "./LoadingCanvas.properties";
 import { computeScale, type TruckSelectionData } from "../adapters/trailerAdapter";
@@ -22,11 +22,10 @@ import type { CanvasState } from "../state/CanvasState";
  * In the dev environment (Vite), the references are JSON strings that are
  * parsed directly.
  */
-export const LoadingCanvasContainer = (props: LoadingCanvasProps) => {
+export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement => {
     const {
         trucks: trucksRef,
         transportOrders: transportOrdersRef,
-        session: _sessionRef,
         canvasWidth = 1000,
         canvasHeight = 600,
         onSavePlan: onSavePlanCallback,
@@ -46,7 +45,7 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps) => {
     // to convert truck data to a TrailerItem. So we first load the raw truck data,
     // compute the scale, then convert to a TrailerItem.
     useEffect(() => {
-        const loadTruck = async () => {
+        const loadTruck = async (): Promise<void> => {
             if (!trucksRef) {
                 setTrailerItem(null);
                 setTruckGuid(null);
@@ -79,8 +78,10 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps) => {
 
     // --- Load transport orders (pallet list) ---
     useEffect(() => {
-        const loadOrders = async () => {
-            if (!transportOrdersRef || transportOrdersRef.length === 0 || scale === 1) return;
+        const loadOrders = async (): Promise<void> => {
+            if (!transportOrdersRef || transportOrdersRef.length === 0 || scale === 1) {
+                return;
+            }
 
             try {
                 const items = await loadCargoItems(transportOrdersRef, scale);
@@ -95,7 +96,7 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps) => {
 
     // --- Load saved packing plan ---
     useEffect(() => {
-        const loadPlan = async () => {
+        const loadPlan = async (): Promise<void> => {
             if (!truckGuid || scale === 1) {
                 setIsLoading(false);
                 return;
@@ -117,7 +118,9 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps) => {
     // --- Save plan handler — called by the widget with current items and scale ---
     const handleSavePlan = useCallback(
         async (items: CargoItem[], currentScale: number) => {
-            if (!truckGuid) return;
+            if (!truckGuid) {
+                return;
+            }
 
             // Build a minimal CanvasState for serialization
             const state: CanvasState = {

@@ -1,0 +1,15 @@
+# Coding Rules
+
+## Comments
+
+- KHÔNG tạo JSDoc (không dùng `/** ... */` cho hàm, class, interface, type).
+- Chỉ comment ngắn gọn mô tả business logic (`// ...`)
+- Comment phải nêu rõ MỤC ĐÍCH BUSINESS, không mô tả code.
+- Không comment những gì code đã thể hiện rõ.
+- Không thêm comment trang trí, banner, hay ghi chú không cần thiết.
+
+## Token Saving
+
+- Giữ code ngắn gọn, dễ đọc.
+- Không viết giải thích dài dòng trong comment.
+- Ưu tiên tên biến/hàm tự mô tả thay vì comment.

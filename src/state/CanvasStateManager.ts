@@ -6,65 +6,65 @@ import type { StateListener } from "./CanvasStateListener";
  * Avoids structuredClone (unavailable in Node <17 / older jsdom).
  */
 function cloneState(state: CanvasState): CanvasState {
-  return JSON.parse(JSON.stringify(state)) as CanvasState;
+    return JSON.parse(JSON.stringify(state)) as CanvasState;
 }
 
 export class CanvasStateManager {
-  private state: CanvasState;
-  private listeners: Set<StateListener> = new Set();
-  private history: CanvasState[] = [];
-  private historyIndex = -1;
+    private state: CanvasState;
+    private listeners: Set<StateListener> = new Set();
+    private history: CanvasState[] = [];
+    private historyIndex = -1;
 
-  constructor(initialState: CanvasState) {
-    this.state = cloneState(initialState);
-    this.history = [cloneState(initialState)];
-    this.historyIndex = 0;
-  }
-
-  public getState(): CanvasState {
-    return cloneState(this.state);
-  }
-
-  public setState(nextState: CanvasState): void {
-    const nextClone = cloneState(nextState);
-    this.history = this.history.slice(0, this.historyIndex + 1);
-    this.history.push(nextClone);
-    this.historyIndex = this.history.length - 1;
-    this.state = nextClone;
-    this.notifyListeners();
-  }
-
-  public updateState(update: (state: CanvasState) => CanvasState): void {
-    this.setState(update(this.state));
-  }
-
-  public subscribe(listener: StateListener): () => void {
-    this.listeners.add(listener);
-    listener(this.getState());
-    return () => {
-      this.listeners.delete(listener);
-    };
-  }
-
-  public undo(): void {
-    if (this.historyIndex > 0) {
-      this.historyIndex -= 1;
-      this.state = cloneState(this.history[this.historyIndex]);
-      this.notifyListeners();
+    constructor(initialState: CanvasState) {
+        this.state = cloneState(initialState);
+        this.history = [cloneState(initialState)];
+        this.historyIndex = 0;
     }
-  }
 
-  public redo(): void {
-    if (this.historyIndex < this.history.length - 1) {
-      this.historyIndex += 1;
-      this.state = cloneState(this.history[this.historyIndex]);
-      this.notifyListeners();
+    getState(): CanvasState {
+        return cloneState(this.state);
     }
-  }
 
-  private notifyListeners(): void {
-    for (const listener of this.listeners) {
-      listener(this.getState());
+    setState(nextState: CanvasState): void {
+        const nextClone = cloneState(nextState);
+        this.history = this.history.slice(0, this.historyIndex + 1);
+        this.history.push(nextClone);
+        this.historyIndex = this.history.length - 1;
+        this.state = nextClone;
+        this.notifyListeners();
     }
-  }
+
+    updateState(update: (state: CanvasState) => CanvasState): void {
+        this.setState(update(this.state));
+    }
+
+    subscribe(listener: StateListener): () => void {
+        this.listeners.add(listener);
+        listener(this.getState());
+        return () => {
+            this.listeners.delete(listener);
+        };
+    }
+
+    undo(): void {
+        if (this.historyIndex > 0) {
+            this.historyIndex -= 1;
+            this.state = cloneState(this.history[this.historyIndex]);
+            this.notifyListeners();
+        }
+    }
+
+    redo(): void {
+        if (this.historyIndex < this.history.length - 1) {
+            this.historyIndex += 1;
+            this.state = cloneState(this.history[this.historyIndex]);
+            this.notifyListeners();
+        }
+    }
+
+    private notifyListeners(): void {
+        for (const listener of this.listeners) {
+            listener(this.getState());
+        }
+    }
 }

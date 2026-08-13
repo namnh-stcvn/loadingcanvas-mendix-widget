@@ -14,8 +14,8 @@ export interface LoadingCanvasContainerProps {
     trucks: string;
     transportOrders?: ListValue;
     session: string;
-    canvasWidth?: number;
-    canvasHeight?: number;
+    canvasWidth: number;
+    canvasHeight: number;
     onSavePlan?: ActionValue;
     onLoadPlan?: ActionValue;
 }
