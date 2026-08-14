@@ -27,10 +27,10 @@ Thumbs.db
 *.xml
 *.md
 
-# Test files (nếu không cần thiết)
-*.test.*
-*.spec.*
-__tests__/
+# Test files (if not needed) # COMMENTED OUT
+# *.test.*
+# *.spec.*
+# __tests__/
 
 # Type definitions
 typings/

@@ -1,5 +1,17 @@
 # Coding Rules
 
+Checklist maintainability cho widget
+Component < 300–500 dòng
+Không gọi API trực tiếp trong UI
+Có Service Layer
+Có TypeScript types chung
+Có Custom Hooks cho logic tái sử dụng
+Không hard-code config
+Có xử lý lỗi tập trung
+Có unit test cho logic quan trọng
+Thư mục theo feature hoặc domain
+Không phụ thuộc window.\* hoặc global state của host
+
 ## Comments
 
 - KHÔNG tạo JSDoc (không dùng `/** ... */` cho hàm, class, interface, type).

@@ -1,27 +1,15 @@
-﻿import { ReactElement } from "react";
-import { LoadingCanvasContainer } from "./widget/LoadingCanvas.container";
-
-import { LoadingCanvasContainerProps } from "../typings/LoadingCanvasProps";
-
-import "./ui/LoadingCanvas.css";
-
-export function LoadingCanvas(props: LoadingCanvasContainerProps): ReactElement {
-    const { trucks, transportOrders, session, canvasWidth = 1000, canvasHeight = 600, onSavePlan, onLoadPlan } = props;
-
-    // trucks/session are plain GUID strings; transportOrders is a ListValue datasource
-    const truckGuid = trucks;
-    const orderGuids = (transportOrders?.items ?? []).map(item => item.id);
-    const sessionGuid = session;
-
-    return (
-        <LoadingCanvasContainer
-            trucks={truckGuid}
-            transportOrders={orderGuids}
-            session={sessionGuid}
-            canvasWidth={canvasWidth}
-            canvasHeight={canvasHeight}
-            onSavePlan={() => onSavePlan?.execute()}
-            onLoadPlan={() => onLoadPlan?.execute()}
-        />
-    );
-}
+/**
+ * Widget entry point for Mendix Pluggable Widget.
+ *
+ * In a Mendix project, this file is the build entry point.
+ * Mendix's widget plugin will bundle this file and its dependencies
+ * into the widget's JavaScript output.
+ *
+ * The LoadingCanvasContainer is the Mendix-facing component that:
+ * - Receives props from Mendix (object references, canvas dimensions, callbacks)
+ * - Resolves object references via mx.data API
+ * - Converts them to view models using adapters
+ * - Passes view models to the LoadingCanvas widget
+ */
+export { LoadingCanvasContainer } from "./widget";
+export type { LoadingCanvasProps, LoadingCanvasViewModelProps, LoadingCanvasWidgetProps } from "./widget";

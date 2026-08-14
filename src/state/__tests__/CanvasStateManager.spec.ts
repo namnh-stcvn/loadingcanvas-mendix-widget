@@ -1,248 +1,248 @@
-import { describe, it, expect, vi } from "@jest/globals";
+import { describe, it, expect, jest } from "@jest/globals";
 import { CanvasStateManager } from "../CanvasStateManager";
 import type { CanvasState } from "../CanvasState";
 
 describe("CanvasStateManager", () => {
-    const createInitialState = (): CanvasState => ({
-        trailer: null,
-        cargos: [],
-        selectedIds: [],
-        activeItemId: null,
-        validation: { valid: true, errors: [] },
-        scale: 1,
-        offsetX: 0,
-        offsetY: 0
+  const createInitialState = (): CanvasState => ({
+    trailer: null,
+    cargos: [],
+    selectedIds: [],
+    activeItemId: null,
+    validation: { valid: true, errors: [] },
+    scale: 1,
+    offsetX: 0,
+    offsetY: 0,
+  });
+
+  describe("constructor & getState", () => {
+    it("should initialize with the provided state", () => {
+      const initial = createInitialState();
+      const manager = new CanvasStateManager(initial);
+      expect(manager.getState()).toEqual(initial);
     });
 
-    describe("constructor & getState", () => {
-        it("should initialize with the provided state", () => {
-            const initial = createInitialState();
-            const manager = new CanvasStateManager(initial);
-            expect(manager.getState()).toEqual(initial);
-        });
+    it("should return a deep clone (mutations to returned state do not affect internal state)", () => {
+      const initial = createInitialState();
+      const manager = new CanvasStateManager(initial);
+      const state = manager.getState();
+      state.cargos.push({
+        id: "test",
+        x: 0,
+        y: 0,
+        width: 10,
+        height: 10,
+        rotation: 0,
+        name: "test",
+        type: "pallet",
+        color: "red",
+        isLocked: false,
+      });
+      // Internal state should be unaffected
+      expect(manager.getState().cargos).toHaveLength(0);
+    });
+  });
 
-        it("should return a deep clone (mutations to returned state do not affect internal state)", () => {
-            const initial = createInitialState();
-            const manager = new CanvasStateManager(initial);
-            const state = manager.getState();
-            state.cargos.push({
-                id: "test",
-                x: 0,
-                y: 0,
-                width: 10,
-                height: 10,
-                rotation: 0,
-                name: "test",
-                type: "pallet",
-                color: "red",
-                isLocked: false
-            });
-            // Internal state should be unaffected
-            expect(manager.getState().cargos).toHaveLength(0);
-        });
+  describe("setState", () => {
+    it("should update state and notify listeners", () => {
+      const manager = new CanvasStateManager(createInitialState());
+      const listener = jest.fn();
+      manager.subscribe(listener);
+
+      const newState = { ...createInitialState(), activeItemId: "item-1" };
+      manager.setState(newState);
+
+      expect(manager.getState().activeItemId).toBe("item-1");
+      expect(listener).toHaveBeenCalledTimes(2); // immediate fire + update
     });
 
-    describe("setState", () => {
-        it("should update state and notify listeners", () => {
-            const manager = new CanvasStateManager(createInitialState());
-            const listener = vi.fn();
-            manager.subscribe(listener);
+    it("should push previous state onto history stack", () => {
+      const manager = new CanvasStateManager(createInitialState());
 
-            const newState = { ...createInitialState(), activeItemId: "item-1" };
-            manager.setState(newState);
+      manager.setState({ ...createInitialState(), activeItemId: "item-1" });
 
-            expect(manager.getState().activeItemId).toBe("item-1");
-            expect(listener).toHaveBeenCalledTimes(2); // immediate fire + update
-        });
-
-        it("should push previous state onto history stack", () => {
-            const manager = new CanvasStateManager(createInitialState());
-
-            manager.setState({ ...createInitialState(), activeItemId: "item-1" });
-
-            // Undo should return to first state
-            manager.undo();
-            expect(manager.getState().activeItemId).toBeNull();
-        });
-
-        it("should truncate redo branch when setting new state after undo", () => {
-            const manager = new CanvasStateManager(createInitialState());
-
-            // State 1: initial
-            // State 2: activeItemId = "a"
-            manager.setState({ ...createInitialState(), activeItemId: "a" });
-            // State 3: activeItemId = "b"
-            manager.setState({ ...createInitialState(), activeItemId: "b" });
-
-            // Undo to state 2
-            manager.undo();
-            expect(manager.getState().activeItemId).toBe("a");
-
-            // Set new state â€” should truncate redo branch
-            manager.setState({ ...createInitialState(), activeItemId: "c" });
-
-            // Redo should NOT go back to "b"
-            manager.redo();
-            expect(manager.getState().activeItemId).toBe("c");
-        });
+      // Undo should return to first state
+      manager.undo();
+      expect(manager.getState().activeItemId).toBeNull();
     });
 
-    describe("updateState", () => {
-        it("should apply update function to current state", () => {
-            const manager = new CanvasStateManager(createInitialState());
-            manager.updateState(state => ({
-                ...state,
-                selectedIds: ["item-1", "item-2"]
-            }));
+    it("should truncate redo branch when setting new state after undo", () => {
+      const manager = new CanvasStateManager(createInitialState());
 
-            expect(manager.getState().selectedIds).toEqual(["item-1", "item-2"]);
-        });
+      // State 1: initial
+      // State 2: activeItemId = "a"
+      manager.setState({ ...createInitialState(), activeItemId: "a" });
+      // State 3: activeItemId = "b"
+      manager.setState({ ...createInitialState(), activeItemId: "b" });
 
-        it("should push to history before applying update", () => {
-            const manager = new CanvasStateManager(createInitialState());
-            manager.updateState(state => ({ ...state, activeItemId: "x" }));
-            manager.undo();
-            expect(manager.getState().activeItemId).toBeNull();
-        });
+      // Undo to state 2
+      manager.undo();
+      expect(manager.getState().activeItemId).toBe("a");
+
+      // Set new state â€” should truncate redo branch
+      manager.setState({ ...createInitialState(), activeItemId: "c" });
+
+      // Redo should NOT go back to "b"
+      manager.redo();
+      expect(manager.getState().activeItemId).toBe("c");
+    });
+  });
+
+  describe("updateState", () => {
+    it("should apply update function to current state", () => {
+      const manager = new CanvasStateManager(createInitialState());
+      manager.updateState((state) => ({
+        ...state,
+        selectedIds: ["item-1", "item-2"],
+      }));
+
+      expect(manager.getState().selectedIds).toEqual(["item-1", "item-2"]);
     });
 
-    describe("subscribe", () => {
-        it("should immediately fire listener with current state", () => {
-            const manager = new CanvasStateManager(createInitialState());
-            const listener = vi.fn();
-            manager.subscribe(listener);
-            expect(listener).toHaveBeenCalledTimes(1);
-            expect(listener).toHaveBeenCalledWith(createInitialState());
-        });
+    it("should push to history before applying update", () => {
+      const manager = new CanvasStateManager(createInitialState());
+      manager.updateState((state) => ({ ...state, activeItemId: "x" }));
+      manager.undo();
+      expect(manager.getState().activeItemId).toBeNull();
+    });
+  });
 
-        it("should notify listener on state change", () => {
-            const manager = new CanvasStateManager(createInitialState());
-            const listener = vi.fn();
-            manager.subscribe(listener);
-            listener.mockClear();
-
-            manager.setState({ ...createInitialState(), activeItemId: "new" });
-            expect(listener).toHaveBeenCalledTimes(1);
-        });
-
-        it("should return unsubscribe function that stops notifications", () => {
-            const manager = new CanvasStateManager(createInitialState());
-            const listener = vi.fn();
-            const unsubscribe = manager.subscribe(listener);
-            listener.mockClear();
-
-            unsubscribe();
-            manager.setState({ ...createInitialState(), activeItemId: "new" });
-            expect(listener).not.toHaveBeenCalled();
-        });
-
-        it("should notify multiple subscribers", () => {
-            const manager = new CanvasStateManager(createInitialState());
-            const listener1 = vi.fn();
-            const listener2 = vi.fn();
-            manager.subscribe(listener1);
-            manager.subscribe(listener2);
-            listener1.mockClear();
-            listener2.mockClear();
-
-            manager.setState({ ...createInitialState(), activeItemId: "new" });
-            expect(listener1).toHaveBeenCalledTimes(1);
-            expect(listener2).toHaveBeenCalledTimes(1);
-        });
+  describe("subscribe", () => {
+    it("should immediately fire listener with current state", () => {
+      const manager = new CanvasStateManager(createInitialState());
+      const listener = jest.fn();
+      manager.subscribe(listener);
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(listener).toHaveBeenCalledWith(createInitialState());
     });
 
-    describe("undo", () => {
-        it("should revert to previous state", () => {
-            const manager = new CanvasStateManager(createInitialState());
-            manager.setState({ ...createInitialState(), activeItemId: "a" });
-            manager.setState({ ...createInitialState(), activeItemId: "b" });
+    it("should notify listener on state change", () => {
+      const manager = new CanvasStateManager(createInitialState());
+      const listener = jest.fn();
+      manager.subscribe(listener);
+      listener.mockClear();
 
-            manager.undo();
-            expect(manager.getState().activeItemId).toBe("a");
-
-            manager.undo();
-            expect(manager.getState().activeItemId).toBeNull();
-        });
-
-        it("should do nothing when history is empty (at initial state)", () => {
-            const manager = new CanvasStateManager(createInitialState());
-            const listener = vi.fn();
-            manager.subscribe(listener);
-            listener.mockClear();
-
-            manager.undo();
-            expect(listener).not.toHaveBeenCalled();
-        });
-
-        it("should notify listeners on undo", () => {
-            const manager = new CanvasStateManager(createInitialState());
-            const listener = vi.fn();
-            manager.subscribe(listener);
-            listener.mockClear();
-
-            manager.setState({ ...createInitialState(), activeItemId: "a" });
-            listener.mockClear();
-
-            manager.undo();
-            expect(listener).toHaveBeenCalledTimes(1);
-        });
+      manager.setState({ ...createInitialState(), activeItemId: "new" });
+      expect(listener).toHaveBeenCalledTimes(1);
     });
 
-    describe("redo", () => {
-        it("should re-apply undone state", () => {
-            const manager = new CanvasStateManager(createInitialState());
-            manager.setState({ ...createInitialState(), activeItemId: "a" });
-            manager.undo();
-            manager.redo();
-            expect(manager.getState().activeItemId).toBe("a");
-        });
+    it("should return unsubscribe function that stops notifications", () => {
+      const manager = new CanvasStateManager(createInitialState());
+      const listener = jest.fn();
+      const unsubscribe = manager.subscribe(listener);
+      listener.mockClear();
 
-        it("should do nothing when at the latest state", () => {
-            const manager = new CanvasStateManager(createInitialState());
-            const listener = vi.fn();
-            manager.subscribe(listener);
-            listener.mockClear();
-
-            manager.redo();
-            expect(listener).not.toHaveBeenCalled();
-        });
-
-        it("should notify listeners on redo", () => {
-            const manager = new CanvasStateManager(createInitialState());
-            const listener = vi.fn();
-            manager.subscribe(listener);
-
-            manager.setState({ ...createInitialState(), activeItemId: "a" });
-            manager.undo();
-            listener.mockClear();
-
-            manager.redo();
-            expect(listener).toHaveBeenCalledTimes(1);
-        });
+      unsubscribe();
+      manager.setState({ ...createInitialState(), activeItemId: "new" });
+      expect(listener).not.toHaveBeenCalled();
     });
 
-    describe("immutability", () => {
-        it("should not share references between states in history", () => {
-            const manager = new CanvasStateManager(createInitialState());
-            const state1 = manager.getState();
+    it("should notify multiple subscribers", () => {
+      const manager = new CanvasStateManager(createInitialState());
+      const listener1 = jest.fn();
+      const listener2 = jest.fn();
+      manager.subscribe(listener1);
+      manager.subscribe(listener2);
+      listener1.mockClear();
+      listener2.mockClear();
 
-            manager.setState({ ...createInitialState(), activeItemId: "a" });
-            const state2 = manager.getState();
-
-            // Mutating state2 should not affect state1
-            state2.cargos.push({
-                id: "x",
-                x: 0,
-                y: 0,
-                width: 10,
-                height: 10,
-                rotation: 0,
-                name: "x",
-                type: "box",
-                color: "blue",
-                isLocked: false
-            });
-            expect(state1.cargos).toHaveLength(0);
-        });
+      manager.setState({ ...createInitialState(), activeItemId: "new" });
+      expect(listener1).toHaveBeenCalledTimes(1);
+      expect(listener2).toHaveBeenCalledTimes(1);
     });
+  });
+
+  describe("undo", () => {
+    it("should revert to previous state", () => {
+      const manager = new CanvasStateManager(createInitialState());
+      manager.setState({ ...createInitialState(), activeItemId: "a" });
+      manager.setState({ ...createInitialState(), activeItemId: "b" });
+
+      manager.undo();
+      expect(manager.getState().activeItemId).toBe("a");
+
+      manager.undo();
+      expect(manager.getState().activeItemId).toBeNull();
+    });
+
+    it("should do nothing when history is empty (at initial state)", () => {
+      const manager = new CanvasStateManager(createInitialState());
+      const listener = jest.fn();
+      manager.subscribe(listener);
+      listener.mockClear();
+
+      manager.undo();
+      expect(listener).not.toHaveBeenCalled();
+    });
+
+    it("should notify listeners on undo", () => {
+      const manager = new CanvasStateManager(createInitialState());
+      const listener = jest.fn();
+      manager.subscribe(listener);
+      listener.mockClear();
+
+      manager.setState({ ...createInitialState(), activeItemId: "a" });
+      listener.mockClear();
+
+      manager.undo();
+      expect(listener).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("redo", () => {
+    it("should re-apply undone state", () => {
+      const manager = new CanvasStateManager(createInitialState());
+      manager.setState({ ...createInitialState(), activeItemId: "a" });
+      manager.undo();
+      manager.redo();
+      expect(manager.getState().activeItemId).toBe("a");
+    });
+
+    it("should do nothing when at the latest state", () => {
+      const manager = new CanvasStateManager(createInitialState());
+      const listener = jest.fn();
+      manager.subscribe(listener);
+      listener.mockClear();
+
+      manager.redo();
+      expect(listener).not.toHaveBeenCalled();
+    });
+
+    it("should notify listeners on redo", () => {
+      const manager = new CanvasStateManager(createInitialState());
+      const listener = jest.fn();
+      manager.subscribe(listener);
+
+      manager.setState({ ...createInitialState(), activeItemId: "a" });
+      manager.undo();
+      listener.mockClear();
+
+      manager.redo();
+      expect(listener).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("immutability", () => {
+    it("should not share references between states in history", () => {
+      const manager = new CanvasStateManager(createInitialState());
+      const state1 = manager.getState();
+
+      manager.setState({ ...createInitialState(), activeItemId: "a" });
+      const state2 = manager.getState();
+
+      // Mutating state2 should not affect state1
+      state2.cargos.push({
+        id: "x",
+        x: 0,
+        y: 0,
+        width: 10,
+        height: 10,
+        rotation: 0,
+        name: "x",
+        type: "box",
+        color: "blue",
+        isLocked: false,
+      });
+      expect(state1.cargos).toHaveLength(0);
+    });
+  });
 });
