@@ -13,7 +13,7 @@
  */
 export { LoadingCanvasContainer } from "./LoadingCanvas.container";
 export type {
-    LoadingCanvasProps,
-    LoadingCanvasViewModelProps,
-    LoadingCanvasWidgetProps
+  LoadingCanvasProps,
+  LoadingCanvasViewModelProps,
+  LoadingCanvasWidgetProps,
 } from "./LoadingCanvas.properties";

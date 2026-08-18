@@ -91,9 +91,9 @@ export const computeScale = (
   canvasHeight: number,
   padding: number = 40
 ): number => {
-  const lengthM = truck.internalLengthMeter;
-  const widthM = truck.internalWidthMeter;
-  const availableWidth = canvasWidth - padding;
-  const availableHeight = canvasHeight - padding;
+  const lengthM = truck.internalLengthMeter > 0 ? truck.internalLengthMeter : 13.6;
+  const widthM = truck.internalWidthMeter > 0 ? truck.internalWidthMeter : 2.45;
+  const availableWidth = Math.max(canvasWidth - padding, 100);
+  const availableHeight = Math.max(canvasHeight - padding, 100);
   return Math.min(availableWidth / lengthM, availableHeight / widthM);
 };

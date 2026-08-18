@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
 import { LoadingCanvas } from "./LoadingCanvas";
 import type { LoadingCanvasProps, LoadingCanvasViewModelProps } from "./LoadingCanvas.properties";
-import { computeScale, type TruckSelectionData } from "../adapters/trailerAdapter";
-import { loadTrailerItem, loadCargoItems, loadPackingPlan, savePackingPlan } from "../adapters/mendixDataAdapter";
+import { loadTrailerAndScale, loadCargoItems, loadPackingPlan, savePackingPlan } from "../adapters/mendixDataAdapter";
 import type { CargoItem } from "../viewModels/CargoItem";
 import type { TrailerItem } from "../viewModels/TrailerItem";
 import type { CanvasState } from "../state/CanvasState";
@@ -17,10 +16,6 @@ import type { CanvasState } from "../state/CanvasState";
  * - Converting them to view models using adapters
  * - Passing the view models and callbacks to the LoadingCanvas widget
  * - Handling save/load plan via Mendix microflows and the PackingPlan entity
- *
- * In a real Mendix project, the object references are resolved via mx.data.
- * In the dev environment (Vite), the references are JSON strings that are
- * parsed directly.
  */
 export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement => {
   const {
@@ -57,17 +52,20 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
       }
 
       try {
-        const rawTruck = await loadMendixObjectRaw(truckSelection);
-        if (rawTruck) {
-          setTruckGuid(rawTruck.id ?? null);
-          const computedScale = computeScale(rawTruck, canvasWidth, canvasHeight);
-          setScale(computedScale);
-          const trailerItemGuid = typeof truckSelection === "string" ? truckSelection : truckSelection?.guid;
-          const trailer = await loadTrailerItem(trailerItemGuid, computedScale);
-          setTrailerItem(trailer);
-        }
+        const trailerItemGuid =
+          typeof truckSelection === "string"
+            ? truckSelection
+            : ((truckSelection as { guid?: string; id?: string })?.guid ??
+              (truckSelection as { guid?: string; id?: string })?.id);
+
+        const result = await loadTrailerAndScale(trailerItemGuid, canvasWidth, canvasHeight);
+        setTrailerItem(result.trailer);
+        setTruckGuid(result.truckGuid);
+        setScale(result.scale);
       } catch (err) {
         console.error("Failed to load truck data:", err);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -96,7 +94,6 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
   useEffect(() => {
     const loadPlan = async (): Promise<void> => {
       if (!truckGuid || scale === 1) {
-        setIsLoading(false);
         return;
       }
 
@@ -105,8 +102,6 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
         setInitialCanvasItems(savedItems);
       } catch (err) {
         console.error("Failed to load packing plan:", err);
-      } finally {
-        setIsLoading(false);
       }
     };
 
@@ -157,34 +152,6 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
   );
 
   return <LoadingCanvas viewModel={viewModel} isLoading={isLoading} />;
-};
-
-/**
- * Load raw truck data (for scale computation).
- */
-const loadMendixObjectRaw = async (ref: unknown): Promise<TruckSelectionData | null> => {
-  if (typeof window !== "undefined" && (window as unknown as { mx?: unknown }).mx) {
-    const mxData = (window as unknown as { mx: { data: unknown } }).mx.data as {
-      load: (opts: { guid: string; callback: (obj: unknown) => void; error?: (e: Error) => void }) => void;
-    };
-    return new Promise((resolve, reject) => {
-      const guid = typeof ref === "string" ? ref : (ref as { guid?: string })?.guid;
-      if (!guid) {
-        resolve(null as unknown as TruckSelectionData);
-        return;
-      }
-      mxData.load({
-        guid,
-        callback: (obj: unknown) => resolve(obj as TruckSelectionData),
-        error: (err: Error) => reject(err),
-      });
-    });
-  }
-  try {
-    return JSON.parse(JSON.stringify(ref)) as TruckSelectionData;
-  } catch {
-    return null;
-  }
 };
 
 export default LoadingCanvasContainer;

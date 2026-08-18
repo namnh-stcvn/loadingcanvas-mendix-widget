@@ -4,21 +4,21 @@ import { snapPosition } from "./snapRules";
 import { GRID_SIZE } from "../constants/canvas";
 
 export const calculateDragPosition = <T extends RectLike>(
-    item: T,
-    startPosition: Point,
-    deltaX: number,
-    deltaY: number,
-    canvasWidth: number,
-    canvasHeight: number,
-    gridSize: number = GRID_SIZE
+  item: T,
+  startPosition: Point,
+  deltaX: number,
+  deltaY: number,
+  canvasWidth: number,
+  canvasHeight: number,
+  gridSize: number = GRID_SIZE
 ): T => {
-    const target = snapPosition(startPosition.x + deltaX, startPosition.y + deltaY, gridSize);
+  const target = snapPosition(startPosition.x + deltaX, startPosition.y + deltaY, gridSize);
 
-    return {
-        ...item,
+  return {
+    ...item,
 
-        x: clamp(target.x, 0, canvasWidth - item.width),
+    x: clamp(target.x, 0, canvasWidth - item.width),
 
-        y: clamp(target.y, 0, canvasHeight - item.height)
-    };
+    y: clamp(target.y, 0, canvasHeight - item.height),
+  };
 };

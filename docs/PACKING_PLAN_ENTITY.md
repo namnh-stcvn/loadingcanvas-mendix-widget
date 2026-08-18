@@ -147,14 +147,16 @@ after the save/load operations complete.
 ### Find PackingPlan for a Truck
 
 ```
-//TCSLoadingMeter.PackingPlan[TruckSelection = '{truckGuid}']
+//TCSLoadingMeter.PackingPlan[TCSLoadingMeter.PackingPlan_TruckSelection = '{truckGuid}']
 ```
+*(or `//TCSLoadingMeter.PackingPlan[TCSLoadingMeter.TruckSelection = '{truckGuid}']` depending on association name in Domain Model)*
 
 ### Find PackingPlanItems for a Plan
 
 ```
-//TCSLoadingMeter.PackingPlanItem[PackingPlan = '{planGuid}']
+//TCSLoadingMeter.PackingPlanItem[TCSLoadingMeter.PackingPlanItem_PackingPlan = '{planGuid}']
 ```
+*(or `//TCSLoadingMeter.PackingPlanItem[TCSLoadingMeter.PackingPlan = '{planGuid}']` depending on association name in Domain Model)*
 
 ## Notes
 
