@@ -26,78 +26,89 @@ The architecture follows a strict **layered separation of concerns**:
 
 ```
 src/
-├── App.tsx                          # Root React component, renders LoadingCanvasContainer
-├── main.tsx                         # Vite entry point, mounts to #root
-├── MyWidget.tsx                     # Legacy widget container (deprecated, use LoadingCanvasContainer)
-├── index.css                        # Global styles (CSS variables, dark mode, layout)
+├── LoadingCanvas.tsx               # Main widget component: renders canvas, trailer, cargo, info panel, grid
+├── LoadingCanvas.editorConfig.ts  # Mendix editor configuration (property panes, preview)
+├── LoadingCanvas.editorPreview.tsx # Mendix Studio Pro design-time preview
+├── LoadingCanvas.xml               # Mendix widget XML manifest
+├── package.xml                     # Widget package definition (id, name, version, author)
 │
 ├── components/
-│   ├── CargoCard.tsx                # Renders a single cargo item (position, size, border, label, rotation handle)
-│   ├── GridOverlay.tsx              # Renders a visual grid on the canvas for grid-snap visualization
-│   ├── PalletList.tsx               # Debug view: draggable cargo items available to place on canvas
-│   └── RotationHandle.tsx           # Small grab-handle UI for rotating an item 90°
+│   ├── CargoCard.tsx               # Renders a single cargo item (position, size, border, label, rotation handle)
+│   ├── GridOverlay.tsx             # Renders a visual grid on the canvas for grid-snap visualization
+│   ├── PalletList.tsx              # Debug view: draggable cargo items available to place on canvas
+│   ├── RotationHandle.tsx           # Small grab-handle UI for rotating an item 90°
+│   └── __tests__/                  # Component unit tests
 │
 ├── constants/
-│   ├── canvas.ts                    # Canvas dimensions, grid size, rotation step, snap threshold, info panel styles
-│   ├── card.ts                      # Card border widths and colors (default, selected, active)
-│   └── theme.ts                     # Canvas background color
+│   ├── canvas.ts                   # Canvas dimensions, grid size, rotation step, snap threshold, info panel styles
+│   ├── card.ts                     # Card border widths and colors (default, selected, active)
+│   └── theme.ts                    # Canvas background color
 │
 ├── domain/
-│   ├── boundaryRules.ts             # clamp() — keeps values within a range
-│   ├── coordinateRules.ts           # getCanvasPoint(), meterToPixel(), pixelToMeter()
-│   ├── dragRules.ts                 # calculateDragPosition() — grid-snapped, clamped drag position
-│   ├── geometryRules.ts             # getRectangle(), isIntersecting(), overlaps(), isInsideBounds(), findCollisions()
-│   ├── rotationRules.ts             # rotate90(), isVerticalRotation(), getRotatedSize()
-│   ├── snapRules.ts                 # snapToGrid(), snapPosition()
-│   └── validationRules.ts           # validateItem(), validateLoadMeters(), validateHeight(), validateAll()
+│   ├── boundaryRules.ts            # clamp() — keeps values within a range
+│   ├── coordinateRules.ts          # getCanvasPoint(), meterToPixel(), pixelToMeter()
+│   ├── dragRules.ts                # calculateDragPosition() — grid-snapped, clamped drag position
+│   ├── geometryRules.ts            # getRectangle(), isIntersecting(), overlaps(), isInsideBounds(), findCollisions()
+│   ├── rotationRules.ts            # rotate90(), isVerticalRotation(), getRotatedSize()
+│   ├── snapRules.ts                # snapToGrid(), snapPosition()
+│   ├── validationRules.ts          # validateItem(), validateLoadMeters(), validateHeight(), validateAll()
+│   └── __tests__/                  # Domain rule unit tests
 │
 ├── engines/
-│   ├── DragEngine.ts                # Manages drag state, computes new positions with snap + collision resolution
-│   ├── CollisionEngine.ts           # Detects overlaps, finds valid non-overlapping positions
-│   ├── SnapEngine.ts                # Calculates best snap target (boundary, edge, align, grid)
-│   └── ValidationEngine.ts          # Validates all items against bounds and each other
+│   ├── DragEngine.ts               # Manages drag state, computes new positions with snap + collision resolution
+│   ├── CollisionEngine.ts          # Detects overlaps, finds valid non-overlapping positions
+│   ├── SnapEngine.ts               # Calculates best snap target (boundary, edge, align, grid)
+│   ├── ValidationEngine.ts         # Validates all items against bounds and each other
+│   └── __tests__/                  # Engine unit tests
 │
 ├── hooks/
-│   ├── useTrailerCanvas.ts          # Main hook: wires engines, state manager, dispatcher, and mouse events
-│   ├── useCanvasState.ts            # Subscribes to CanvasStateManager, returns current CanvasState
-│   ├── useCanvasActions.ts          # Wraps CanvasActionDispatcher with memoized action callbacks
-│   └── useMouseEvents.ts            # Attaches window mousemove/mouseup/blur listeners during drag
+│   ├── useTrailerCanvas.ts         # Main hook: wires engines, state manager, dispatcher, and mouse events
+│   ├── useCanvasState.ts           # Subscribes to CanvasStateManager, returns current CanvasState
+│   ├── useCanvasActions.ts         # Wraps CanvasActionDispatcher with memoized action callbacks
+│   └── useMouseEvents.ts           # Attaches window mousemove/mouseup/blur listeners during drag
 │
 ├── models/
-│   └── Trailer.ts                   # Business model: trailer dimensions (meters), payload, axle count, type
+│   └── Trailer.ts                  # Business model: trailer dimensions (meters), payload, axle count, type
 │
 ├── state/
-│   ├── CanvasState.ts               # Interface: trailer, cargos, selectedIds, activeItemId, validation, scale, offset
-│   ├── CanvasStateManager.ts        # Single source of truth; immutable updates, subscribe/notify, undo/redo history
-│   ├── CanvasActionDispatcher.ts    # Routes CanvasAction types to state mutations via engines
-│   ├── CanvasStateListener.ts       # Type alias: (state: CanvasState) => void
-│   └── DragState.ts                 # Internal drag tracking: isDragging, activeId, startMouse, startPositions, startOffsets
+│   ├── CanvasState.ts              # Interface: trailer, cargos, selectedIds, activeItemId, validation, scale, offset
+│   ├── CanvasStateManager.ts       # Single source of truth; immutable updates, subscribe/notify, undo/redo history
+│   ├── CanvasActionDispatcher.ts   # Routes CanvasAction types to state mutations via engines
+│   ├── CanvasStateListener.ts      # Type alias: (state: CanvasState) => void
+│   ├── DragState.ts                # Internal drag tracking: isDragging, activeId, startMouse, startPositions, startOffsets
+│   └── __tests__/                  # State management unit tests
 │
 ├── types/
-│   ├── geometry.ts                  # Point, Size, Positionable, Sizeable, Rotatable, RectLike, GeometryItem, Rectangle, Rotation
-│   └── mendix.d.ts                  # Lightweight Mendix widget framework type declarations
+│   ├── geometry.ts                 # Point, Size, Positionable, Sizeable, Rotatable, RectLike, GeometryItem, Rectangle, Rotation
+│   └── mx.d.ts                     # Lightweight Mendix widget framework type declarations
+│
+├── typings/
+│   └── stcvn/                      # Mendix widget typings (generated)
+│
+├── ui/
+│   └── LoadingCanvas.css           # Widget styles (canvas, cards, info panel, grid)
 │
 ├── viewModels/
-│   ├── CargoItem.ts                 # View model: extends GeometryItem with id, name, type, color, isLocked
-│   └── TrailerItem.ts               # View model: extends GeometryItem with trailer business fields
+│   ├── CargoItem.ts                # View model: extends GeometryItem with id, name, type, color, isLocked
+│   └── TrailerItem.ts              # View model: extends GeometryItem with trailer business fields
 │
 ├── adapters/
-│   ├── cargoAdapter.ts              # Converts PackingUnit/TransportOrder data to CargoItem view models
-│   ├── trailerAdapter.ts            # Converts TruckSelection data to TrailerItem view model, computes scale
-│   ├── stateAdapter.ts              # Serializes/deserializes PackingPlanData for persistence
-│   └── mendixDataAdapter.ts         # Bridges to Mendix Data API (mx.data) for load/save
+│   ├── cargoAdapter.ts             # Converts PackingUnit/TransportOrder data to CargoItem view models
+│   ├── trailerAdapter.ts           # Converts TruckSelection data to TrailerItem view model, computes scale
+│   ├── stateAdapter.ts             # Serializes/deserializes PackingPlanData for persistence
+│   ├── mendixDataAdapter.ts        # Bridges to Mendix Data API (mx.data) for load/save
+│   └── __tests__/                  # Adapter unit tests
 │
 ├── widget/
-│   ├── index.ts                     # Mendix widget entry point (exports LoadingCanvasContainer)
-│   ├── LoadingCanvas.tsx            # Main widget component: renders canvas, trailer, cargo, info panel, grid
-│   ├── LoadingCanvas.container.tsx  # Mendix bridge: loads data via mx.data, passes view models to widget
-│   └── LoadingCanvas.properties.ts  # Property definitions and prop interfaces
+│   ├── index.ts                    # Mendix widget entry point (exports LoadingCanvasContainer)
+│   ├── LoadingCanvas.container.tsx # Mendix bridge: loads data via mx.data, passes view models to widget
+│   └── LoadingCanvas.properties.ts # Property definitions and prop interfaces
 │
 ├── fixtures/
-│   └── InitialCargoItem.ts          # Debug fixture: initial cargo items for testing
+│   └── InitialCargoItem.ts         # Debug fixture: initial cargo items for testing
 │
 └── __tests__/
-    └── setup.ts                     # Vitest setup file
+    └── setup.ts                    # Vitest setup file
 ```
 
 ## Core Components
@@ -111,7 +122,7 @@ src/
   - Passes view models to `LoadingCanvas` via `LoadingCanvasViewModelProps`
   - Handles save plan (delete + recreate) and load plan via `mendixDataAdapter.ts`
 
-- **`LoadingCanvas`** (`src/widget/LoadingCanvas.tsx`) is the pure React component.
+- **`LoadingCanvas`** (`src/LoadingCanvas.tsx`) is the pure React component.
   - Receives `LoadingCanvasWidgetProps` (view models + loading state)
   - Manages canvas state via `useTrailerCanvas` hook
   - Renders the canvas, trailer boundary, cargo items, info panel, grid overlay, and pallet list
@@ -221,7 +232,7 @@ src/
 
 ### UI Components
 
-- **`LoadingCanvas`** (`src/widget/LoadingCanvas.tsx`) — the main widget component.
+- **`LoadingCanvas`** (`src/LoadingCanvas.tsx`) — the main widget component.
   - Receives view models from the container (trailer, pallet list, initial canvas items, scale).
   - Manages pallet list state (useState) for the debug palette view.
   - Renders the canvas with trailer boundary, cargo items, info panel, grid overlay, and pallet list.
@@ -345,9 +356,10 @@ src/
 
 ### Widget Manifest
 
-- **`widget.xml`** — Mendix widget manifest defining properties, metadata, and entry point.
+- **`LoadingCanvas.xml`** — Mendix widget manifest defining properties, metadata, and entry point.
 - **`package.xml`** — Widget package definition (id, name, version, author, etc.).
-- **`src/types/mendix.d.ts`** — Lightweight TypeScript declarations for the Mendix widget framework.
+- **`src/types/mx.d.ts`** — Lightweight TypeScript declarations for the Mendix widget framework.
+- **`src/typings/stcvn/`** — Generated Mendix widget typings.
 
 ### Mendix Data API
 
