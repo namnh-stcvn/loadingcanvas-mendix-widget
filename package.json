@@ -1,66 +1,66 @@
 {
-    "name": "loadingcanvas",
-    "widgetName": "LoadingCanvas",
-    "version": "1.0.0",
-    "description": "Mendix pluggable widget for interactive truck loading and packing. Supports pallet and box positioning, 90Â° rotation, grid snapping, real-time validation, and loading/saving packing plans.",
-    "copyright": "STCVN Â© 2026. All rights reserved.",
-    "author": "Nam",
-    "engines": {
-        "node": ">=16"
-    },
-    "license": "Apache-2.0",
-    "config": {
-        "projectPath": "D:\\\\Mendix\\\\TCSTransport-branch--LDM--dev",
-        "mendixHost": "http://localhost:8080",
-        "developmentPort": 3000
-    },
-    "packagePath": "stcvn",
-    "scripts": {
-        "start": "pluggable-widgets-tools start:server",
-        "dev": "pluggable-widgets-tools start:web",
-        "build": "pluggable-widgets-tools build:web",
-        "lint": "pluggable-widgets-tools lint",
-        "lint:fix": "pluggable-widgets-tools lint:fix",
-        "test": "pluggable-widgets-tools test:unit:web",
-        "test:unit": "pluggable-widgets-tools test:unit:web",
-        "prerelease": "npm run lint",
-        "release": "pluggable-widgets-tools release:web"
-    },
-    "devDependencies": {
-        "@mendix/pluggable-widgets-tools": "^11.11.0",
-        "@rollup/plugin-typescript": "^6.0.0",
-        "@types/big.js": "^6.0.2",
-        "@types/jest": "^30.0.0",
-        "@typescript-eslint/eslint-plugin": "^8.67.0",
-        "@typescript-eslint/parser": "^8.67.0",
-        "eslint-config-prettier": "^10.1.8",
-        "eslint-plugin-jest": "^29.16.1",
-        "eslint-plugin-prettier": "^5.5.6",
-        "eslint-plugin-react": "^7.37.5",
-        "eslint-plugin-react-hooks": "^7.1.1",
-        "typescript": "^5.9.3",
-        "vite": "^8.2.1"
-    },
-    "dependencies": {
-        "classnames": "^2.5.1"
-    },
-    "resolutions": {
-        "react": "^19.0.0",
-        "react-dom": "^19.0.0",
-        "@types/react": "^19.0.0",
-        "@types/react-dom": "^19.0.0"
-    },
-    "overrides": {
-        "react": "^19.0.0",
-        "react-dom": "^19.0.0",
-        "@types/react": "^19.0.0",
-        "@types/react-dom": "^19.0.0"
-    },
-    "jest": {
-        "testMatch": [
-            "**/__tests__/**/*.test.[jt]s?(x)",
-            "**/?(*.)+(test).[jt]s?(x)"
-        ],
-        "collectCoverage": false
-    }
+  "name": "loadingcanvas",
+  "widgetName": "LoadingCanvas",
+  "version": "1.0.0",
+  "description": "Mendix pluggable widget for interactive truck loading and packing. Supports pallet and box positioning, 90Â° rotation, grid snapping, real-time validation, and loading/saving packing plans.",
+  "copyright": "STCVN Â© 2026. All rights reserved.",
+  "author": "Nam",
+  "engines": {
+    "node": ">=16"
+  },
+  "license": "Apache-2.0",
+  "config": {
+    "projectPath": "D:\\\\Mendix\\\\TCSTransport-branch--LDM--dev",
+    "mendixHost": "http://localhost:8882",
+    "developmentPort": 3000
+  },
+  "packagePath": "stcvn",
+  "scripts": {
+    "start": "pluggable-widgets-tools start:server",
+    "dev": "pluggable-widgets-tools start:web",
+    "build": "pluggable-widgets-tools build:web",
+    "lint": "pluggable-widgets-tools lint",
+    "lint:fix": "pluggable-widgets-tools lint:fix",
+    "test": "pluggable-widgets-tools test:unit:web",
+    "test:unit": "pluggable-widgets-tools test:unit:web",
+    "prerelease": "npm run lint",
+    "release": "pluggable-widgets-tools release:web"
+  },
+  "devDependencies": {
+    "@mendix/pluggable-widgets-tools": "^10.0.2",
+    "@rollup/plugin-typescript": "^6.0.0",
+    "@types/big.js": "^6.0.2",
+    "@types/jest": "^29.5.0",
+    "@typescript-eslint/eslint-plugin": "^8.67.0",
+    "@typescript-eslint/parser": "^8.67.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-jest": "^29.16.1",
+    "eslint-plugin-prettier": "^5.5.6",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.2.1"
+  },
+  "dependencies": {
+    "classnames": "^2.5.1"
+  },
+  "jest": {
+    "testMatch": [
+      "**/__tests__/**/*.test.[jt]s?(x)",
+      "**/?(*.)+(test).[jt]s?(x)"
+    ],
+    "collectCoverage": false
+  },
+  "overrides": {
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "@types/react": "18.2.0",
+    "@types/react-dom": "18.2.0"
+  },
+  "resolutions": {
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "@types/react": "18.2.0",
+    "@types/react-dom": "18.2.0"
+  }
 }

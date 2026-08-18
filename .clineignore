@@ -22,10 +22,6 @@ Thumbs.db
 .git/
 
 # Large data files
-*.csv
-*.json
-*.xml
-*.md
 
 # Test files (if not needed) # COMMENTED OUT
 # *.test.*
@@ -33,9 +29,7 @@ Thumbs.db
 # __tests__/
 
 # Type definitions
-typings/
+
 
 # Documentation
-docs/
-ARCHITECTURE.md
-README.md
+
