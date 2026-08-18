@@ -6,14 +6,30 @@
 import { CSSProperties } from "react";
 import { ActionValue, ListValue } from "mendix";
 
+export interface TruckSelectionType {
+
+}
+
+export interface SessionType {
+
+}
+
+export interface TruckSelectionPreviewType {
+
+}
+
+export interface SessionPreviewType {
+
+}
+
 export interface LoadingCanvasContainerProps {
     name: string;
     class: string;
     style?: CSSProperties;
     tabIndex?: number;
-    trucks: string;
+    truckSelection: TruckSelectionType[];
     transportOrders?: ListValue;
-    session: string;
+    session: SessionType[];
     canvasWidth: number;
     canvasHeight: number;
     onSavePlan?: ActionValue;
@@ -31,9 +47,9 @@ export interface LoadingCanvasPreviewProps {
     readOnly: boolean;
     renderMode: "design" | "xray" | "structure";
     translate: (text: string) => string;
-    trucks: string;
+    truckSelection: TruckSelectionPreviewType[];
     transportOrders: {} | { caption: string } | { type: string } | null;
-    session: string;
+    session: SessionPreviewType[];
     canvasWidth: number | null;
     canvasHeight: number | null;
     onSavePlan: {} | null;

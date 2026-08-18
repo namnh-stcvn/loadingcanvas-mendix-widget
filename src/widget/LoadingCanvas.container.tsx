@@ -24,13 +24,16 @@ import type { CanvasState } from "../state/CanvasState";
  */
 export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement => {
   const {
-    trucks: trucksRef,
+    truckSelection: truckSelectionRef,
     transportOrders: transportOrdersRef,
     canvasWidth = 1000,
     canvasHeight = 600,
     onSavePlan: onSavePlanCallback,
     onLoadPlan: onLoadPlanCallback,
   } = props;
+
+  // Handle object from Mendix - may be object or list
+  const truckSelection = Array.isArray(truckSelectionRef) ? truckSelectionRef[0] : truckSelectionRef;
 
   // --- State for loaded data ---
   const [trailerItem, setTrailerItem] = useState<TrailerItem | null>(null);
@@ -41,12 +44,9 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
   const [isLoading, setIsLoading] = useState(true);
 
   // --- Load truck data and compute scale ---
-  // We need the truck data to compute the scale, but we also need the scale
-  // to convert truck data to a TrailerItem. So we first load the raw truck data,
-  // compute the scale, then convert to a TrailerItem.
   useEffect(() => {
     const loadTruck = async (): Promise<void> => {
-      if (!trucksRef) {
+      if (!truckSelection) {
         setTrailerItem(null);
         setTruckGuid(null);
         setScale(1);
@@ -55,17 +55,13 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
       }
 
       try {
-        // Load the raw truck data to compute scale
-        const rawTruck = await loadMendixObjectRaw(trucksRef);
+        const rawTruck = await loadMendixObjectRaw(truckSelection);
         if (rawTruck) {
           setTruckGuid(rawTruck.id ?? null);
-
-          // Compute scale from truck dimensions
           const computedScale = computeScale(rawTruck, canvasWidth, canvasHeight);
           setScale(computedScale);
-
-          // Convert to TrailerItem
-          const trailer = await loadTrailerItem(trucksRef, computedScale);
+          const trailerItemGuid = typeof truckSelection === "string" ? truckSelection : truckSelection?.guid;
+          const trailer = await loadTrailerItem(trailerItemGuid, computedScale);
           setTrailerItem(trailer);
         }
       } catch (err) {
@@ -74,7 +70,7 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
     };
 
     loadTruck();
-  }, [trucksRef, canvasWidth, canvasHeight]);
+  }, [truckSelection, canvasWidth, canvasHeight]);
 
   // --- Load transport orders (pallet list) ---
   useEffect(() => {
@@ -115,14 +111,13 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
     loadPlan();
   }, [truckGuid, scale]);
 
-  // --- Save plan handler — called by the widget with current items and scale ---
+  // --- Save plan handler ---
   const handleSavePlan = useCallback(
     async (items: CargoItem[], currentScale: number) => {
       if (!truckGuid) {
         return;
       }
 
-      // Build a minimal CanvasState for serialization
       const state: CanvasState = {
         trailer: trailerItem,
         cargos: items,
@@ -144,7 +139,7 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
     }
   }, [onLoadPlanCallback]);
 
-  // --- Build view model props for the widget ---
+  // --- Build view model props ---
   const viewModel: LoadingCanvasViewModelProps = useMemo(
     () => ({
       trailer: trailerItem,
@@ -164,25 +159,27 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
 
 /**
  * Load raw truck data (for scale computation).
- * In Mendix, this uses mx.data.load. In dev, it parses JSON.
  */
-const loadMendixObjectRaw = async (ref: string): Promise<TruckSelectionData | null> => {
-  // Try mx.data first
+const loadMendixObjectRaw = async (ref: unknown): Promise<TruckSelectionData | null> => {
   if (typeof window !== "undefined" && (window as unknown as { mx?: unknown }).mx) {
     const mxData = (window as unknown as { mx: { data: unknown } }).mx.data as {
       load: (opts: { guid: string; callback: (obj: unknown) => void; error?: (e: Error) => void }) => void;
     };
     return new Promise((resolve, reject) => {
+      const guid = typeof ref === "string" ? ref : (ref as { guid?: string })?.guid;
+      if (!guid) {
+        resolve(null as unknown as TruckSelectionData);
+        return;
+      }
       mxData.load({
-        guid: ref,
+        guid,
         callback: (obj: unknown) => resolve(obj as TruckSelectionData),
         error: (err: Error) => reject(err),
       });
     });
   }
-  // Dev fallback: parse JSON
   try {
-    return JSON.parse(ref) as TruckSelectionData;
+    return JSON.parse(JSON.stringify(ref)) as TruckSelectionData;
   } catch {
     return null;
   }

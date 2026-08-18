@@ -1,24 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
-<widget id="stcvn.LoadingCanvas" pluginWidget="true" needsEntityContext="true" offlineCapable="true"
+<widget id="stcvn.LoadingCanvas" pluginWidget="true" needsEntityContext="false" offlineCapable="true"
         supportedPlatform="Web"
         xmlns="http://www.mendix.com/widget/1.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://www.mendix.com/widget/1.0/ ../node_modules/mendix/custom_widget.xsd">
+        xsi:schemaLocation="http://www.mendix.com/widget/1.0/ ../node_modules/custom_widget.xsd">
     <name>Loading Canvas</name>
     <description>Interactive packing canvas for truck loading planning. Supports pallet and box positioning, 90° rotation, grid snapping, real-time validation, and loading/saving packing plans.</description>
     <icon/>
     <properties>
         <propertyGroup caption="Data">
-            <property key="trucks" type="string" required="false">
+            <property key="truckSelection" type="object" isList="true" required="false">
                 <caption>Truck Selection</caption>
-                <description>GUID of the TruckSelection object from TCSTransportModule</description>
+                <description>The TruckSelection object from page parameters</description>
+                <properties/>
             </property>
             <property key="transportOrders" type="datasource" isList="true" required="false">
                 <caption>Transport Orders</caption>
                 <description>List of TransportOrder objects to display as cargo items</description>
             </property>
-            <property key="session" type="string" required="false">
+            <property key="session" type="object" isList="true" required="false">
                 <caption>Session</caption>
-                <description>GUID of the current Session object</description>
+                <description>The Session object from page parameters</description>
+                <properties/>
             </property>
         </propertyGroup>
         <propertyGroup caption="Canvas">

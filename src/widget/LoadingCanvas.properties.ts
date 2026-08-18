@@ -2,11 +2,11 @@
 import type { CargoItem } from "../viewModels/CargoItem";
 import type { TrailerItem } from "../viewModels/TrailerItem";
 
-// Mendix-facing props interface — what the container receives after resolving reference values to GUIDs
+// Mendix-facing props interface — what the container receives after resolving values to GUIDs
 export interface LoadingCanvasProps {
-  trucks?: string; // TruckSelection object GUID from Mendix
-  transportOrders?: string[]; // TransportOrder object GUID list from Mendix
-  session?: string; // Session object GUID from Mendix
+  truckSelection?: any[]; // TruckSelection object reference
+  transportOrders?: string[]; // TransportOrder GUID list from Mendix
+  session?: any[]; // Session object reference
   canvasWidth: number;
   canvasHeight: number;
   onSavePlan?: () => void;
@@ -28,5 +28,5 @@ export interface LoadingCanvasViewModelProps {
 // Internal widget props — what LoadingCanvas receives from the container
 export interface LoadingCanvasWidgetProps {
   viewModel: LoadingCanvasViewModelProps;
-  isLoading: boolean; // Whether widget is still loading data from Mendix
+  isLoading: boolean; // Whether the widget is still loading data from Mendix
 }
