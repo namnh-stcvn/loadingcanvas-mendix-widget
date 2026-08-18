@@ -8,19 +8,17 @@
     <icon/>
     <properties>
         <propertyGroup caption="Data">
-            <property key="truckSelection" type="object" isList="true" required="false">
+            <property key="truckSelection" type="datasource" isList="true" required="false">
                 <caption>Truck Selection</caption>
-                <description>The TruckSelection object from page parameters</description>
-                <properties/>
+                <description>The TruckSelection datasource from page parameters or microflow</description>
             </property>
             <property key="transportOrders" type="datasource" isList="true" required="false">
                 <caption>Transport Orders</caption>
                 <description>List of TransportOrder objects to display as cargo items</description>
             </property>
-            <property key="session" type="object" isList="true" required="false">
+            <property key="session" type="datasource" isList="true" required="false">
                 <caption>Session</caption>
-                <description>The Session object from page parameters</description>
-                <properties/>
+                <description>The Session datasource from page parameters</description>
             </property>
         </propertyGroup>
         <propertyGroup caption="Canvas">

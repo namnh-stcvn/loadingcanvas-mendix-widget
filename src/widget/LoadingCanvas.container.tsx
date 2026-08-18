@@ -32,8 +32,10 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
     onLoadPlan: onLoadPlanCallback,
   } = props;
 
-  // Handle object from Mendix - may be object or list
-  const truckSelection = Array.isArray(truckSelectionRef) ? truckSelectionRef[0] : truckSelectionRef;
+  // Handle datasource from Mendix - extract first item
+  const truckSelection = Array.isArray(truckSelectionRef)
+    ? truckSelectionRef[0]
+    : ((truckSelectionRef as unknown as { item?: unknown })?.item ?? truckSelectionRef);
 
   // --- State for loaded data ---
   const [trailerItem, setTrailerItem] = useState<TrailerItem | null>(null);
