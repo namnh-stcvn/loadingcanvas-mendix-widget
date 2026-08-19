@@ -202,7 +202,7 @@ export const LoadingCanvas = (props: LoadingCanvasWidgetProps): ReactElement => 
           padding: INFO_PANEL_PADDING,
           border: INFO_PANEL_BORDER,
         }}>
-        <div>Active: {activeItemId ?? "None"}</div>
+        {/* <div>Active: {activeItemId ?? "None"}</div>
         <div>
           Validation:{" "}
           <span style={{ color: validation?.valid ? "green" : "red", fontWeight: "bold" }}>
@@ -217,7 +217,7 @@ export const LoadingCanvas = (props: LoadingCanvasWidgetProps): ReactElement => 
               </li>
             ))}
           </ul>
-        )}
+        )} */}
         <div style={{ marginTop: 8 }}>
           <button onClick={handleSavePlan} style={{ marginRight: 8 }}>
             Save Plan

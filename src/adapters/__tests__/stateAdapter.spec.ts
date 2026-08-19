@@ -42,8 +42,6 @@ describe("stateAdapter", () => {
     activeItemId: null,
     validation: { valid: true, errors: [] },
     scale,
-    offsetX: 0,
-    offsetY: 0,
   });
 
   describe("serializePlan", () => {

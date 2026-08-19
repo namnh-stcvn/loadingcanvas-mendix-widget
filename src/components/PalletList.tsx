@@ -76,10 +76,10 @@ export const PalletList: FC<PalletListProps> = ({ pallets, onAddPallet }) => {
             }}>
             {pallet.type === "pallet" ? "📦" : "📦"}
           </div>
-          <span style={{ fontSize: 10, marginTop: 2, color: "#333" }}>{pallet.name}</span>
+          {/* <span style={{ fontSize: 10, marginTop: 2, color: "#333" }}>{pallet.name}</span>
           <span style={{ fontSize: 8, color: "#666" }}>
             {pallet.width}×{pallet.height}
-          </span>
+          </span> */}
         </div>
       ))}
     </div>

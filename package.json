@@ -21,8 +21,8 @@
     "build": "pluggable-widgets-tools build:web",
     "lint": "pluggable-widgets-tools lint",
     "lint:fix": "pluggable-widgets-tools lint:fix",
-    "test": "pluggable-widgets-tools test:unit:web",
-    "test:unit": "pluggable-widgets-tools test:unit:web",
+    "test": "pluggable-widgets-tools test:unit:web:enzyme-free",
+    "test:unit": "pluggable-widgets-tools test:unit:web:enzyme-free",
     "prerelease": "npm run lint",
     "release": "pluggable-widgets-tools release:web"
   },
@@ -47,8 +47,10 @@
   "jest": {
     "testMatch": [
       "**/__tests__/**/*.test.[jt]s?(x)",
-      "**/?(*.)+(test).[jt]s?(x)"
+      "**/__tests__/**/*.spec.[jt]s?(x)",
+      "**/?(*.)+(test|spec).[jt]s?(x)"
     ],
+    "snapshotSerializers": [],
     "collectCoverage": false
   },
   "overrides": {

@@ -5,6 +5,7 @@ import { loadTrailerAndScale, loadCargoItems, loadPackingPlan, savePackingPlan }
 import type { CargoItem } from "../viewModels/CargoItem";
 import type { TrailerItem } from "../viewModels/TrailerItem";
 import type { CanvasState } from "../state/CanvasState";
+import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from "../constants/canvas";
 
 /**
  * LoadingCanvasContainer — the Mendix widget container.
@@ -21,8 +22,8 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
   const {
     truckSelection: truckSelectionRef,
     transportOrders: transportOrdersRef,
-    canvasWidth = 1000,
-    canvasHeight = 600,
+    canvasWidth = DEFAULT_CANVAS_WIDTH,
+    canvasHeight = DEFAULT_CANVAS_HEIGHT,
     onSavePlan: onSavePlanCallback,
     onLoadPlan: onLoadPlanCallback,
   } = props;

@@ -1,6 +1,7 @@
 import { createElement, type ReactElement } from "react";
 import { LoadingCanvasContainer } from "./widget/LoadingCanvas.container";
 import type { LoadingCanvasContainerProps } from "../typings/LoadingCanvasProps";
+import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from "./constants/canvas";
 import "./ui/LoadingCanvas.css";
 
 export function LoadingCanvas(props: LoadingCanvasContainerProps): ReactElement {
@@ -8,8 +9,8 @@ export function LoadingCanvas(props: LoadingCanvasContainerProps): ReactElement 
     truckSelection,
     transportOrders,
     session,
-    canvasWidth = 1000,
-    canvasHeight = 600,
+    canvasWidth = DEFAULT_CANVAS_WIDTH,
+    canvasHeight = DEFAULT_CANVAS_HEIGHT,
     onSavePlan,
     onLoadPlan,
   } = props;

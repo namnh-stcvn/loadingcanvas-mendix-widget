@@ -8,7 +8,7 @@ describe("CollisionEngine", () => {
   describe("detectCollisions", () => {
     it("should return items that overlap the target", () => {
       const engine = new CollisionEngine();
-      const target = { x: 0, y: 0, width: 50, height: 50 };
+      const target = { id: "target", x: 0, y: 0, width: 50, height: 50 };
       const others = [
         { id: "a", x: 40, y: 40, width: 50, height: 50 },
         { id: "b", x: 200, y: 200, width: 50, height: 50 },
