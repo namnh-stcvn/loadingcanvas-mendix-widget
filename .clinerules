@@ -68,13 +68,14 @@
 - Trước khi `set()`, chuyển bằng Big.js runtime; không truyền số thập phân trực tiếp.
 - Không gọi `window.require("big/big")` hoặc `window.require("big.js")`: Dojo loader của Mendix có thể ném `undefinedModule` và dừng debugger trước cả khi lỗi được catch.
 - Khi tạo object Mendix mới, lấy native Decimal constructor từ default value của chính `MxObject` (`mxObject.get(attribute).constructor`) rồi tạo Decimal bằng constructor đó. Không dùng `big.js` được bundle/import riêng vì Mendix validation có thể từ chối instance khác dù cùng API/giá trị.
-- Nếu Decimal attribute không có default native value, báo lỗi có ngữ cảnh và dừng save; chỉ dùng `big.js` package local ở dev/test.
+- Nếu Decimal attribute không có default native value, mượn Decimal constructor từ attribute Decimal khác trên cùng MxObject (ví dụ `PositionX`, `Width`, `Height`); tất cả Decimal attribute trên cùng object chia sẻ cùng một Mendix Decimal constructor. Chỉ khi không tìm được constructor nào mới báo lỗi có ngữ cảnh và dừng save; chỉ dùng `big.js` package local ở dev/test.
+- Lỗi từng gặp: `PackingPlanItem cargo-...: HeightMeters has no native Mendix Decimal default value` do `HeightMeters`/`WeightKg` không có default value trên object mới tạo; đã sửa bằng fallback mượn constructor từ `PositionX`/`Width`/`Height`.
 - Khi đọc Decimal, normalize Big.js về number ở mapper trước khi chạy domain calculation.
 - Lỗi từng gặp: `Cannot set invalid value '0.386...' to MxObject attribute 'PositionX'` do truyền number hoặc Big.js instance không thuộc Mendix runtime.
 - Lỗi từng gặp: `Cannot set invalid value '0.7881818181818182' to MxObject attribute 'PositionX'` do truyền number thập phân dài trực tiếp vào `set()` mà không qua native Decimal constructor.
 - Quy trình chuẩn khi set Decimal (đã áp dụng trong `mendixDataAdapter.ts`):
   1. Kiểm tra `Number.isFinite(value)`; nếu không phải số hữu hạn thì báo lỗi có ngữ cảnh và dừng.
-  2. Lấy native Decimal constructor từ `obj.get(attribute).constructor`; nếu không có thì báo lỗi và dừng save.
+  2. Lấy native Decimal constructor từ `obj.get(attribute).constructor`; nếu attribute không có default value thì thử mượn constructor từ các Decimal attribute khác trên cùng object (`PositionX`, `PositionY`, `Width`, `Height`, `WeightKg`, `HeightMeters`); chỉ khi tất cả đều không có mới báo lỗi và dừng save.
   3. Normalize bằng `new Big(value).round(8, Big.roundHalfUp).toFixed(8)` (hằng số `MENDIX_DECIMAL_SCALE = 8`).
   4. Tạo instance `new Decimal(normalizedValue)` rồi mới gọi `obj.set(attribute, instance)`.
 - Không dùng `toBig()` (trả về Big.js instance) làm giá trị cuối cùng cho `set()`; chỉ dùng nó để normalize/round trước khi tạo native Decimal.

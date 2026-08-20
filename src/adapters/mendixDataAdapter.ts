@@ -96,16 +96,35 @@ const getDecimalConstructor = (obj: unknown, attribute: string, context: string)
   if (!isMxObject(obj)) {
     throw new Error(`${context}: created value is not a Mendix object`);
   }
-  const currentValue = obj.get(attribute);
-  const constructor =
-    currentValue !== null && typeof currentValue === "object" && typeof currentValue.constructor === "function"
-      ? (currentValue.constructor as DecimalConstructor)
-      : null;
 
-  if (!constructor) {
-    throw new Error(`${context}: ${attribute} has no native Mendix Decimal default value`);
+  const tryGetConstructor = (attr: string): DecimalConstructor | null => {
+    const currentValue = obj.get(attr);
+    if (currentValue !== null && typeof currentValue === "object" && typeof currentValue.constructor === "function") {
+      return currentValue.constructor as DecimalConstructor;
+    }
+    return null;
+  };
+
+  const constructor = tryGetConstructor(attribute);
+  if (constructor) {
+    return constructor;
   }
-  return constructor;
+
+  // All Decimal attributes on the same MxObject share the same Mendix Decimal constructor.
+  // If the target attribute has no default value, borrow the constructor from another
+  // Decimal attribute that does (e.g. PositionX/Width/Height usually have defaults).
+  const fallbackAttributes = ["PositionX", "PositionY", "Width", "Height", "WeightKg", "HeightMeters"];
+  for (const attr of fallbackAttributes) {
+    if (attr === attribute) {
+      continue;
+    }
+    const fallback = tryGetConstructor(attr);
+    if (fallback) {
+      return fallback;
+    }
+  }
+
+  throw new Error(`${context}: ${attribute} has no native Mendix Decimal default value`);
 };
 
 const setMxDecimalAttribute = (obj: unknown, attribute: string, value: number, context: string): void => {
