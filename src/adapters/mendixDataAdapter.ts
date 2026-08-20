@@ -618,7 +618,15 @@ export const loadPackingPlan = async (truckGuid: string | null, scale: number): 
           width: Number(raw.Width ?? raw.width ?? 1.2),
           height: Number(raw.Height ?? raw.height ?? 0.8),
           rotation: Number(raw.Rotation ?? raw.rotation ?? 0) as 0 | 90 | 180 | 270,
-          color: String(raw.Color ?? raw.color ?? "gray"),
+          color: String(
+            raw.Color ??
+              raw.color ??
+              (String(raw.Type ?? raw.type ?? "pallet")
+                .toLowerCase()
+                .includes("box")
+                ? "blue"
+                : "orange")
+          ),
           heightM:
             raw.HeightMeters !== undefined || raw.heightMeters !== undefined || raw.heightM !== undefined
               ? Number(raw.HeightMeters ?? raw.heightMeters ?? raw.heightM)
@@ -731,6 +739,7 @@ export const savePackingPlan = async (
               setMxDecimalAttribute(itemObj, "Width", item.width, `PackingPlanItem ${item.id}`);
               setMxDecimalAttribute(itemObj, "Height", item.height, `PackingPlanItem ${item.id}`);
               setMxAttribute(itemObj, "Rotation", item.rotation, `PackingPlanItem ${item.id}`);
+              setMxAttribute(itemObj, "Type", item.type, `PackingPlanItem ${item.id}`);
               setMxAttribute(itemObj, "Color", item.color, `PackingPlanItem ${item.id}`);
               setMxDecimalAttribute(itemObj, "HeightMeters", item.heightM ?? 0, `PackingPlanItem ${item.id}`);
               setMxDecimalAttribute(itemObj, "WeightKg", item.weightKg ?? 0, `PackingPlanItem ${item.id}`);
