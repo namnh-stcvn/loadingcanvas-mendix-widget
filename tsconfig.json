@@ -1,24 +1,26 @@
 {
-    "compilerOptions": {
-        "forceConsistentCasingInFileNames": true,
-        "strict": true,
-        "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-        "target": "ES2022",
-        "lib": ["ES2022", "DOM"],
-        "module": "esnext",
-        "types": ["vite/client", "node"],
-        "allowArbitraryExtensions": true,
-        "skipLibCheck": true,
-        "moduleResolution": "bundler",
-        "moduleDetection": "force",
-        "jsx": "react-jsx",
+  "compilerOptions": {
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "esnext",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "types": ["vite/client", "node"],
+    "allowArbitraryExtensions": true,
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "jsx": "react-jsx",
 
-        /* Linting */
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
-        "erasableSyntaxOnly": true,
-        "noFallthroughCasesInSwitch": true
-    },
-    "include": ["src/**/*"],
-    "exclude": ["src/**/__tests__", "src/**/*.test.ts", "src/**/*.spec.ts"]
+    /* Linting */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["src/**/__tests__", "src/**/*.test.ts", "src/**/*.spec.ts"]
 }

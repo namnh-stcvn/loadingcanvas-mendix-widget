@@ -1,12 +1,13 @@
 // Property definitions for the LoadingCanvas widget
 import type { CargoItem } from "../viewModels/CargoItem";
 import type { TrailerItem } from "../viewModels/TrailerItem";
+import type { MxObject } from "../types/mx";
 
 // Mendix-facing props interface — what the container receives after resolving values to GUIDs
 export interface LoadingCanvasProps {
-  truckSelection?: any[]; // TruckSelection object reference
+  truckSelection?: Array<MxObject | string | { guid?: string; id?: string }>;
   transportOrders?: string[]; // TransportOrder GUID list from Mendix
-  session?: any[]; // Session object reference
+  session?: Array<MxObject | string | { guid?: string; id?: string }>;
   canvasWidth: number;
   canvasHeight: number;
   onSavePlan?: () => void;

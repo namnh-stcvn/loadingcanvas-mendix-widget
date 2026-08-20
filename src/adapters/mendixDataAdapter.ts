@@ -18,7 +18,8 @@ import { deserializePlan, serializePlan, type PackingPlanData } from "./stateAda
 import { computeScale, truckSelectionToTrailerItem, type TruckSelectionData } from "./trailerAdapter";
 import { transportOrdersToCargoItems, type TransportOrderData, type PackingUnitData } from "./cargoAdapter";
 import type { CanvasState } from "../state/CanvasState";
-import type { MxData } from "../types/mx";
+import type { MxData, MxObject } from "../types/mx";
+import Big from "big.js";
 
 /**
  * Check if we're running inside a Mendix runtime with mx.data available.
@@ -38,6 +39,112 @@ export const getMx = (): MxData | null => {
 };
 
 /**
+ * Convert a number to Big.js representation (required for Mendix Decimal attributes).
+ */
+export type MendixDecimal = Big;
+
+export const toBig = (val: number): MendixDecimal => {
+  if (!Number.isFinite(val)) {
+    throw new Error(`Cannot convert non-finite value to Mendix Decimal: ${val}`);
+  }
+  return new Big(val);
+};
+
+export const getObjectGuid = (obj: unknown): string | undefined => {
+  if (typeof obj === "string") {
+    return obj;
+  }
+  if (!obj || typeof obj !== "object") {
+    return undefined;
+  }
+  const candidate = obj as Partial<MxObject> & { guid?: string; id?: string };
+  if (typeof candidate.getGuid === "function") {
+    return candidate.getGuid();
+  }
+  if (typeof candidate.getGUID === "function") {
+    return candidate.getGUID();
+  }
+  return candidate.guid ?? candidate.id;
+};
+
+const isMxObject = (obj: unknown): obj is MxObject => {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    typeof (obj as MxObject).get === "function" &&
+    typeof (obj as MxObject).set === "function" &&
+    typeof (obj as MxObject).getAttributes === "function"
+  );
+};
+
+const setMxAttribute = (obj: unknown, attribute: string, value: unknown, context: string): void => {
+  if (!isMxObject(obj)) {
+    throw new Error(`${context}: created value is not a Mendix object`);
+  }
+  try {
+    obj.set(attribute, value);
+  } catch (error) {
+    throw new Error(`${context}: failed to set ${attribute}`, { cause: error });
+  }
+};
+
+const MENDIX_DECIMAL_SCALE = 8;
+
+type DecimalConstructor = new (value: number | string) => unknown;
+
+const getDecimalConstructor = (obj: unknown, attribute: string, context: string): DecimalConstructor => {
+  if (!isMxObject(obj)) {
+    throw new Error(`${context}: created value is not a Mendix object`);
+  }
+  const currentValue = obj.get(attribute);
+  const constructor =
+    currentValue !== null && typeof currentValue === "object" && typeof currentValue.constructor === "function"
+      ? (currentValue.constructor as DecimalConstructor)
+      : null;
+
+  if (!constructor) {
+    throw new Error(`${context}: ${attribute} has no native Mendix Decimal default value`);
+  }
+  return constructor;
+};
+
+const setMxDecimalAttribute = (obj: unknown, attribute: string, value: number, context: string): void => {
+  if (!Number.isFinite(value)) {
+    throw new Error(`${context}: ${attribute} must be a finite number`);
+  }
+  const Decimal = getDecimalConstructor(obj, attribute, context);
+  const normalizedValue = new Big(value).round(MENDIX_DECIMAL_SCALE, Big.roundHalfUp).toFixed(MENDIX_DECIMAL_SCALE);
+  setMxAttribute(obj, attribute, new Decimal(normalizedValue), context);
+};
+
+const PACKING_PLAN_TRUCK_ASSOCIATIONS = ["TCSLoadingMeter.PackingPlan_TruckSelection", "PackingPlan_TruckSelection"];
+const PACKING_PLAN_ITEM_ASSOCIATIONS = ["TCSLoadingMeter.PackingPlanItem_PackingPlan", "PackingPlanItem_PackingPlan"];
+
+const getAssociationGuid = (obj: unknown, associationNames: string[]): string | undefined => {
+  if (!isMxObject(obj)) {
+    return undefined;
+  }
+
+  for (const associationName of associationNames) {
+    try {
+      const guid = getObjectGuid(obj.get(associationName));
+      if (guid) {
+        return guid;
+      }
+    } catch {
+      continue;
+    }
+  }
+  return undefined;
+};
+
+export const filterByAssociationGuid = (
+  objects: unknown[],
+  associationNames: string[],
+  expectedGuid: string
+): unknown[] => objects.filter((obj) => getAssociationGuid(obj, associationNames) === expectedGuid);
+
+/**
  * Extract plain JavaScript key-value pairs from either an MxObject or a plain JS object.
  */
 export const toPlainObject = (obj: unknown): Record<string, unknown> => {
@@ -47,14 +154,10 @@ export const toPlainObject = (obj: unknown): Record<string, unknown> => {
   const anyObj = obj as Record<string, unknown>;
 
   // Check if it's a Mendix MxObject (has .get() method)
-  if (typeof anyObj.get === "function") {
+  if (typeof anyObj.get === "function" && typeof anyObj.getAttributes === "function") {
+    const mxObject = obj as MxObject;
     const result: Record<string, unknown> = {};
-    const guid =
-      typeof anyObj.getGuid === "function"
-        ? (anyObj.getGuid as () => string)()
-        : typeof anyObj.getGUID === "function"
-          ? (anyObj.getGUID as () => string)()
-          : (anyObj.guid as string);
+    const guid = getObjectGuid(mxObject);
 
     if (guid) {
       result.id = guid;
@@ -62,9 +165,9 @@ export const toPlainObject = (obj: unknown): Record<string, unknown> => {
     }
 
     if (typeof anyObj.getAttributes === "function") {
-      const attrs = (anyObj.getAttributes as () => string[])();
+      const attrs = mxObject.getAttributes();
       for (const attr of attrs) {
-        let val = (anyObj.get as (attr: string) => unknown)(attr);
+        let val = mxObject.get(attr);
         // Handle Mendix Big.js decimal numbers
         if (
           val !== null &&
@@ -446,52 +549,14 @@ export const loadCargoItems = async (ordersGuids: string[], scale: number): Prom
   }
 };
 
-/**
- * Find PackingPlan for a given truck GUID by attempting valid Mendix association XPath queries.
- */
 const findPackingPlan = async (truckGuid: string): Promise<unknown[]> => {
-  const candidateXPaths = [
-    `//TCSLoadingMeter.PackingPlan[TCSLoadingMeter.PackingPlan_TruckSelection = '${truckGuid}']`,
-    `//TCSLoadingMeter.PackingPlan[TCSLoadingMeter.TruckSelection = '${truckGuid}']`,
-    `//TCSLoadingMeter.PackingPlan[TCSTransportModule.TruckSelection_PackingPlan = '${truckGuid}']`,
-    `//TCSLoadingMeter.PackingPlan[TCSTransportModule.PackingPlan_TruckSelection = '${truckGuid}']`,
-    `//TCSLoadingMeter.PackingPlan[TruckSelection = '${truckGuid}']`,
-  ];
-
-  for (const xpath of candidateXPaths) {
-    try {
-      const results = await loadMendixList(xpath);
-      if (results && results.length > 0) {
-        return results;
-      }
-    } catch {
-      // Continue trying next candidate XPath format
-    }
-  }
-  return [];
+  const plans = await loadMendixList("//TCSLoadingMeter.PackingPlan");
+  return filterByAssociationGuid(plans, PACKING_PLAN_TRUCK_ASSOCIATIONS, truckGuid);
 };
 
-/**
- * Find PackingPlanItems for a given plan GUID by attempting valid Mendix association XPath queries.
- */
 const findPackingPlanItems = async (planGuid: string): Promise<unknown[]> => {
-  const candidateXPaths = [
-    `//TCSLoadingMeter.PackingPlanItem[TCSLoadingMeter.PackingPlanItem_PackingPlan = '${planGuid}']`,
-    `//TCSLoadingMeter.PackingPlanItem[TCSLoadingMeter.PackingPlan = '${planGuid}']`,
-    `//TCSLoadingMeter.PackingPlanItem[PackingPlan = '${planGuid}']`,
-  ];
-
-  for (const xpath of candidateXPaths) {
-    try {
-      const results = await loadMendixList(xpath);
-      if (results && results.length > 0) {
-        return results;
-      }
-    } catch {
-      // Continue trying next candidate XPath format
-    }
-  }
-  return [];
+  const items = await loadMendixList("//TCSLoadingMeter.PackingPlanItem");
+  return filterByAssociationGuid(items, PACKING_PLAN_ITEM_ASSOCIATIONS, planGuid);
 };
 
 /**
@@ -563,123 +628,119 @@ export const savePackingPlan = async (
 ): Promise<PackingPlanData> => {
   const plan = serializePlan(state, scale);
 
-  if (isMendixRuntime()) {
-    try {
-      const plans = truckGuid ? await findPackingPlan(truckGuid) : [];
+  if (!isMendixRuntime()) {
+    onSaveMicroflow?.();
+    return plan;
+  }
 
-      let planGuid: string | null = null;
-      const mxData = getMx()!;
+  try {
+    const plans = truckGuid ? await findPackingPlan(truckGuid) : [];
 
-      if (plans.length > 0) {
-        const planPlain = toPlainObject(plans[0]);
-        planGuid = (planPlain.id ?? planPlain.guid) as string;
+    let planGuid: string | null = null;
+    const mxData = getMx()!;
 
-        const existingItems = await findPackingPlanItems(planGuid);
-        const itemGuids = existingItems
-          .map((item) => {
-            const p = toPlainObject(item);
-            return (p.id ?? p.guid) as string;
-          })
-          .filter(Boolean);
+    if (plans.length > 0) {
+      const planPlain = toPlainObject(plans[0]);
+      planGuid = (planPlain.id ?? planPlain.guid) as string;
 
-        if (itemGuids.length > 0) {
-          await new Promise<void>((resolve, reject) => {
-            mxData.remove({
-              guids: itemGuids,
-              callback: () => resolve(),
-              error: (err: Error) => reject(err),
-            });
-          });
-        }
-      } else {
-        const newPlanObj = await new Promise<unknown>((resolve, reject) => {
-          mxData.create({
-            entity: "TCSLoadingMeter.PackingPlan",
-            callback: (obj: unknown) => {
-              const anyObj = obj as Record<string, unknown>;
-              if (truckGuid && typeof anyObj?.set === "function") {
-                const setSafe = anyObj.set as (attr: string, val: unknown) => void;
-                try {
-                  setSafe("TruckSelection", truckGuid);
-                } catch {
-                  /* ignore */
-                }
-                try {
-                  setSafe("TCSLoadingMeter.PackingPlan_TruckSelection", truckGuid);
-                } catch {
-                  /* ignore */
-                }
-              }
-              resolve(obj);
-            },
-            error: (err: Error) => reject(err),
-          });
-        });
-        const planPlain = toPlainObject(newPlanObj);
-        planGuid = (planPlain.id ?? planPlain.guid) as string;
-      }
+      const existingItems = await findPackingPlanItems(planGuid);
+      const itemGuids = existingItems
+        .map((item) => {
+          const p = toPlainObject(item);
+          return (p.id ?? p.guid) as string;
+        })
+        .filter(Boolean);
 
-      const createdItems: unknown[] = [];
-      for (const item of plan.items) {
+      if (itemGuids.length > 0) {
         await new Promise<void>((resolve, reject) => {
-          mxData.create({
-            entity: "TCSLoadingMeter.PackingPlanItem",
-            callback: (itemObj: unknown) => {
-              const anyObj = itemObj as Record<string, unknown>;
-              const orderId = item.id.startsWith("cargo-") ? item.id.replace("cargo-", "") : item.id;
-              if (typeof anyObj?.set === "function") {
-                const setSafe = (name: string, val: unknown) => {
-                  try {
-                    (anyObj.set as (attr: string, v: unknown) => void)(name, val);
-                  } catch {
-                    /* ignore */
-                  }
-                };
-                setSafe("PackingPlan", planGuid);
-                setSafe("TCSLoadingMeter.PackingPlanItem_PackingPlan", planGuid);
-                setSafe("TransportOrder", orderId);
-                setSafe("TCSLoadingMeter.PackingPlanItem_TransportOrder", orderId);
-                setSafe("PositionX", item.x);
-                setSafe("PositionY", item.y);
-                setSafe("Width", item.width);
-                setSafe("Height", item.height);
-                setSafe("Rotation", item.rotation);
-                setSafe("Color", item.color);
-                setSafe("HeightMeters", item.heightM ?? 0);
-                setSafe("WeightKg", item.weightKg ?? 0);
-              }
-              createdItems.push(itemObj);
-              resolve();
-            },
-            error: (err: Error) => reject(err),
-          });
-        });
-      }
-
-      if (createdItems.length > 0) {
-        await new Promise<void>((resolve, reject) => {
-          mxData.commit({
-            mxobjs: createdItems,
+          mxData.remove({
+            guids: itemGuids,
             callback: () => resolve(),
             error: (err: Error) => reject(err),
           });
         });
       }
-    } catch (err) {
-      console.error("Failed to save PackingPlan:", err);
+    } else {
+      const newPlanObj = await new Promise<unknown>((resolve, reject) => {
+        mxData.create({
+          entity: "TCSLoadingMeter.PackingPlan",
+          callback: (obj: unknown) => {
+            try {
+              if (truckGuid) {
+                try {
+                  setMxAttribute(obj, "TCSLoadingMeter.PackingPlan_TruckSelection", truckGuid, "PackingPlan");
+                } catch (firstError) {
+                  try {
+                    setMxAttribute(obj, "PackingPlan_TruckSelection", truckGuid, "PackingPlan");
+                  } catch (secondError) {
+                    throw new Error("PackingPlan: unable to set TruckSelection association", {
+                      cause: secondError,
+                    });
+                  }
+                  console.warn("PackingPlan: used association fallback", firstError);
+                }
+              }
+              resolve(obj);
+            } catch (error) {
+              reject(error);
+            }
+          },
+          error: (err: Error) => reject(err),
+        });
+      });
+      const planPlain = toPlainObject(newPlanObj);
+      planGuid = (planPlain.id ?? planPlain.guid) as string;
     }
+
+    const createdItems: unknown[] = [];
+    for (const item of plan.items) {
+      await new Promise<void>((resolve, reject) => {
+        mxData.create({
+          entity: "TCSLoadingMeter.PackingPlanItem",
+          callback: (itemObj: unknown) => {
+            try {
+              const orderId = item.id.startsWith("cargo-") ? item.id.replace("cargo-", "") : item.id;
+              setMxAttribute(
+                itemObj,
+                "TCSLoadingMeter.PackingPlanItem_PackingPlan",
+                planGuid,
+                `PackingPlanItem ${item.id}`
+              );
+              setMxAttribute(itemObj, "TransportOrder", orderId, `PackingPlanItem ${item.id}`);
+              setMxDecimalAttribute(itemObj, "PositionX", item.x, `PackingPlanItem ${item.id}`);
+              setMxDecimalAttribute(itemObj, "PositionY", item.y, `PackingPlanItem ${item.id}`);
+              setMxDecimalAttribute(itemObj, "Width", item.width, `PackingPlanItem ${item.id}`);
+              setMxDecimalAttribute(itemObj, "Height", item.height, `PackingPlanItem ${item.id}`);
+              setMxAttribute(itemObj, "Rotation", item.rotation, `PackingPlanItem ${item.id}`);
+              setMxAttribute(itemObj, "Color", item.color, `PackingPlanItem ${item.id}`);
+              setMxDecimalAttribute(itemObj, "HeightMeters", item.heightM ?? 0, `PackingPlanItem ${item.id}`);
+              setMxDecimalAttribute(itemObj, "WeightKg", item.weightKg ?? 0, `PackingPlanItem ${item.id}`);
+              createdItems.push(itemObj);
+              resolve();
+            } catch (error) {
+              reject(error);
+            }
+          },
+          error: (err: Error) => reject(err),
+        });
+      });
+    }
+
+    if (createdItems.length > 0) {
+      await new Promise<void>((resolve, reject) => {
+        mxData.commit({
+          mxobjs: createdItems,
+          callback: () => resolve(),
+          error: (err: Error) => reject(err),
+        });
+      });
+    }
+  } catch (err) {
+    console.error("Failed to save PackingPlan:", err);
+    throw err;
   }
 
-  // Fallback: localStorage
-  try {
-    localStorage.setItem("loadingCanvasPlan", JSON.stringify(plan));
-  } catch {
-    /* ignore */
-  }
-
-  if (onSaveMicroflow) {
-    onSaveMicroflow();
-  }
+  onSaveMicroflow?.();
 
   return plan;
 };

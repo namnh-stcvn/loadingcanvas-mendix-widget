@@ -123,7 +123,12 @@ export const useTrailerCanvas = ({
   }, [state.cargos, dragEngine]);
 
   useEffect(() => {
-    if (stateManager.getState().cargos.length !== initialItems.length) {
+    const currentIds = stateManager
+      .getState()
+      .cargos.map((item) => item.id)
+      .join("|");
+    const initialIds = initialItems.map((item) => item.id).join("|");
+    if (currentIds !== initialIds) {
       stateManager.setState(createInitialCanvasState(initialItems, scale, trailer));
     }
   }, [initialItems, stateManager, scale, trailer]);

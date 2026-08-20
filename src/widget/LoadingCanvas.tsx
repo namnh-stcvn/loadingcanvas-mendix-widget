@@ -9,7 +9,7 @@ import {
   CANVAS_BORDER,
   DEFAULT_MARGIN,
   INFO_PANEL_TOP,
-  INFO_PANEL_LEFT,
+  INFO_PANEL_RIGHT,
   INFO_PANEL_Z_INDEX,
   INFO_PANEL_PADDING,
   INFO_PANEL_BACKGROUND,
@@ -196,7 +196,7 @@ export const LoadingCanvas = (props: LoadingCanvasWidgetProps): ReactElement => 
         style={{
           position: "absolute",
           top: INFO_PANEL_TOP,
-          left: INFO_PANEL_LEFT,
+          right: INFO_PANEL_RIGHT,
           zIndex: INFO_PANEL_Z_INDEX,
           background: INFO_PANEL_BACKGROUND,
           padding: INFO_PANEL_PADDING,

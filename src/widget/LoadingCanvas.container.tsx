@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
 import { LoadingCanvas } from "./LoadingCanvas";
 import type { LoadingCanvasProps, LoadingCanvasViewModelProps } from "./LoadingCanvas.properties";
-import { loadTrailerAndScale, loadCargoItems, loadPackingPlan, savePackingPlan } from "../adapters/mendixDataAdapter";
+import {
+  getObjectGuid,
+  loadTrailerAndScale,
+  loadCargoItems,
+  loadPackingPlan,
+  savePackingPlan,
+} from "../adapters/mendixDataAdapter";
 import type { CargoItem } from "../viewModels/CargoItem";
 import type { TrailerItem } from "../viewModels/TrailerItem";
 import type { CanvasState } from "../state/CanvasState";
@@ -29,9 +35,10 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
   } = props;
 
   // Handle datasource from Mendix - extract first item
-  const truckSelection = Array.isArray(truckSelectionRef)
-    ? truckSelectionRef[0]
-    : ((truckSelectionRef as unknown as { item?: unknown })?.item ?? truckSelectionRef);
+  const truckSelection = Array.isArray(truckSelectionRef) ? truckSelectionRef[0] : truckSelectionRef;
+  const truckGuidKey = getObjectGuid(truckSelection) ?? "";
+  const transportOrderGuids = transportOrdersRef ?? [];
+  const transportOrdersKey = transportOrderGuids.join("|");
 
   // --- State for loaded data ---
   const [trailerItem, setTrailerItem] = useState<TrailerItem | null>(null);
@@ -43,8 +50,10 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
 
   // --- Load truck data and compute scale ---
   useEffect(() => {
+    let cancelled = false;
     const loadTruck = async (): Promise<void> => {
-      if (!truckSelection) {
+      if (!truckGuidKey) {
+        if (cancelled) return;
         setTrailerItem(null);
         setTruckGuid(null);
         setScale(1);
@@ -53,46 +62,53 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
       }
 
       try {
-        const trailerItemGuid =
-          typeof truckSelection === "string"
-            ? truckSelection
-            : ((truckSelection as { guid?: string; id?: string })?.guid ??
-              (truckSelection as { guid?: string; id?: string })?.id);
-
-        const result = await loadTrailerAndScale(trailerItemGuid, canvasWidth, canvasHeight);
+        const result = await loadTrailerAndScale(truckGuidKey, canvasWidth, canvasHeight);
+        if (cancelled) return;
         setTrailerItem(result.trailer);
         setTruckGuid(result.truckGuid);
         setScale(result.scale);
       } catch (err) {
+        if (cancelled) return;
         console.error("Failed to load truck data:", err);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     loadTruck();
-  }, [truckSelection, canvasWidth, canvasHeight]);
+    return () => {
+      cancelled = true;
+    };
+  }, [truckGuidKey, canvasWidth, canvasHeight]);
 
   // --- Load transport orders (pallet list) ---
   useEffect(() => {
+    let cancelled = false;
     const loadOrders = async (): Promise<void> => {
-      if (!transportOrdersRef || transportOrdersRef.length === 0 || scale === 1) {
+      if (transportOrderGuids.length === 0 || scale === 1) {
+        setPalletList([]);
         return;
       }
 
       try {
-        const items = await loadCargoItems(transportOrdersRef, scale);
+        const items = await loadCargoItems(transportOrderGuids, scale);
+        if (cancelled) return;
         setPalletList(items);
       } catch (err) {
+        if (cancelled) return;
         console.error("Failed to load transport orders:", err);
       }
     };
 
     loadOrders();
-  }, [transportOrdersRef, scale]);
+    return () => {
+      cancelled = true;
+    };
+  }, [transportOrdersKey, scale]);
 
   // --- Load saved packing plan ---
   useEffect(() => {
+    let cancelled = false;
     const loadPlan = async (): Promise<void> => {
       if (!truckGuid || scale === 1) {
         return;
@@ -100,13 +116,18 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
 
       try {
         const savedItems = await loadPackingPlan(truckGuid, scale);
+        if (cancelled) return;
         setInitialCanvasItems(savedItems);
       } catch (err) {
+        if (cancelled) return;
         console.error("Failed to load packing plan:", err);
       }
     };
 
     loadPlan();
+    return () => {
+      cancelled = true;
+    };
   }, [truckGuid, scale]);
 
   // --- Save plan handler ---
@@ -126,16 +147,26 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
       };
 
       await savePackingPlan(truckGuid, state, currentScale, onSavePlanCallback);
+      // Items stay in canvas state - no need to reload from DB
     },
     [truckGuid, trailerItem, onSavePlanCallback]
   );
 
   // --- Load plan handler ---
-  const handleLoadPlan = useCallback(() => {
-    if (onLoadPlanCallback) {
-      onLoadPlanCallback();
+  const handleLoadPlan = useCallback(async () => {
+    if (!truckGuid || scale === 1) {
+      return;
     }
-  }, [onLoadPlanCallback]);
+
+    try {
+      const savedItems = await loadPackingPlan(truckGuid, scale);
+      setInitialCanvasItems(savedItems);
+      onLoadPlanCallback?.();
+    } catch (err) {
+      console.error("Failed to load packing plan:", err);
+      return;
+    }
+  }, [truckGuid, scale, onLoadPlanCallback]);
 
   // --- Build view model props ---
   const viewModel: LoadingCanvasViewModelProps = useMemo(

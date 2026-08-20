@@ -1,27 +1,114 @@
 # Coding Rules
 
-Checklist maintainability cho widget
-Component < 300–500 dòng
-Không gọi API trực tiếp trong UI
-Có Service Layer
-Có TypeScript types chung
-Có Custom Hooks cho logic tái sử dụng
-Không hard-code config
-Có xử lý lỗi tập trung
-Có unit test cho logic quan trọng
-Thư mục theo feature hoặc domain
-Không phụ thuộc window.\* hoặc global state của host
+## Maintainability checklist
 
-## Comments
+- Component nên dưới 300–500 dòng; tách UI, domain logic, adapter và state khi vượt giới hạn.
+- UI không gọi trực tiếp `mx.data`, `mx.ui`, `localStorage` hoặc microflow API.
+- Mọi tích hợp Mendix đi qua service/adapter layer; UI chỉ nhận view model và callback.
+- Dùng TypeScript types dùng chung cho datasource, MxObject, domain model và view model; không lạm dụng `unknown`/`any` nếu có thể tạo type guard.
+- Logic tái sử dụng phải nằm trong custom hook hoặc domain/service module, không nhúng vào JSX.
+- Không hard-code entity, association, XPath, action ID, kích thước mặc định hoặc storage key trong UI; gom vào constants/config.
+- Có xử lý lỗi tập trung, thông báo lỗi có ngữ cảnh và không nuốt lỗi âm thầm.
+- Có unit test cho adapter/parser, mapping dữ liệu, serialization và các business rule quan trọng.
+- Sắp xếp thư mục theo feature/domain; giữ boundary giữa Mendix data, domain model và UI view model.
+- Không để business logic phụ thuộc `window.*` hoặc global state của host. Chỉ adapter/runtime bridge được truy cập global và phải có fallback/mock cho dev/test.
+
+## Comments and token saving
 
 - KHÔNG tạo JSDoc (không dùng `/** ... */` cho hàm, class, interface, type).
-- Chỉ comment ngắn gọn mô tả business logic (`// ...`)
-- Comment phải nêu rõ MỤC ĐÍCH BUSINESS, không mô tả code.
-- Không comment những gì code đã thể hiện rõ.
-- Không thêm comment trang trí, banner, hay ghi chú không cần thiết.
+- Chỉ dùng comment ngắn (`//`) khi giải thích mục đích business hoặc workaround bắt buộc.
+- Không comment điều code đã thể hiện rõ; không thêm banner/comment trang trí.
+- Giữ code ngắn gọn, tên biến/hàm tự mô tả; không dùng comment thay cho thiết kế rõ ràng.
 
-## Token Saving
+## React and async data rules
 
-- Giữ code ngắn gọn, dễ đọc.
-- Không viết giải thích dài dòng trong comment.
-- Ưu tiên tên biến/hàm tự mô tả thay vì comment.
+- Props datasource của Mendix có thể là array, datasource wrapper (`item`) hoặc MxObject; phải normalize một lần ở boundary trước khi truyền vào service.
+- Không suy ra GUID từ `String(object)` hoặc chỉ đọc `.guid`; dùng `getGuid()`/`getGUID()` trước, rồi mới fallback plain object `guid`/`id`.
+- Mọi `useEffect` có async work phải có cancellation/stale-result guard và cleanup phù hợp; không set state sau khi component unmount hoặc khi request cũ hoàn thành sau request mới.
+- Khi dependency là object/array từ datasource, tránh reload vô hạn do identity thay đổi; dùng stable GUID/primitive key.
+- `useMemo`/`useCallback` không được che giấu việc state manager/engine bị khởi tạo lại. Khi input ban đầu đổi, phải reset state theo một rule rõ ràng, không chỉ so sánh `length`.
+- Event listener toàn cục phải được đăng ký trong hook, gỡ đúng handler trong cleanup và chỉ hoạt động khi cần (ví dụ đang drag).
+- Callback optional phải được kiểm tra trước khi gọi; lỗi UI không được làm vỡ toàn bộ widget.
+
+## Mendix 10 React TS pitfalls (đã gặp lỗi - tránh lặp lại)
+
+### 1. `this` context của MxObject methods
+
+- KHÔNG gán `obj.set` hoặc `obj.get` vào biến tạm rồi gọi sau (`const setSafe = obj.set; setSafe(...)`).
+- Luôn gọi trực tiếp trên đối tượng: `obj.set(attr, value)` hoặc dùng `.call(obj, attr, value)`.
+- Không tạo helper nhận detached method; helper phải nhận object và gọi method với đúng receiver.
+- Cấm cast rồi gọi detached method, kể cả `const setSafe = obj.set as (...) => void` hoặc `(obj.set as Fn)(...)`; TypeScript cast không giữ `this` runtime.
+- Không bọc lỗi `this is undefined` bằng `try/catch` để tiếp tục save. Sửa receiver trước, rồi mới xử lý lỗi nghiệp vụ theo policy.
+- Lỗi từng gặp: `can't access property "_setContent", this is undefined`.
+
+### 2. Nhận diện MxObject và đọc association
+
+- Chỉ gọi `get()`/`set()` khi object có cả `get` và `getAttributes` là function; plain object phải đi qua fallback mapper.
+- Association không nằm trong `getAttributes()`; đọc riêng bằng `mxObject.get("AssociationName")` và xử lý kết quả là object/GUID phù hợp.
+- Không truy cập association bằng tên bảng DB hoặc field đoán từ serialized JSON.
+- Khi map danh sách từ `loadMendixList()`, kiểm tra từng phần tử trước khi gọi MxObject API.
+- Lỗi từng gặp: `can't access property "has", this is undefined` do gọi MxObject method trên plain object hoặc mất `this`.
+
+### 3. GUID và datasource reference
+
+- Kiểm tra theo thứ tự `getGuid()`, `getGUID()`, rồi fallback `guid`/`id`; không truy cập `.guid` trực tiếp trên MxObject.
+- Không dùng GUID của wrapper/datasource thay cho GUID của entity; log type và giá trị ở boundary khi debug.
+- Khi batch load, giữ mapping giữa GUID input và object output; không dùng index nếu API có thể trả về thứ tự khác.
+
+### 4. XPath và association constraint
+
+- KHÔNG dùng XPath association constraint phức tạp như `//Entity[module$entity_assoc = 'guid']`; dễ gây HTTP 560.
+- Ưu tiên fetch bằng XPath đơn giản (`//Module.Entity`), sau đó lọc association trong JavaScript bằng MxObject API.
+- Nếu phải thử nhiều tên association, danh sách candidate phải nằm trong adapter, có log lỗi cuối cùng và test được; không nuốt toàn bộ lỗi khiến tưởng là không có dữ liệu.
+- Tên association trong `get()`/`set()` là tên trong Domain Model (ví dụ `PackingPlan_TruckSelection`), không phải tên bảng DB (`tcsloadingmeter$packingplan_truckselection`).
+
+### 5. Decimal attributes và Big.js
+
+- Mendix Decimal như `PositionX`, `PositionY`, `Width`, `Height`, `HeightMeters`, `WeightKg` không nhận number JavaScript thường.
+- Trước khi `set()`, chuyển bằng Big.js runtime; không truyền số thập phân trực tiếp.
+- Không gọi `window.require("big/big")` hoặc `window.require("big.js")`: Dojo loader của Mendix có thể ném `undefinedModule` và dừng debugger trước cả khi lỗi được catch.
+- Khi tạo object Mendix mới, lấy native Decimal constructor từ default value của chính `MxObject` (`mxObject.get(attribute).constructor`) rồi tạo Decimal bằng constructor đó. Không dùng `big.js` được bundle/import riêng vì Mendix validation có thể từ chối instance khác dù cùng API/giá trị.
+- Nếu Decimal attribute không có default native value, báo lỗi có ngữ cảnh và dừng save; chỉ dùng `big.js` package local ở dev/test.
+- Khi đọc Decimal, normalize Big.js về number ở mapper trước khi chạy domain calculation.
+- Lỗi từng gặp: `Cannot set invalid value '0.386...' to MxObject attribute 'PositionX'` do truyền number hoặc Big.js instance không thuộc Mendix runtime.
+- Lỗi từng gặp: `Cannot set invalid value '0.7881818181818182' to MxObject attribute 'PositionX'` do truyền number thập phân dài trực tiếp vào `set()` mà không qua native Decimal constructor.
+- Quy trình chuẩn khi set Decimal (đã áp dụng trong `mendixDataAdapter.ts`):
+  1. Kiểm tra `Number.isFinite(value)`; nếu không phải số hữu hạn thì báo lỗi có ngữ cảnh và dừng.
+  2. Lấy native Decimal constructor từ `obj.get(attribute).constructor`; nếu không có thì báo lỗi và dừng save.
+  3. Normalize bằng `new Big(value).round(8, Big.roundHalfUp).toFixed(8)` (hằng số `MENDIX_DECIMAL_SCALE = 8`).
+  4. Tạo instance `new Decimal(normalizedValue)` rồi mới gọi `obj.set(attribute, instance)`.
+- Không dùng `toBig()` (trả về Big.js instance) làm giá trị cuối cùng cho `set()`; chỉ dùng nó để normalize/round trước khi tạo native Decimal.
+- Helper set Decimal phải là private trong adapter và được test gián tiếp qua `savePackingPlan` hoặc qua mock MxObject có `get()` trả về default Decimal value.
+
+### 6. Association name và giá trị set
+
+- Association phải set bằng đúng tên Domain Model; không set cả tên DB như một giải pháp mặc định.
+- Không truyền plain GUID vào association nếu Mendix version/entity yêu cầu MxObject reference; xác minh API contract trước khi lưu.
+- Mỗi lần thử nhiều tên field/association phải ghi nhận lỗi có ngữ cảnh; không dùng `catch { /* ignore */ }` cho lỗi dữ liệu quan trọng.
+
+### 7. Save/commit và lỗi dữ liệu
+
+- Quy trình save phải rõ thứ tự: tìm/tạo plan, xóa item cũ, tạo item mới, commit; nếu bước giữa lỗi thì không báo save thành công.
+- Không gọi callback `onSave` sau khi save thất bại; phân biệt kết quả Mendix và fallback dev.
+- Không dùng `localStorage` như fallback âm thầm trong production nếu dữ liệu chính là Mendix; fallback phải được cấu hình và hiển thị trạng thái rõ ràng.
+- Không bỏ qua lỗi của từng `set()` trên field bắt buộc; phải báo field nào thất bại và dừng/rollback theo policy.
+
+### 8. Debug và kiểm chứng
+
+- Khi lỗi Mendix, kiểm tra entity name, attribute/association name trong Domain Model, runtime type của object, GUID thực tế và kiểu Decimal trước khi sửa UI.
+- Sau thay đổi adapter hoặc types, chạy lint, unit test và build; không chỉ kiểm tra TypeScript compile.
+- Không sửa bằng cách thêm nhiều candidate/fallback nếu chưa xác định nguyên nhân; mọi fallback phải có giới hạn, log có ích và test hồi quy.
+
+# Cấm sử dụng các module không tồn tại
+
+no-undefined-modules:
+description: "Cấm sử dụng các module không tồn tại như 'big/big' hoặc 'big.js'."
+severity: error
+pattern: "require\\(['\"]big/big['\"]\\)|require\\(['\"]big.js['\"]\\)"
+
+# Khuyến khích sử dụng Decimal constructor từ MxObject
+
+use-decimal-constructor:
+description: "Khuyến khích sử dụng Decimal constructor từ MxObject runtime thay vì gọi module."
+severity: warning
+pattern: "window.require\\(['\"]big.js['\"]\\)"

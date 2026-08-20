@@ -8,6 +8,7 @@ export {};
 
 declare global {
   interface Window {
+    require?: (moduleName: string) => unknown;
     mx?: {
       data?: MxData;
       ui?: MxUi;
@@ -24,6 +25,14 @@ export interface MxData {
   commit(options: MxCommitOptions): void;
   action(options: MxActionOptions): void;
   rollback(options: MxRollbackOptions): void;
+}
+
+export interface MxObject {
+  get(attribute: string): unknown;
+  set(attribute: string, value: unknown): void;
+  getAttributes(): string[];
+  getGuid?(): string;
+  getGUID?(): string;
 }
 
 export interface MxUi {
