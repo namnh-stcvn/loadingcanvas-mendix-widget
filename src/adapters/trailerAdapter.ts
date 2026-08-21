@@ -58,7 +58,7 @@ export const truckSelectionToTrailerItem = (
 export const trailerToTrailerItem = (
   trailer: Trailer,
   scale: number,
-  position: { x: number; y: number } = { x: 20, y: 20 }
+  position: { x: number; y: number } = { x: 333, y: 152 }
 ): TrailerItem => {
   return {
     id: trailer.id,

@@ -17,6 +17,7 @@ import {
   GRID_SIZE,
 } from "../constants/canvas";
 import { CANVAS_BACKGROUND_COLOR } from "../constants/theme";
+import truckBackground from "../assets/Truck_horizontal.png";
 import type { CargoItem } from "../viewModels/CargoItem";
 import type { LoadingCanvasWidgetProps } from "./LoadingCanvas.properties";
 
@@ -179,6 +180,10 @@ export const LoadingCanvas = (props: LoadingCanvasWidgetProps): ReactElement => 
         overflow: "hidden",
         border: CANVAS_BORDER,
         backgroundColor: CANVAS_BACKGROUND_COLOR,
+        backgroundImage: `url(${truckBackground})`,
+        backgroundSize: "100% auto",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
       }}>
       {/* Grid overlay */}
       <GridOverlay width={canvasWidth} height={canvasHeight} gridSize={GRID_SIZE} />
