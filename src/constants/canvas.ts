@@ -5,6 +5,11 @@ export const DEFAULT_CANVAS_WIDTH = 1800;
 export const DEFAULT_CANVAS_HEIGHT = 600;
 export const CANVAS_BORDER = "1px solid black";
 
+export const TRAILER_CANVAS_WIDTH = 1453;
+export const TRAILER_CANVAS_HEIGHT = 297;
+export const TRAILER_CANVAS_LEFT = 333;
+export const TRAILER_CANVAS_TOP = 152;
+
 // layout
 
 export const DEFAULT_MARGIN = "20px auto";

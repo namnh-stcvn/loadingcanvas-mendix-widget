@@ -1,6 +1,12 @@
 import type { TrailerItem } from "../viewModels/TrailerItem";
 import type { Trailer } from "../models/Trailer";
 import { meterToPixel } from "../domain/coordinateRules";
+import {
+  TRAILER_CANVAS_HEIGHT,
+  TRAILER_CANVAS_LEFT,
+  TRAILER_CANVAS_TOP,
+  TRAILER_CANVAS_WIDTH,
+} from "../constants/canvas";
 
 /**
  * Shape of TruckSelection data as it arrives from Mendix.
@@ -29,7 +35,7 @@ export interface TruckSelectionData {
 export const truckSelectionToTrailerItem = (
   truck: TruckSelectionData,
   scale: number,
-  position: { x: number; y: number } = { x: 20, y: 20 }
+  position: { x: number; y: number } = { x: TRAILER_CANVAS_LEFT, y: TRAILER_CANVAS_TOP }
 ): TrailerItem => {
   return {
     id: truck.id,
@@ -41,8 +47,8 @@ export const truckSelectionToTrailerItem = (
     internalHeightMeter: truck.internalHeightMeter,
     x: position.x,
     y: position.y,
-    width: meterToPixel(truck.internalLengthMeter, scale),
-    height: meterToPixel(truck.internalWidthMeter, scale),
+    width: Math.min(TRAILER_CANVAS_WIDTH, meterToPixel(truck.internalLengthMeter, scale)),
+    height: Math.min(TRAILER_CANVAS_HEIGHT, meterToPixel(truck.internalWidthMeter, scale)),
     rotation: 0,
   };
 };
@@ -58,7 +64,7 @@ export const truckSelectionToTrailerItem = (
 export const trailerToTrailerItem = (
   trailer: Trailer,
   scale: number,
-  position: { x: number; y: number } = { x: 333, y: 152 }
+  position: { x: number; y: number } = { x: TRAILER_CANVAS_LEFT, y: TRAILER_CANVAS_TOP }
 ): TrailerItem => {
   return {
     id: trailer.id,
@@ -70,8 +76,8 @@ export const trailerToTrailerItem = (
     internalHeightMeter: trailer.internalHeightMeter,
     x: position.x,
     y: position.y,
-    width: meterToPixel(trailer.internalLengthMeter, scale),
-    height: meterToPixel(trailer.internalWidthMeter, scale),
+    width: Math.min(TRAILER_CANVAS_WIDTH, meterToPixel(trailer.internalLengthMeter, scale)),
+    height: Math.min(TRAILER_CANVAS_HEIGHT, meterToPixel(trailer.internalWidthMeter, scale)),
     rotation: 0,
   };
 };
