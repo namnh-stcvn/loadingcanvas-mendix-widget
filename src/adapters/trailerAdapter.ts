@@ -47,8 +47,8 @@ export const truckSelectionToTrailerItem = (
     internalHeightMeter: truck.internalHeightMeter,
     x: position.x,
     y: position.y,
-    width: Math.min(TRAILER_CANVAS_WIDTH, meterToPixel(truck.internalLengthMeter, scale)),
-    height: Math.min(TRAILER_CANVAS_HEIGHT, meterToPixel(truck.internalWidthMeter, scale)),
+    width: TRAILER_CANVAS_WIDTH,
+    height: TRAILER_CANVAS_HEIGHT,
     rotation: 0,
   };
 };
@@ -76,8 +76,8 @@ export const trailerToTrailerItem = (
     internalHeightMeter: trailer.internalHeightMeter,
     x: position.x,
     y: position.y,
-    width: Math.min(TRAILER_CANVAS_WIDTH, meterToPixel(trailer.internalLengthMeter, scale)),
-    height: Math.min(TRAILER_CANVAS_HEIGHT, meterToPixel(trailer.internalWidthMeter, scale)),
+    width: TRAILER_CANVAS_WIDTH,
+    height: TRAILER_CANVAS_HEIGHT,
     rotation: 0,
   };
 };
@@ -103,3 +103,4 @@ export const computeScale = (
   const availableHeight = Math.max(canvasHeight - padding, 100);
   return Math.min(availableWidth / lengthM, availableHeight / widthM);
 };
+</tool_call>
