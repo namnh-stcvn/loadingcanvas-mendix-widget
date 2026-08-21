@@ -605,8 +605,22 @@ export const loadPackingPlan = async (truckGuid: string | null, scale: number): 
       truckId: truckGuid,
       items: planItems.map((item) => {
         const raw = toPlainObject(item);
+        // Association not in getAttributes(); read by mxObject.get()
+        const transportOrderId = isMxObject(item)
+          ? String(
+              getObjectGuid(
+                item.get("TCSLoadingMeter.PackingPlanItem_TransportOrder") ??
+                  item.get("PackingPlanItem_TransportOrder") ??
+                  ""
+              ) ??
+                raw.id ??
+                raw.guid ??
+                "item"
+            )
+          : String(raw.TransportOrder ?? raw.transportOrder ?? raw.id ?? raw.guid ?? "item");
+        const itemId = transportOrderId.startsWith("cargo-") ? transportOrderId : `cargo-${transportOrderId}`;
         return {
-          id: String(raw.TransportOrder ?? raw.transportOrder ?? raw.id ?? raw.guid ?? "item"),
+          id: itemId,
           name: String(raw.Name ?? raw.name ?? `Cargo ${raw.id ?? ""}`),
           type: (String(raw.Type ?? raw.type ?? "pallet")
             .toLowerCase()
@@ -733,7 +747,15 @@ export const savePackingPlan = async (
                 planGuid,
                 `PackingPlanItem ${item.id}`
               );
-              setMxAttribute(itemObj, "TransportOrder", orderId, `PackingPlanItem ${item.id}`);
+
+              // Set TransportOrder association following the same pattern as PackingPlanItem_PackingPlan
+              // Use module-prefixed Domain Model name: TCSLoadingMeter.PackingPlanItem_TransportOrder
+              setMxAttribute(
+                itemObj,
+                "TCSLoadingMeter.PackingPlanItem_TransportOrder",
+                orderId,
+                `PackingPlanItem ${item.id}`
+              );
               setMxDecimalAttribute(itemObj, "PositionX", item.x, `PackingPlanItem ${item.id}`);
               setMxDecimalAttribute(itemObj, "PositionY", item.y, `PackingPlanItem ${item.id}`);
               setMxDecimalAttribute(itemObj, "Width", item.width, `PackingPlanItem ${item.id}`);

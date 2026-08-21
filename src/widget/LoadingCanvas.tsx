@@ -75,7 +75,13 @@ export const LoadingCanvas = (props: LoadingCanvasWidgetProps): ReactElement => 
   const [addedPalletIds, setAddedPalletIds] = useState<Set<string>>(new Set());
 
   // Available pallets = palletList minus those already added to canvas
-  const availablePallets = palletList.filter((p) => !addedPalletIds.has(p.id));
+  // Normalize IDs by removing "cargo-" prefix for comparison
+  const normalizeId = (id: string) => (id.startsWith("cargo-") ? id.replace("cargo-", "") : id);
+  const availablePallets = palletList.filter((p) => {
+    const palletId = normalizeId(p.id);
+    const hasMatch = Array.from(addedPalletIds).some((addedId) => normalizeId(addedId) === palletId);
+    return !hasMatch;
+  });
 
   // --- Restore items when loaded from plan ---
   // The useTrailerCanvas hook already handles initialItems changes via its
@@ -84,8 +90,10 @@ export const LoadingCanvas = (props: LoadingCanvasWidgetProps): ReactElement => 
   useEffect(() => {
     if (initialCanvasItems.length > 0) {
       setItems(initialCanvasItems);
+      const itemIds = new Set(initialCanvasItems.map((item) => item.id));
+      setAddedPalletIds((prev) => new Set([...prev, ...itemIds]));
     }
-  }, [initialCanvasItems, setItems]);
+  }, [initialCanvasItems, setItems, setAddedPalletIds, palletList]);
 
   // --- Save plan handler ---
   const handleSavePlan = (): void => {

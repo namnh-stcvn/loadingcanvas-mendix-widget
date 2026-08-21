@@ -1,5 +1,243 @@
 # Coding Rules
 
+## Architecture Rules
+
+- Preserve the dependency direction:
+  UI → Hooks → Services → Adapters → Mendix Runtime.
+
+- UI components must never depend directly on Mendix runtime APIs.
+
+- Domain modules must not import React, Mendix APIs, browser globals, or widget framework APIs.
+
+- Adapter modules are the only layer allowed to interact directly with Mendix runtime objects.
+
+- Mapper modules are responsible for converting Mendix/runtime data into domain models and vice versa.
+
+- Do not introduce a new dependency between existing layers without explicitly evaluating the architectural impact.
+
+- Do not move business logic into a lower-level infrastructure layer merely to simplify a local implementation.
+
+- Do not bypass an existing adapter, service, mapper, or domain engine when an appropriate abstraction already exists.
+
+- Avoid circular dependencies between features.
+
+- Shared modules must not depend on feature-specific modules.
+
+- Feature modules should expose a small public API through index.ts and avoid importing internal implementation details from other features.
+
+## Change Impact Analysis
+
+Before modifying code, identify:
+
+1. The feature/domain being changed.
+2. The architectural layer being changed.
+3. Existing callers and consumers.
+4. Related types and interfaces.
+5. Related adapters and mappers.
+6. Related tests.
+7. Potential state lifecycle implications.
+8. Potential async/concurrency implications.
+9. Potential Mendix runtime implications.
+10. Potential upgradeability implications.
+
+Do not modify code immediately when the change affects multiple architectural layers.
+
+Prefer the smallest change that satisfies the requirement without violating existing boundaries.
+
+## Scope Control
+
+- Do not refactor unrelated code while implementing a requested change.
+
+- Do not rename files, functions, variables, modules, or public APIs unless required by the task.
+
+- Do not introduce a new abstraction when an existing abstraction can be safely reused.
+
+- Do not rewrite working code merely because another implementation appears cleaner.
+
+- Keep changes minimal and localized.
+
+- Separate bug fixes from architectural refactoring.
+
+- If a larger refactoring is necessary, explain the reason and identify the affected scope before implementing it.
+
+## Existing Code First
+
+Before creating a new:
+
+- component
+- hook
+- service
+- adapter
+- mapper
+- utility
+- type
+- constant
+
+search the repository for an existing implementation that can be reused or extended.
+
+Do not create duplicate abstractions with similar responsibilities.
+
+Prefer extending an existing module when its responsibility matches the requirement.
+
+## Definition of Done
+
+A change is not considered complete until:
+
+- TypeScript compilation succeeds.
+- Lint succeeds.
+- Relevant unit tests pass.
+- Relevant integration tests pass when applicable.
+- Production/widget build succeeds.
+- No new TypeScript errors are introduced.
+- No new lint errors are introduced.
+- No existing architectural boundary is violated.
+- No unused imports or dead code are introduced.
+- Error handling is implemented for failure paths.
+- Async operations have appropriate cancellation/stale-result protection.
+- Mendix-specific behavior is tested when the change touches adapters.
+- The final change is reviewed for unnecessary complexity.
+
+## Verification Rules
+
+After modifying code:
+
+1. Run the most relevant targeted tests first.
+2. Run TypeScript/type checking.
+3. Run lint.
+4. Run the widget build.
+5. Run broader tests when the change affects shared modules or infrastructure.
+6. Inspect the final diff.
+7. Verify that no unrelated files were modified.
+
+Do not claim a change is working without performing the available verification steps.
+
+## Regression Rules
+
+When fixing a bug:
+
+- Identify the root cause before implementing the fix.
+- Add or update a regression test whenever practical.
+- Do not fix only the observed symptom if the underlying boundary or contract is incorrect.
+- Verify related code paths that use the same API or abstraction.
+- Avoid adding broad try/catch blocks to hide the failure.
+- Avoid adding speculative fallbacks without evidence.
+
+## Root Cause Analysis
+
+When fixing an error:
+
+- Determine the root cause before adding a workaround.
+- Prefer correcting an invalid contract, type, lifecycle, receiver, dependency, or boundary.
+- Do not suppress an exception merely to make execution continue.
+- Do not add fallback behavior unless the expected alternative behavior is defined.
+- If the root cause cannot be established, do not invent a speculative implementation.
+
+## Mendix Runtime Compatibility
+
+- Treat Mendix runtime APIs as external infrastructure contracts.
+- Do not assume browser, Node.js, Dojo, and Mendix runtime APIs are interchangeable.
+- Do not use browser APIs as substitutes for Mendix runtime APIs.
+- Do not infer Mendix Domain Model names from database table names.
+- Do not infer runtime object behavior from serialized JSON.
+- Verify runtime-specific behavior against the actual Mendix API contract or existing working adapter implementation.
+- Keep Mendix-specific workarounds isolated in adapter/runtime modules.
+- Never spread Mendix-specific workarounds into domain or UI code.
+
+## Upgradeability Rules
+
+- Isolate framework-specific APIs behind adapters.
+- Do not expose Mendix runtime types throughout the domain layer.
+- Avoid deprecated APIs when an actively supported alternative exists.
+- Do not rely on undocumented runtime behavior.
+- Keep third-party dependencies isolated behind small interfaces when practical.
+- Avoid unnecessary dependency additions.
+- Pin or constrain critical dependency versions according to project policy.
+- Do not upgrade dependencies as part of an unrelated feature or bug fix.
+- When upgrading a dependency, identify breaking changes and affected modules before modifying code.
+- Keep migration-sensitive code localized.
+
+## Dependency Rules
+
+- Do not add a dependency when the requirement can be implemented using existing project dependencies or standard platform APIs.
+- Before adding a dependency, search package.json and the existing codebase for equivalent functionality.
+- Prefer small, mature, actively maintained dependencies.
+- Avoid dependencies that duplicate existing functionality.
+- Do not upgrade unrelated dependencies.
+- Do not modify package-lock.json manually.
+- After dependency changes, run install, type check, lint, tests, and build.
+- Document the reason for non-obvious dependencies in the appropriate project documentation.
+
+## State Ownership
+
+Every state value must have a clear owner.
+
+- Persisted business data belongs to Mendix/application persistence.
+- Widget domain state belongs to the widget state layer.
+- Interaction state belongs to the relevant hook/engine.
+- Temporary UI state belongs to the component when appropriate.
+- Do not duplicate the same state across multiple layers without a synchronization strategy.
+- Do not use localStorage as an implicit second source of truth.
+- Avoid deriving persistent business state from transient UI state without explicit mapping.
+
+## Single Source of Truth
+
+- Every business value must have one authoritative source.
+- Derived values should be calculated rather than independently stored when practical.
+- Do not maintain multiple writable copies of the same business state without an explicit synchronization policy.
+- Mendix persistence must not silently compete with localStorage or in-memory fallback state.
+
+## AI Agent Rules
+
+- Inspect existing architecture before modifying code.
+- Search for existing implementations before creating new ones.
+- Do not invent APIs, modules, entity names, attributes, associations, or runtime behavior.
+- Do not assume a file, function, package, or module exists without verifying it.
+- Do not fabricate test results.
+- Do not claim a build or test passed unless it was actually executed.
+- Do not silently change requirements.
+- Do not expand task scope without a technical reason.
+- Prefer the smallest correct change.
+- Preserve existing conventions unless they conflict with an explicit rule.
+- When uncertain about a runtime-specific contract, inspect the existing adapter, types, tests, or project documentation before implementing.
+
+## Repository Exploration
+
+Before implementing a non-trivial change:
+
+1. Locate the relevant feature.
+2. Locate existing related types.
+3. Locate existing service/adapter implementations.
+4. Locate existing tests.
+5. Search for all usages of the API being changed.
+6. Identify architectural boundaries.
+7. Only then implement the change.
+
+## Final Diff Review
+
+Before completing a task:
+
+- Inspect the final diff.
+- Remove unrelated modifications.
+- Remove unused imports.
+- Remove temporary debugging code.
+- Remove speculative abstractions.
+- Remove dead code introduced by the change.
+- Verify that only intended files were modified.
+
+## Forbidden Patterns
+
+The following patterns are prohibited:
+
+- UI → mx.data
+- UI → mx.ui
+- UI → localStorage for business persistence
+- Domain → Mendix
+- Domain → React
+- New dependencies without justification
+- Unrelated refactoring
+- Invented APIs or runtime behavior
+- Unverified claims about build/test status
+
 ## Maintainability checklist
 
 - Component nên dưới 300–500 dòng; tách UI, domain logic, adapter và state khi vượt giới hạn.
@@ -81,11 +319,17 @@
 - Không dùng `toBig()` (trả về Big.js instance) làm giá trị cuối cùng cho `set()`; chỉ dùng nó để normalize/round trước khi tạo native Decimal.
 - Helper set Decimal phải là private trong adapter và được test gián tiếp qua `savePackingPlan` hoặc qua mock MxObject có `get()` trả về default Decimal value.
 
-### 6. Association name và giá trị set
+### 6. Association và giá trị
 
 - Association phải set bằng đúng tên Domain Model; không set cả tên DB như một giải pháp mặc định.
-- Không truyền plain GUID vào association nếu Mendix version/entity yêu cầu MxObject reference; xác minh API contract trước khi lưu.
+- **Phải dùng đúng module-prefix Domain Model name trong `set()`/`get()`** (ví dụ `TCSLoadingMeter.PackingPlanItem_TransportOrder`); thiếu prefix (`PackingPlanItem_TransportOrder`) sẽ set thành công nhưng giá trị vẫn null và không lưu DB.
+- **Lỗi từng gặp**: set `"PackingPlanItem_TransportOrder"` (thiếu prefix) -> `x.get("PackingPlanItem_TransportOrder")` trả về null; sửa bằng `"TCSLoadingMeter.PackingPlanItem_TransportOrder"` thì save thành công.
+- **Khi đọc association**, KHÔNG đọc từ `toPlainObject()`; association không nằm trong `getAttributes()`, phải đọc riêng bằng `mxObject.get("AssociationName")` + `isMxObject()` + `getObjectGuid()`.
+- **Lỗi từng gặp**: load plan đọc `raw.TransportOrder` từ `toPlainObject()` -> trả `undefined`, get loaded item id fallback thành GUID của PackingPlanItem thay vì TransportOrder, dẫn đến filter pallet list không khớp. Sửa bằng cách đọc association trực tiếp qua `mxObject.get()`.
+- Không truyền plain GUID vào association nếu Mendix version/entity yêu cầu MxObject reference; không xác minh API trước khi lưu.
 - Mỗi lần thử nhiều tên field/association phải ghi nhận lỗi có ngữ cảnh; không dùng `catch { /* ignore */ }` cho lỗi dữ liệu quan trọng.
+- **ID format nhất quán**: Khi so sánh ID giữa items đã load và pallet list, có thể khác nhau do "cargo-" prefix; normalize ID (strip prefix) trước khi so sánh.
+- **Lỗi từng gặp**: loaded item ID = `cargo-96264442035466915` (TransportOrder GUID) trong khi pallet list ID = `cargo-17169973584497070`; do load fallback dùng PackingPlanItem GUID thay vì TransportOrder GUID; fix bằng đọc association trực tiếp.
 
 ### 7. Save/commit và lỗi dữ liệu
 
