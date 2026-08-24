@@ -62,7 +62,7 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
       }
 
       try {
-        const result = await loadTrailerAndScale(truckGuidKey, canvasWidth, canvasHeight);
+        const result = await loadTrailerAndScale(truckGuidKey);
         if (cancelled) return;
         setTrailerItem(result.trailer);
         setTruckGuid(result.truckGuid);

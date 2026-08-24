@@ -502,11 +502,7 @@ export interface LoadedTrailerResult {
 /**
  * Load TruckSelection once, calculate scale, and convert to TrailerItem.
  */
-export const loadTrailerAndScale = async (
-  truckRef: string | undefined,
-  canvasWidth: number,
-  canvasHeight: number
-): Promise<LoadedTrailerResult> => {
+export const loadTrailerAndScale = async (truckRef: string | undefined): Promise<LoadedTrailerResult> => {
   if (!truckRef) {
     return { trailer: null, scale: 1, truckGuid: null };
   }
@@ -517,7 +513,7 @@ export const loadTrailerAndScale = async (
     if (!truckData) {
       return { trailer: null, scale: 1, truckGuid: null };
     }
-    const scale = computeScale(truckData, canvasWidth, canvasHeight);
+    const scale = computeScale(truckData);
     const trailer = truckSelectionToTrailerItem(truckData, scale);
     return { trailer, scale, truckGuid: truckData.id };
   } catch (err) {
