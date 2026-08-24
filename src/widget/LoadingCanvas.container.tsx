@@ -44,7 +44,7 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
   const [trailerItem, setTrailerItem] = useState<TrailerItem | null>(null);
   const [palletList, setPalletList] = useState<CargoItem[]>([]);
   const [initialCanvasItems, setInitialCanvasItems] = useState<CargoItem[]>([]);
-  const [scale, setScale] = useState({widthScale:1,heightScale:1});
+  const [scale, setScale] = useState({ widthScale: 1, heightScale: 1 });
   const [truckGuid, setTruckGuid] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -56,7 +56,7 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
         if (cancelled) return;
         setTrailerItem(null);
         setTruckGuid(null);
-        setScale({widthScale:1,heightScale:1});
+        setScale({ widthScale: 1, heightScale: 1 });
         setIsLoading(false);
         return;
       }
@@ -132,7 +132,7 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
 
   // --- Save plan handler ---
   const handleSavePlan = useCallback(
-    async (items: CargoItem[], currentScale: {widthScale:number;heightScale:number}) => {
+    async (items: CargoItem[], currentScale: { widthScale: number; heightScale: number }) => {
       if (!truckGuid) {
         return;
       }
@@ -154,13 +154,17 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
 
   // --- Load plan handler ---
   const handleLoadPlan = useCallback(async () => {
-    if (!truckGuid || scale.widthScale === 1 && scale.heightScale === 1) {
+    if (!truckGuid || (scale.widthScale === 1 && scale.heightScale === 1)) {
       return;
     }
 
     try {
       const savedItems = await loadPackingPlan(truckGuid, scale);
-      setInitialCanvasItems(savedItems);
+      // Only replace canvas content when a plan exists; otherwise keep the
+      // user's unsaved work instead of silently clearing the canvas.
+      if (savedItems.length > 0) {
+        setInitialCanvasItems(savedItems);
+      }
       onLoadPlanCallback?.();
     } catch (err) {
       console.error("Failed to load packing plan:", err);

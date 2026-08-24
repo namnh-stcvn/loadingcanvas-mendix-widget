@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type DragEvent, type ReactElement, type RefObject } from "react";
+import { useEffect, useRef, type DragEvent, type ReactElement, type RefObject } from "react";
 import { CargoCard } from "../components/CargoCard";
 import { PalletList } from "../components/PalletList";
 import { GridOverlay } from "../components/GridOverlay";
@@ -70,19 +70,12 @@ export const LoadingCanvas = (props: LoadingCanvasWidgetProps): ReactElement => 
     trailer,
   });
 
-  // --- Track which pallets have been added to the canvas ---
-  // We track added pallet IDs in a Set. When a pallet is dragged onto the
-  // canvas, its ID is added to the set so it disappears from the palette.
-  const [addedPalletIds, setAddedPalletIds] = useState<Set<string>>(new Set());
-
-  // Available pallets = palletList minus those already added to canvas
-  // Normalize IDs by removing "cargo-" prefix for comparison
+  // Available pallets = palletList minus those already on the canvas.
+  // Derived from canvas items (single source of truth), so the list always
+  // reflects reality after drag-in, plan load, or canvas reset.
+  // Normalize IDs by removing "cargo-" prefix for comparison.
   const normalizeId = (id: string) => (id.startsWith("cargo-") ? id.replace("cargo-", "") : id);
-  const availablePallets = palletList.filter((p) => {
-    const palletId = normalizeId(p.id);
-    const hasMatch = Array.from(addedPalletIds).some((addedId) => normalizeId(addedId) === palletId);
-    return !hasMatch;
-  });
+  const availablePallets = palletList.filter((p) => !items.some((i) => normalizeId(i.id) === normalizeId(p.id)));
 
   // --- Restore items when loaded from plan ---
   // The useTrailerCanvas hook already handles initialItems changes via its
@@ -91,10 +84,8 @@ export const LoadingCanvas = (props: LoadingCanvasWidgetProps): ReactElement => 
   useEffect(() => {
     if (initialCanvasItems.length > 0) {
       setItems(initialCanvasItems);
-      const itemIds = new Set(initialCanvasItems.map((item) => item.id));
-      setAddedPalletIds((prev) => new Set([...prev, ...itemIds]));
     }
-  }, [initialCanvasItems, setItems, setAddedPalletIds, palletList]);
+  }, [initialCanvasItems, setItems]);
 
   // --- Save plan handler ---
   const handleSavePlan = (): void => {
@@ -128,9 +119,6 @@ export const LoadingCanvas = (props: LoadingCanvasWidgetProps): ReactElement => 
     // Add the pallet to the canvas at the drop position
     const newItem = { ...pallet, x, y };
     addItem(newItem);
-
-    // Mark as added so it disappears from the pallet list
-    setAddedPalletIds((prev) => new Set([...prev, palletId]));
   };
 
   const handlePalletDragOver = (e: DragEvent<HTMLDivElement>): void => {
@@ -245,7 +233,6 @@ export const LoadingCanvas = (props: LoadingCanvasWidgetProps): ReactElement => 
         onAddPallet={(pallet: CargoItem) => {
           // Add pallet to canvas at a default position
           const newItem = { ...pallet, x: 50, y: 50 };
-          setAddedPalletIds((prev) => new Set([...prev, pallet.id]));
           addItem(newItem);
         }}
       />

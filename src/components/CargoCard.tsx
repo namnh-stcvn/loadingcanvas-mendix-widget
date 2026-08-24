@@ -106,10 +106,10 @@ export const CargoCard: React.FC<CargoCardProps> = ({
         <br />
         size: {item.width} × {item.height}
         <br />
-        rotation: {item.rotation}°{item.heightM && <br />}
-        {item.heightM && `height: ${item.heightM}m`}
-        {item.weightKg && <br />}
-        {item.weightKg && `weight: ${item.weightKg}kg`}
+        rotation: {item.rotation}°{item.height && <br />}
+        {item.height && `height: ${item.height}m`}
+        {item.width && <br />}
+        {item.width && `width: ${item.width}m`}
       </div>
 
       <RotationHandle
