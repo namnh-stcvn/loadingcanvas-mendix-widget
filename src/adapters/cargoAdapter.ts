@@ -83,6 +83,73 @@ export const cargoItemToPackingUnitData = (item: CargoItem, scale: number): Pack
   };
 };
 
+const readPositiveNumber = (plain: Record<string, unknown>, keys: string[]): number | undefined => {
+  for (const key of keys) {
+    const value = plain[key];
+    if (value === undefined || value === null) {
+      continue;
+    }
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  return undefined;
+};
+
+const readNonEmptyString = (plain: Record<string, unknown>, keys: string[]): string | undefined => {
+  for (const key of keys) {
+    const value = plain[key];
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      return String(value);
+    }
+  }
+  return undefined;
+};
+
+export const resolvePackingType = (value: unknown): "pallet" | "box" => {
+  return String(value ?? "")
+    .toLowerCase()
+    .includes("box")
+    ? "box"
+    : "pallet";
+};
+
+export const packingTypeFromColor = (color: string | undefined): "pallet" | "box" => {
+  return typeof color === "string" && color.toLowerCase().includes("blue") ? "box" : "pallet";
+};
+
+// Merges the associated PackingUnit values (Name/Length/Width/Height/packing type) into the
+// TransportOrder data. The CargoItem id stays based on the TransportOrder GUID so the save
+// flow can restore the TransportOrder association correctly.
+export const applyPackingUnitData = (
+  order: TransportOrderData,
+  unitPlain: Record<string, unknown> | null,
+  packingTypeValue?: string | null
+): TransportOrderData => {
+  if (!unitPlain) {
+    return order;
+  }
+
+  const current = order.packingUnit;
+  const unitName = readNonEmptyString(unitPlain, ["Name", "name"]);
+
+  return {
+    ...order,
+    name: unitName ?? order.name,
+    packingUnit: {
+      id: current?.id ?? order.id,
+      name: unitName ?? current?.name,
+      lengthMeter: readPositiveNumber(unitPlain, ["Length", "length"]) ?? current?.lengthMeter ?? 1.2,
+      widthMeter: readPositiveNumber(unitPlain, ["Width", "width"]) ?? current?.widthMeter ?? 0.8,
+      heightMeter: readPositiveNumber(unitPlain, ["Height", "height"]) ?? current?.heightMeter ?? 1.6,
+      packingType: resolvePackingType(packingTypeValue),
+      weightKg:
+        readPositiveNumber(unitPlain, ["WeightKg", "weightKg", "GrossWeight", "grossWeight"]) ?? current?.weightKg,
+    },
+  };
+};
+
 /**
  * Helper: convert pixel to meter (inverse of meterToPixel).
  */

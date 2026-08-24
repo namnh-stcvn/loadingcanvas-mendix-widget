@@ -16,7 +16,13 @@ import type { CargoItem } from "../viewModels/CargoItem";
 import type { TrailerItem } from "../viewModels/TrailerItem";
 import { deserializePlan, serializePlan, type PackingPlanData } from "./stateAdapter";
 import { computeScale, truckSelectionToTrailerItem, type TruckSelectionData } from "./trailerAdapter";
-import { transportOrdersToCargoItems, type TransportOrderData, type PackingUnitData } from "./cargoAdapter";
+import {
+  applyPackingUnitData,
+  packingTypeFromColor,
+  transportOrdersToCargoItems,
+  type PackingUnitData,
+  type TransportOrderData,
+} from "./cargoAdapter";
 import type { CanvasState } from "../state/CanvasState";
 import type { MxData, MxObject } from "../types/mx";
 import Big from "big.js";
@@ -139,6 +145,16 @@ const setMxDecimalAttribute = (obj: unknown, attribute: string, value: number, c
 const PACKING_PLAN_TRUCK_ASSOCIATIONS = ["TCSLoadingMeter.PackingPlan_TruckSelection", "PackingPlan_TruckSelection"];
 const PACKING_PLAN_ITEM_ASSOCIATIONS = ["TCSLoadingMeter.PackingPlanItem_PackingPlan", "PackingPlanItem_PackingPlan"];
 
+// Candidate names stay bounded and adapter-local (see docs/PACKING_PLAN_ENTITY.md).
+const TRANSPORT_ORDER_PACKING_UNIT_ASSOCIATIONS = [
+  "TCSTransportModule.TransportOrder_PackingUnit",
+  "TransportOrder_PackingUnit",
+];
+const PACKING_UNIT_PACKING_TYPE_ASSOCIATIONS = [
+  "DataModelModule.PackingUnit_DataModelModule.PackingType",
+  "PackingUnit_PackingType",
+];
+
 const getAssociationGuid = (obj: unknown, associationNames: string[]): string | undefined => {
   if (!isMxObject(obj)) {
     return undefined;
@@ -155,6 +171,40 @@ const getAssociationGuid = (obj: unknown, associationNames: string[]): string | 
     }
   }
   return undefined;
+};
+
+// Reference attributes are not part of getAttributes(); read them via mxObject.get().
+// Handles single-reference GUIDs as well as reference sets (GUID arrays).
+export const getReferenceGuids = (obj: unknown, associationNames: string[]): string[] => {
+  if (!isMxObject(obj)) {
+    return [];
+  }
+
+  for (const associationName of associationNames) {
+    const guids: string[] = [];
+    try {
+      const value = obj.get(associationName);
+      if (Array.isArray(value)) {
+        for (const entry of value) {
+          const guid = getObjectGuid(entry);
+          if (guid) {
+            guids.push(guid);
+          }
+        }
+      } else if (value !== null && value !== undefined && value !== "") {
+        const guid = getObjectGuid(value);
+        if (guid) {
+          guids.push(guid);
+        }
+      }
+    } catch {
+      continue;
+    }
+    if (guids.length > 0) {
+      return [...new Set(guids)];
+    }
+  }
+  return [];
 };
 
 export const filterByAssociationGuid = (
@@ -353,6 +403,8 @@ export const extractTransportOrderData = (obj: unknown, fallbackGuid?: string): 
   const name = String(
     raw.name ??
       raw.Name ??
+      raw.transportOrderNo ??
+      raw.TransportOrderNo ??
       raw.code ??
       raw.Code ??
       raw.orderNumber ??
@@ -549,15 +601,73 @@ export const loadTrailerItem = async (
 /**
  * Load TransportOrder objects and convert them to CargoItem view models.
  */
-export const loadCargoItems = async (ordersGuids: string[], scale: { widthScale: number; heightScale: number }): Promise<CargoItem[]> => {
+export const loadCargoItems = async (
+  ordersGuids: string[],
+  scale: { widthScale: number; heightScale: number }
+): Promise<CargoItem[]> => {
   if (!ordersGuids || ordersGuids.length === 0) {
     return [];
   }
 
   try {
     const rawObjs = await loadMendixObjects(ordersGuids);
+
+    // Per docs/PACKING_PLAN_ENTITY.md the display name and real dimensions live on the
+    // PackingUnit linked via TransportOrder_PackingUnit, not on TransportOrder itself.
+    const unitGuidsByOrder = rawObjs.map((raw) => getReferenceGuids(raw, TRANSPORT_ORDER_PACKING_UNIT_ASSOCIATIONS));
+    const missingUnits = unitGuidsByOrder.filter((guids) => guids.length === 0).length;
+    if (missingUnits > 0 && isMendixRuntime()) {
+      console.warn(
+        `loadCargoItems: ${missingUnits}/${rawObjs.length} TransportOrders have no PackingUnit linked (tried: ${TRANSPORT_ORDER_PACKING_UNIT_ASSOCIATIONS.join(", ")})`
+      );
+    }
+
+    const unitPlainByGuid = new Map<string, Record<string, unknown>>();
+    const unitTypeGuidByUnit = new Map<string, string>();
+    const allUnitGuids = [...new Set(unitGuidsByOrder.flat())];
+    if (allUnitGuids.length > 0) {
+      const unitObjects = await loadMendixObjects(allUnitGuids);
+      for (const unitObj of unitObjects) {
+        const unitGuid = getObjectGuid(unitObj);
+        if (!unitGuid) {
+          continue;
+        }
+        unitPlainByGuid.set(unitGuid, toPlainObject(unitObj));
+        const typeGuid = getReferenceGuids(unitObj, PACKING_UNIT_PACKING_TYPE_ASSOCIATIONS)[0];
+        if (typeGuid) {
+          unitTypeGuidByUnit.set(unitGuid, typeGuid);
+        }
+      }
+    }
+
+    const typeValueByGuid = new Map<string, string>();
+    const allTypeGuids = [...new Set(unitTypeGuidByUnit.values())];
+    if (allTypeGuids.length > 0) {
+      const typeObjects = await loadMendixObjects(allTypeGuids);
+      for (const typeObj of typeObjects) {
+        const typeGuid = getObjectGuid(typeObj);
+        if (!typeGuid) {
+          continue;
+        }
+        const enumValue = toPlainObject(typeObj).E_PackingType;
+        if (enumValue !== undefined && enumValue !== null) {
+          typeValueByGuid.set(typeGuid, String(enumValue));
+        }
+      }
+    }
+
     const ordersData: TransportOrderData[] = rawObjs
-      .map((raw, idx) => extractTransportOrderData(raw, ordersGuids[idx]))
+      .map((raw, idx) => {
+        const order = extractTransportOrderData(raw, ordersGuids[idx]);
+        if (!order) {
+          return null;
+        }
+        const unitGuid = unitGuidsByOrder[idx][0];
+        const unitPlain = unitGuid ? (unitPlainByGuid.get(unitGuid) ?? null) : null;
+        const typeGuid = unitGuid ? unitTypeGuidByUnit.get(unitGuid) : undefined;
+        const packingTypeValue = typeGuid ? (typeValueByGuid.get(typeGuid) ?? null) : null;
+        return applyPackingUnitData(order, unitPlain, packingTypeValue);
+      })
       .filter((d): d is TransportOrderData => d !== null);
 
     return transportOrdersToCargoItems(ordersData, scale);
@@ -580,7 +690,10 @@ const findPackingPlanItems = async (planGuid: string): Promise<unknown[]> => {
 /**
  * Load a saved PackingPlan for the given TruckSelection.
  */
-export const loadPackingPlan = async (truckGuid: string | null, scale: { widthScale: number; heightScale: number }): Promise<CargoItem[]> => {
+export const loadPackingPlan = async (
+  truckGuid: string | null,
+  scale: { widthScale: number; heightScale: number }
+): Promise<CargoItem[]> => {
   if (!truckGuid) {
     return [];
   }
@@ -618,28 +731,20 @@ export const loadPackingPlan = async (truckGuid: string | null, scale: { widthSc
             )
           : String(raw.TransportOrder ?? raw.transportOrder ?? raw.id ?? raw.guid ?? "item");
         const itemId = transportOrderId.startsWith("cargo-") ? transportOrderId : `cargo-${transportOrderId}`;
+        // PackingPlanItem has no Name/Type attributes (docs/PACKING_PLAN_ENTITY.md); type derives from Color.
+        const colorValue =
+          raw.Color !== undefined || raw.color !== undefined ? String(raw.Color ?? raw.color) : undefined;
+        const itemType = packingTypeFromColor(colorValue);
         return {
           id: itemId,
-          name: String(raw.Name ?? raw.name ?? `Cargo ${raw.id ?? ""}`),
-          type: (String(raw.Type ?? raw.type ?? "pallet")
-            .toLowerCase()
-            .includes("box")
-            ? "box"
-            : "pallet") as "pallet" | "box",
+          name: String(raw.Name ?? raw.name ?? `Cargo ${itemId}`),
+          type: itemType,
           x: Number(raw.PositionX ?? raw.positionX ?? raw.x ?? 0),
           y: Number(raw.PositionY ?? raw.positionY ?? raw.y ?? 0),
           width: Number(raw.Width ?? raw.width ?? 1.2),
           height: Number(raw.Height ?? raw.height ?? 0.8),
           rotation: Number(raw.Rotation ?? raw.rotation ?? 0) as 0 | 90 | 180 | 270,
-          color: String(
-            raw.Color ??
-              raw.color ??
-              (String(raw.Type ?? raw.type ?? "pallet")
-                .toLowerCase()
-                .includes("box")
-                ? "blue"
-                : "orange")
-          ),
+          color: colorValue ?? (itemType === "box" ? "blue" : "orange"),
           heightM:
             raw.HeightMeters !== undefined || raw.heightMeters !== undefined || raw.heightM !== undefined
               ? Number(raw.HeightMeters ?? raw.heightMeters ?? raw.heightM)
@@ -760,7 +865,6 @@ export const savePackingPlan = async (
               setMxDecimalAttribute(itemObj, "Width", item.width, `PackingPlanItem ${item.id}`);
               setMxDecimalAttribute(itemObj, "Height", item.height, `PackingPlanItem ${item.id}`);
               setMxAttribute(itemObj, "Rotation", item.rotation, `PackingPlanItem ${item.id}`);
-              setMxAttribute(itemObj, "Type", item.type, `PackingPlanItem ${item.id}`);
               setMxAttribute(itemObj, "Color", item.color, `PackingPlanItem ${item.id}`);
               setMxDecimalAttribute(itemObj, "HeightMeters", item.heightM ?? 0, `PackingPlanItem ${item.id}`);
               setMxDecimalAttribute(itemObj, "WeightKg", item.weightKg ?? 0, `PackingPlanItem ${item.id}`);

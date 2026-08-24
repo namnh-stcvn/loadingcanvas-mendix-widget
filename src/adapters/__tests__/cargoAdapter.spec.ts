@@ -1,14 +1,17 @@
 import { describe, it, expect } from "@jest/globals";
 import {
-  packingUnitToCargoItem,
-  transportOrdersToCargoItems,
+  applyPackingUnitData,
   cargoItemToPackingUnitData,
   getCargoItemRect,
+  packingTypeFromColor,
+  packingUnitToCargoItem,
+  resolvePackingType,
+  transportOrdersToCargoItems,
 } from "../cargoAdapter";
 import type { CargoItem } from "../../viewModels/CargoItem";
 
 describe("cargoAdapter", () => {
-  const scale = 50;
+  const scale = { widthScale: 50, heightScale: 50 };
 
   describe("packingUnitToCargoItem", () => {
     it("should convert a pallet packing unit to a CargoItem", () => {
@@ -169,7 +172,7 @@ describe("cargoAdapter", () => {
         heightM: 1.6,
         weightKg: 500,
       };
-      const result = cargoItemToPackingUnitData(item, scale);
+      const result = cargoItemToPackingUnitData(item, scale.widthScale);
       expect(result.id).toBe("pu-1");
       expect(result.name).toBe("Pallet A");
       expect(result.lengthMeter).toBe(1.2); // 60 / 50
@@ -213,6 +216,71 @@ describe("cargoAdapter", () => {
       };
       const rect = getCargoItemRect(item);
       expect(rect).toEqual({ x: 100, y: 200, width: 40, height: 60 });
+    });
+  });
+
+  describe("packingTypeFromColor", () => {
+    it("should map blue to box", () => {
+      expect(packingTypeFromColor("blue")).toBe("box");
+      expect(packingTypeFromColor("Blue")).toBe("box");
+    });
+
+    it("should map other or missing colors to pallet", () => {
+      expect(packingTypeFromColor("orange")).toBe("pallet");
+      expect(packingTypeFromColor(undefined)).toBe("pallet");
+    });
+  });
+
+  describe("resolvePackingType", () => {
+    it("should detect box enum values case-insensitively", () => {
+      expect(resolvePackingType("Box")).toBe("box");
+      expect(resolvePackingType("PALLET")).toBe("pallet");
+      expect(resolvePackingType(undefined)).toBe("pallet");
+    });
+  });
+
+  describe("applyPackingUnitData", () => {
+    const baseOrder = {
+      id: "order-1",
+      name: "Cargo order-1",
+      packingUnit: {
+        id: "order-1",
+        lengthMeter: 1.2,
+        widthMeter: 0.8,
+        heightMeter: 1.6,
+        packingType: "pallet" as const,
+        weightKg: 500,
+      },
+    };
+
+    it("should return the order unchanged when no PackingUnit is linked", () => {
+      const result = applyPackingUnitData(baseOrder, null, "Box");
+      expect(result).toBe(baseOrder);
+    });
+
+    it("should override name, dimensions and packing type from the associated PackingUnit", () => {
+      const result = applyPackingUnitData(
+        baseOrder,
+        { Name: "EU Pallet", Length: 1.4, Width: 1.0, Height: 2.0 },
+        "Box"
+      );
+      expect(result.name).toBe("EU Pallet");
+      expect(result.packingUnit?.name).toBe("EU Pallet");
+      expect(result.packingUnit?.lengthMeter).toBe(1.4);
+      expect(result.packingUnit?.widthMeter).toBe(1.0);
+      expect(result.packingUnit?.heightMeter).toBe(2.0);
+      expect(result.packingUnit?.packingType).toBe("box");
+      // Ids stay based on the TransportOrder so the save flow can restore the association.
+      expect(result.id).toBe("order-1");
+      expect(result.packingUnit?.id).toBe("order-1");
+    });
+
+    it("should keep existing values when the PackingUnit lacks them and prefer its weight", () => {
+      const result = applyPackingUnitData(baseOrder, { WeightKg: 750 }, null);
+      expect(result.name).toBe("Cargo order-1");
+      expect(result.packingUnit?.lengthMeter).toBe(1.2);
+      expect(result.packingUnit?.weightKg).toBe(750);
+      expect(result.packingUnit?.packingType).toBe("pallet");
     });
   });
 });

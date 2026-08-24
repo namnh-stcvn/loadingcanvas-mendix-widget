@@ -84,6 +84,40 @@ TransportOrderSequence_TransportOrder (1-*)
 TCSTransportModule.TransportOrder_PackingUnit (1-*)
 DataModelModule.PackingUnit_DataModelModule.PackingType (1-*)
 
+List off entity with attributes:
+
+TrucSelection:
+- TruckIndex (interger)
+
+ResourceInstance:
+- Name (String)
+- LicensePlate (String)
+...
+
+Resource:
+- Name (String)
+...
+
+TechnicalDetails:
+- NameResource (String)
+- HangerLength (Decimal, meters)
+- HangerWidth (Decimal, meters)
+...
+
+TransportOrder:
+- TransportOrderNo (String)
+- Quantity (interger)
+...
+
+PackingUnit:
+- Name (String)
+- Length (Decimal, meters)
+- Width (Decimal, meters)
+...
+
+PackingType:
+- E_PackingType (Enum, "Pallet", Box)
+
 NEW:
 TCSLoadingMeter.PackingPlan (1 per TruckSelection)
   └─ PackingPlanItem (1-* per plan)
@@ -149,14 +183,16 @@ after the save/load operations complete.
 ```
 //TCSLoadingMeter.PackingPlan[TCSLoadingMeter.PackingPlan_TruckSelection = '{truckGuid}']
 ```
-*(or `//TCSLoadingMeter.PackingPlan[TCSLoadingMeter.TruckSelection = '{truckGuid}']` depending on association name in Domain Model)*
+
+_(or `//TCSLoadingMeter.PackingPlan[TCSLoadingMeter.TruckSelection = '{truckGuid}']` depending on association name in Domain Model)_
 
 ### Find PackingPlanItems for a Plan
 
 ```
 //TCSLoadingMeter.PackingPlanItem[TCSLoadingMeter.PackingPlanItem_PackingPlan = '{planGuid}']
 ```
-*(or `//TCSLoadingMeter.PackingPlanItem[TCSLoadingMeter.PackingPlan = '{planGuid}']` depending on association name in Domain Model)*
+
+_(or `//TCSLoadingMeter.PackingPlanItem[TCSLoadingMeter.PackingPlan = '{planGuid}']` depending on association name in Domain Model)_
 
 ## Notes
 

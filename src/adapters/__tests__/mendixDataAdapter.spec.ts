@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import Big from "big.js";
-import { filterByAssociationGuid, savePackingPlan, toBig } from "../mendixDataAdapter";
+import {
+  extractTransportOrderData,
+  filterByAssociationGuid,
+  getReferenceGuids,
+  loadCargoItems,
+  savePackingPlan,
+  toBig,
+} from "../mendixDataAdapter";
 import type { CanvasState } from "../../state/CanvasState";
 
 describe("mendixDataAdapter Decimal conversion", () => {
@@ -29,6 +36,102 @@ describe("mendixDataAdapter Decimal conversion", () => {
     };
 
     expect(filterByAssociationGuid([matching, other], ["PackingPlan_TruckSelection"], "truck-1")).toEqual([matching]);
+  });
+});
+
+describe("extractTransportOrderData name fallback", () => {
+  it("uses TransportOrderNo when no display name attribute exists", () => {
+    const data = extractTransportOrderData({ TransportOrderNo: "TO-123" }, "order-guid-1");
+    expect(data?.name).toBe("TO-123");
+  });
+
+  it("falls back to Cargo + guid when nothing else is available", () => {
+    const data = extractTransportOrderData({}, "order-guid-1");
+    expect(data?.name).toBe("Cargo order-guid-1");
+  });
+});
+
+describe("getReferenceGuids", () => {
+  const makeObj = (attrs: Record<string, unknown>) => ({
+    get: (name: string): unknown => (name in attrs ? attrs[name] : null),
+    set: (): void => undefined,
+    getAttributes: (): string[] => Object.keys(attrs),
+  });
+
+  it("reads reference sets (GUID arrays)", () => {
+    const obj = makeObj({ "TCSTransportModule.TransportOrder_PackingUnit": ["pu-1", "pu-2"] });
+    expect(getReferenceGuids(obj, ["TCSTransportModule.TransportOrder_PackingUnit"])).toEqual(["pu-1", "pu-2"]);
+  });
+
+  it("reads single references and tries the next candidate when one is missing", () => {
+    const obj = makeObj({ TransportOrder_PackingUnit: "pu-9" });
+    expect(
+      getReferenceGuids(obj, ["TCSTransportModule.TransportOrder_PackingUnit", "TransportOrder_PackingUnit"])
+    ).toEqual(["pu-9"]);
+  });
+
+  it("returns an empty list for non-MxObject inputs", () => {
+    expect(getReferenceGuids({ foo: 1 }, ["Some.Assoc"])).toEqual([]);
+  });
+});
+
+describe("loadCargoItems PackingUnit enrichment", () => {
+  const originalMx = (globalThis as { mx?: unknown }).mx;
+
+  afterEach(() => {
+    (globalThis as { mx?: unknown }).mx = originalMx;
+  });
+
+  it("resolves name, dimensions and packing type from the associated PackingUnit", async () => {
+    const orderObj = {
+      get: (name: string): unknown => (name === "TCSTransportModule.TransportOrder_PackingUnit" ? ["pu-guid-1"] : null),
+      set: (): void => undefined,
+      getAttributes: (): string[] => [],
+      getGuid: (): string => "order-guid-1",
+    };
+    const unitAttrs: Record<string, unknown> = {
+      Name: "EU Pallet",
+      Length: { toNumber: () => 1.2 },
+      Width: { toNumber: () => 0.8 },
+    };
+    const unitObj = {
+      get: (name: string): unknown =>
+        name === "DataModelModule.PackingUnit_DataModelModule.PackingType" ? "pt-guid-1" : (unitAttrs[name] ?? null),
+      set: (): void => undefined,
+      getAttributes: (): string[] => Object.keys(unitAttrs),
+      getGuid: (): string => "pu-guid-1",
+    };
+    const typeAttrs: Record<string, unknown> = { E_PackingType: "Box" };
+    const typeObj = {
+      get: (name: string): unknown => (name in typeAttrs ? typeAttrs[name] : null),
+      set: (): void => undefined,
+      getAttributes: (): string[] => Object.keys(typeAttrs),
+      getGuid: (): string => "pt-guid-1",
+    };
+
+    const registry: Record<string, unknown> = {
+      "order-guid-1": orderObj,
+      "pu-guid-1": unitObj,
+      "pt-guid-1": typeObj,
+    };
+    (globalThis as { mx?: unknown }).mx = {
+      data: {
+        get: jest.fn((options: { guids?: string[]; callback: (result: unknown) => void }) => {
+          const requested = options.guids ?? [];
+          options.callback(requested.map((guid) => registry[guid]).filter(Boolean));
+        }),
+      },
+    };
+
+    const items = await loadCargoItems(["order-guid-1"], { widthScale: 50, heightScale: 50 });
+
+    expect(items).toHaveLength(1);
+    expect(items[0].id).toBe("cargo-order-guid-1");
+    expect(items[0].name).toBe("EU Pallet");
+    expect(items[0].width).toBe(60); // 1.2 * 50
+    expect(items[0].height).toBe(40); // 0.8 * 50
+    expect(items[0].type).toBe("box");
+    expect(items[0].color).toBe("blue");
   });
 });
 
@@ -129,10 +232,10 @@ describe("savePackingPlan Decimal constructor fallback", () => {
       selectedIds: [],
       activeItemId: null,
       validation: { valid: true, errors: [] },
-      scale: 1,
+      scale: { widthScale: 1, heightScale: 1 },
     };
 
-    const result = await savePackingPlan("truck-1", state, 1);
+    const result = await savePackingPlan("truck-1", state, { widthScale: 1, heightScale: 1 });
 
     expect(result.items).toHaveLength(1);
     expect(result.items[0].heightM).toBe(1.6);

@@ -32,7 +32,7 @@ describe("CanvasActionDispatcher", () => {
     selectedIds: [],
     activeItemId: null,
     validation: { valid: true, errors: [] },
-    scale: 1,
+    scale: { widthScale: 1, heightScale: 1 },
   });
 
   const createDispatcher = (

@@ -1,9 +1,15 @@
 import { describe, it, expect } from "@jest/globals";
 import { truckSelectionToTrailerItem, trailerToTrailerItem, computeScale } from "../trailerAdapter";
 import type { Trailer } from "../../models/Trailer";
+import {
+  TRAILER_CANVAS_WIDTH,
+  TRAILER_CANVAS_HEIGHT,
+  TRAILER_CANVAS_LEFT,
+  TRAILER_CANVAS_TOP,
+} from "../../constants/canvas";
 
 describe("trailerAdapter", () => {
-  const scale = 50;
+  const scale = { widthScale: 50, heightScale: 50 };
 
   describe("truckSelectionToTrailerItem", () => {
     it("should convert TruckSelectionData to TrailerItem", () => {
@@ -28,8 +34,8 @@ describe("trailerAdapter", () => {
       expect(result.internalHeightMeter).toBe(2.5);
       expect(result.width).toBe(600); // 12 * 50
       expect(result.height).toBe(125); // 2.5 * 50
-      expect(result.x).toBe(20);
-      expect(result.y).toBe(20);
+      expect(result.x).toBe(TRAILER_CANVAS_LEFT);
+      expect(result.y).toBe(TRAILER_CANVAS_TOP);
       expect(result.rotation).toBe(0);
     });
 
@@ -83,43 +89,41 @@ describe("trailerAdapter", () => {
   });
 
   describe("computeScale", () => {
-    it("should compute scale to fit trailer within canvas", () => {
-      const truck = {
-        id: "truck-1",
-        internalLengthMeter: 12,
-        internalWidthMeter: 2.5,
-        internalHeightMeter: 2.5,
-      };
-      const scale = computeScale(truck, 1000, 600);
-      // availableWidth = 1000 - 40 = 960, availableHeight = 600 - 40 = 560
-      // scale = min(960/12, 560/2.5) = min(80, 224) = 80
-      expect(scale).toBe(80);
+    const truck = {
+      id: "truck-1",
+      internalLengthMeter: 12,
+      internalWidthMeter: 2.5,
+      internalHeightMeter: 2.5,
+    };
+
+    it("should compute a separate axis scale per dimension from the trailer canvas size", () => {
+      const scale = computeScale(truck);
+      expect(scale.widthScale).toBeCloseTo(TRAILER_CANVAS_WIDTH / 12);
+      expect(scale.heightScale).toBeCloseTo(TRAILER_CANVAS_HEIGHT / 2.5);
     });
 
-    it("should use custom padding", () => {
-      const truck = {
-        id: "truck-1",
-        internalLengthMeter: 12,
-        internalWidthMeter: 2.5,
-        internalHeightMeter: 2.5,
-      };
-      const scale = computeScale(truck, 1000, 600, 100);
-      // availableWidth = 1000 - 100 = 900, availableHeight = 600 - 100 = 500
-      // scale = min(900/12, 500/2.5) = min(75, 200) = 75
-      expect(scale).toBe(75);
+    it("should subtract padding before dividing", () => {
+      const scale = computeScale(truck, 100);
+      expect(scale.widthScale).toBeCloseTo((TRAILER_CANVAS_WIDTH - 100) / 12);
+      expect(scale.heightScale).toBeCloseTo((TRAILER_CANVAS_HEIGHT - 100) / 2.5);
     });
 
-    it("should handle square trailer", () => {
-      const truck = {
-        id: "truck-1",
-        internalLengthMeter: 10,
-        internalWidthMeter: 10,
+    it("should never return a scale below the 100px-per-meter floor", () => {
+      const scale = computeScale(truck, 250);
+      // TRAILER_CANVAS_HEIGHT - 250 = 47 -> clamped up to 100
+      expect(scale.widthScale).toBeCloseTo((TRAILER_CANVAS_WIDTH - 250) / 12);
+      expect(scale.heightScale).toBeCloseTo(100 / 2.5);
+    });
+
+    it("should fall back to default trailer dimensions when values are not positive", () => {
+      const scale = computeScale({
+        id: "truck-2",
+        internalLengthMeter: 0,
+        internalWidthMeter: -3,
         internalHeightMeter: 2.5,
-      };
-      const scale = computeScale(truck, 500, 500);
-      // availableWidth = 500 - 40 = 460, availableHeight = 500 - 40 = 460
-      // scale = min(460/10, 460/10) = 46
-      expect(scale).toBe(46);
+      });
+      expect(scale.widthScale).toBeCloseTo(TRAILER_CANVAS_WIDTH / 13.6);
+      expect(scale.heightScale).toBeCloseTo(TRAILER_CANVAS_HEIGHT / 2.45);
     });
   });
 });

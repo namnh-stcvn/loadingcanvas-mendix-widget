@@ -5,6 +5,7 @@ import type { CanvasState } from "../../state/CanvasState";
 
 describe("stateAdapter", () => {
   const scale = 50;
+  const canvasScale = { widthScale: 50, heightScale: 50 };
 
   const createCargoItem = (overrides: Partial<CargoItem> = {}): CargoItem => ({
     id: "cargo-1",
@@ -41,7 +42,7 @@ describe("stateAdapter", () => {
     selectedIds: [],
     activeItemId: null,
     validation: { valid: true, errors: [] },
-    scale,
+    scale: canvasScale,
   });
 
   describe("serializePlan", () => {

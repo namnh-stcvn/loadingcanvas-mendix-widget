@@ -9,7 +9,7 @@ describe("CanvasStateManager", () => {
     selectedIds: [],
     activeItemId: null,
     validation: { valid: true, errors: [] },
-    scale: 1,
+    scale: { widthScale: 1, heightScale: 1 },
   });
 
   describe("constructor & getState", () => {

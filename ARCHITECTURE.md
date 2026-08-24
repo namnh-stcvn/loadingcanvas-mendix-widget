@@ -152,7 +152,7 @@ src/
   - `selectedIds: string[]` — currently selected item IDs
   - `activeItemId: string | null` — the item being actively dragged
   - `validation: ValidationResult` — current validation status and errors
-  - `scale: number` — pixel-to-meter scale factor
+  - `scale: { widthScale: number; heightScale: number }` — separate width/height pixel-to-meter scale factors (2-scale approach using TRAILER_CANVAS 1453x297)
   - `offsetX: number`, `offsetY: number` — canvas pan offsets
 
 ### Engines
@@ -198,7 +198,7 @@ src/
 - **`trailerAdapter.ts`** — Converts between TruckSelection data (meters) and TrailerItem view model (pixels).
   - `truckSelectionToTrailerItem()` — TruckSelectionData → TrailerItem
   - `trailerToTrailerItem()` — Trailer business model → TrailerItem
-  - `computeScale()` — computes the optimal pixel-to-meter scale factor
+- `computeScale()` — computes separate width/height pixel-to-meter scale factors using TRAILER_CANVAS (1453x297) with padding=0; returns `{ widthScale, heightScale }`
 
 - **`stateAdapter.ts`** — Serializes/deserializes packing plans for persistence.
   - `serializePlan()` — CanvasState → PackingPlanData (meters)

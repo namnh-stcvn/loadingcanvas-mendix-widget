@@ -84,7 +84,7 @@ export const CargoCard: React.FC<CargoCardProps> = ({
         }}
       />
 
-      {/* <div
+      <div
         style={{
           position: "absolute",
 
@@ -110,7 +110,7 @@ export const CargoCard: React.FC<CargoCardProps> = ({
         {item.heightM && `height: ${item.heightM}m`}
         {item.weightKg && <br />}
         {item.weightKg && `weight: ${item.weightKg}kg`}
-      </div> */}
+      </div>
 
       <RotationHandle
         onMouseDown={(e) => {
