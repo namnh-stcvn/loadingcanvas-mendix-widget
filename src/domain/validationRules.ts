@@ -35,8 +35,12 @@ export const validateItem = (
 };
 
 // Validate total load meters (LM) against trailer's max load meters
-export const validateLoadMeters = (items: CargoItem[], maxLoadMeters: number, scale: number): ValidationResult => {
-  const totalLengthMeters = items.reduce((sum, item) => sum + item.width / scale, 0);
+export const validateLoadMeters = (
+  items: CargoItem[],
+  maxLoadMeters: number,
+  scale: { widthScale: number; heightScale: number }
+): ValidationResult => {
+  const totalLengthMeters = items.reduce((sum, item) => sum + item.width / scale.widthScale, 0);
 
   if (totalLengthMeters > maxLoadMeters) {
     return {
@@ -78,7 +82,7 @@ export const validateAll = (
   options?: {
     maxLoadMeters?: number;
     internalHeightMeter?: number;
-    scale?: number;
+    scale?: { widthScale: number; heightScale: number };
   }
 ): ValidationResult => {
   const allErrors: ValidationError[] = [];

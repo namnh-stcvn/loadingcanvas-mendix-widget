@@ -18,7 +18,7 @@ interface UseTrailerCanvasProps {
   canvasWidth: number;
   canvasHeight: number;
   canvasRef: RefObject<HTMLDivElement | null>;
-  scale?: number;
+  scale?: { widthScale: number; heightScale: number };
   trailer?: TrailerItem | null;
 }
 
@@ -36,7 +36,7 @@ interface UseTrailerCanvasResult {
 
 const createInitialCanvasState = (
   initialItems: CargoItem[],
-  scale: number,
+  scale: { widthScale: number; heightScale: number },
   trailer: TrailerItem | null
 ): CanvasState => ({
   trailer,
@@ -55,7 +55,7 @@ export const useTrailerCanvas = ({
   canvasWidth,
   canvasHeight,
   canvasRef,
-  scale = 1,
+  scale = { widthScale: 1, heightScale: 1 },
   trailer = null,
 }: UseTrailerCanvasProps): UseTrailerCanvasResult => {
   const collisionEngine = useMemo(() => new CollisionEngine(), []);

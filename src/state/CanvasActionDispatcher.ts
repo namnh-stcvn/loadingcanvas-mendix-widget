@@ -32,8 +32,8 @@ interface CanvasActionDispatcherOptions {
  */
 const buildValidationOptions = (state: {
   trailer?: { maxLoadMeters?: number; internalHeightMeter?: number } | null;
-  scale: number;
-}): { maxLoadMeters?: number; internalHeightMeter?: number; scale: number } => ({
+  scale: { widthScale: number; heightScale: number };
+}): { maxLoadMeters?: number; internalHeightMeter?: number; scale: { widthScale: number; heightScale: number } } => ({
   maxLoadMeters: state.trailer?.maxLoadMeters,
   internalHeightMeter: state.trailer?.internalHeightMeter,
   scale: state.scale,

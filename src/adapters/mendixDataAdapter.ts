@@ -495,7 +495,7 @@ export const executeMendixAction = async (actionId: string, params: Record<strin
 
 export interface LoadedTrailerResult {
   trailer: TrailerItem | null;
-  scale: number;
+  scale: { widthScale: number; heightScale: number };
   truckGuid: string | null;
 }
 
@@ -504,28 +504,31 @@ export interface LoadedTrailerResult {
  */
 export const loadTrailerAndScale = async (truckRef: string | undefined): Promise<LoadedTrailerResult> => {
   if (!truckRef) {
-    return { trailer: null, scale: 1, truckGuid: null };
+    return { trailer: null, scale: { widthScale: 1, heightScale: 1 }, truckGuid: null };
   }
 
   try {
     const rawObj = await loadMendixObject(truckRef);
     const truckData = extractTruckData(rawObj, truckRef);
     if (!truckData) {
-      return { trailer: null, scale: 1, truckGuid: null };
+      return { trailer: null, scale: { widthScale: 1, heightScale: 1 }, truckGuid: null };
     }
     const scale = computeScale(truckData);
     const trailer = truckSelectionToTrailerItem(truckData, scale);
     return { trailer, scale, truckGuid: truckData.id };
   } catch (err) {
     console.error("Failed to load TruckSelection:", err);
-    return { trailer: null, scale: 1, truckGuid: null };
+    return { trailer: null, scale: { widthScale: 1, heightScale: 1 }, truckGuid: null };
   }
 };
 
 /**
  * Load the TruckSelection object and convert it to a TrailerItem view model.
  */
-export const loadTrailerItem = async (truckRef: string | undefined, scale: number): Promise<TrailerItem | null> => {
+export const loadTrailerItem = async (
+  truckRef: string | undefined,
+  scale: { widthScale: number; heightScale: number }
+): Promise<TrailerItem | null> => {
   if (!truckRef) {
     return null;
   }
@@ -546,7 +549,7 @@ export const loadTrailerItem = async (truckRef: string | undefined, scale: numbe
 /**
  * Load TransportOrder objects and convert them to CargoItem view models.
  */
-export const loadCargoItems = async (ordersGuids: string[], scale: number): Promise<CargoItem[]> => {
+export const loadCargoItems = async (ordersGuids: string[], scale: { widthScale: number; heightScale: number }): Promise<CargoItem[]> => {
   if (!ordersGuids || ordersGuids.length === 0) {
     return [];
   }
@@ -577,7 +580,7 @@ const findPackingPlanItems = async (planGuid: string): Promise<unknown[]> => {
 /**
  * Load a saved PackingPlan for the given TruckSelection.
  */
-export const loadPackingPlan = async (truckGuid: string | null, scale: number): Promise<CargoItem[]> => {
+export const loadPackingPlan = async (truckGuid: string | null, scale: { widthScale: number; heightScale: number }): Promise<CargoItem[]> => {
   if (!truckGuid) {
     return [];
   }
@@ -647,7 +650,7 @@ export const loadPackingPlan = async (truckGuid: string | null, scale: number): 
       }),
     };
 
-    return deserializePlan(planData, scale);
+    return deserializePlan(planData, scale.widthScale);
   } catch (err) {
     console.error("Failed to load PackingPlan:", err);
     return [];
@@ -660,10 +663,10 @@ export const loadPackingPlan = async (truckGuid: string | null, scale: number): 
 export const savePackingPlan = async (
   truckGuid: string | null,
   state: CanvasState,
-  scale: number,
+  scale: { widthScale: number; heightScale: number },
   onSaveMicroflow?: () => void
 ): Promise<PackingPlanData> => {
-  const plan = serializePlan(state, scale);
+  const plan = serializePlan(state, scale.widthScale);
 
   if (!isMendixRuntime()) {
     onSaveMicroflow?.();

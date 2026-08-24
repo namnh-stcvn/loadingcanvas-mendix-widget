@@ -35,7 +35,7 @@ export interface TransportOrderData {
  */
 export const packingUnitToCargoItem = (
   packingUnit: PackingUnitData,
-  scale: number,
+  scale: { widthScale: number; heightScale: number },
   position: { x: number; y: number } = { x: 0, y: 0 }
 ): CargoItem => {
   const color = packingUnit.packingType === "pallet" ? "orange" : "blue";
@@ -46,8 +46,8 @@ export const packingUnitToCargoItem = (
     name,
     x: position.x,
     y: position.y,
-    width: meterToPixel(packingUnit.lengthMeter, scale),
-    height: meterToPixel(packingUnit.widthMeter, scale),
+    width: meterToPixel(packingUnit.lengthMeter, scale.widthScale),
+    height: meterToPixel(packingUnit.widthMeter, scale.heightScale),
     rotation: 0,
     color,
     type: packingUnit.packingType,
@@ -61,7 +61,10 @@ export const packingUnitToCargoItem = (
  * Convert a list of TransportOrders to CargoItems.
  * Each TransportOrder has one PackingUnit.
  */
-export const transportOrdersToCargoItems = (orders: TransportOrderData[], scale: number): CargoItem[] => {
+export const transportOrdersToCargoItems = (
+  orders: TransportOrderData[],
+  scale: { widthScale: number; heightScale: number }
+): CargoItem[] => {
   return orders.filter((order) => order.packingUnit).map((order) => packingUnitToCargoItem(order.packingUnit!, scale));
 };
 

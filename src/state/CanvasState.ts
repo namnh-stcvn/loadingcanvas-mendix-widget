@@ -8,5 +8,5 @@ export interface CanvasState {
   selectedIds: string[];
   activeItemId: string | null;
   validation: ValidationResult;
-  scale: number;
+  scale: { widthScale: number; heightScale: number };
 }

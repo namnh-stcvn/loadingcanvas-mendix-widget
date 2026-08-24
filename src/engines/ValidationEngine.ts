@@ -5,7 +5,7 @@ import { validateAll, type ValidationResult } from "../domain/validationRules";
 export interface ValidationOptions {
   maxLoadMeters?: number;
   internalHeightMeter?: number;
-  scale?: number;
+  scale?: { widthScale: number; heightScale: number };
 }
 
 export class ValidationEngine {
