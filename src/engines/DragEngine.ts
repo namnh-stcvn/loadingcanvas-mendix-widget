@@ -3,6 +3,12 @@ import type { DragState } from "../state/DragState";
 import type { CollisionEngine } from "./CollisionEngine";
 import type { SnapEngine } from "./SnapEngine";
 import { calculateDragPosition } from "../domain/dragRules";
+import {
+  TRAILER_CANVAS_LEFT,
+  TRAILER_CANVAS_TOP,
+  TRAILER_CANVAS_WIDTH,
+  TRAILER_CANVAS_HEIGHT,
+} from "../constants/canvas";
 
 export class DragEngine<
   T extends RectLike & {
@@ -82,7 +88,12 @@ export class DragEngine<
       const basePosition = calculateDragPosition(item, { x: baseX, y: baseY }, 0, 0, canvasWidth, canvasHeight);
 
       const startPos = this.state.startPositions.get(item.id) ?? { x: item.x, y: item.y };
-      const bounds = { x: 0, y: 0, width: canvasWidth, height: canvasHeight };
+      const bounds = {
+        x: TRAILER_CANVAS_LEFT,
+        y: TRAILER_CANVAS_TOP,
+        width: TRAILER_CANVAS_WIDTH,
+        height: TRAILER_CANVAS_HEIGHT,
+      };
       const others = this.items.filter((other) => other.id !== item.id);
 
       let targetPos = { x: basePosition.x, y: basePosition.y };
