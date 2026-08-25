@@ -16,6 +16,7 @@ export interface PackingPlanItemData {
   rotation: number;
   color: string;
   heightM?: number;
+  widthM?: number;
   weightKg?: number;
 }
 
@@ -45,6 +46,7 @@ export const serializePlan = (state: CanvasState, scale: number): PackingPlanDat
       rotation: item.rotation,
       color: item.color,
       heightM: item.heightM,
+      widthM: item.widthM,
       weightKg: item.weightKg,
     })),
   };
@@ -67,6 +69,7 @@ export const deserializePlan = (plan: PackingPlanData, scale: number): CargoItem
     color: item.color,
     isLocked: false,
     heightM: item.heightM,
+    widthM: item.widthM,
     weightKg: item.weightKg,
   }));
 };

@@ -62,10 +62,13 @@ TCSLoadingMeter Module (NEW entities):
   ├─ TransportOrder → TCSTransportModule.TransportOrder (*-1)
   ├─ PositionX (Decimal, meters)
   ├─ PositionY (Decimal, meters)
+  ├─ Length (Decimal, meters)
   ├─ Width (Decimal, meters)
   ├─ Height (Decimal, meters)
   ├─ Rotation (Integer: 0/90/180/270)
   ├─ Color (String)
+  ├─ LengthMeters (Decimal, optional)
+  ├─ WidthMeters (Decimal, optional)
   ├─ HeightMeters (Decimal, optional)
   └─ WeightKg (Decimal, optional)
 ```

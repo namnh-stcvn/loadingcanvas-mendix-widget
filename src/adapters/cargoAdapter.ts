@@ -53,6 +53,7 @@ export const packingUnitToCargoItem = (
     type: packingUnit.packingType,
     isLocked: false,
     heightM: packingUnit.heightMeter,
+    widthM: packingUnit.widthMeter,
     weightKg: packingUnit.weightKg,
   };
 };
@@ -76,7 +77,7 @@ export const cargoItemToPackingUnitData = (item: CargoItem, scale: number): Pack
     id: item.id.replace("cargo-", ""),
     name: item.name,
     lengthMeter: pixelToMeter(item.width, scale),
-    widthMeter: pixelToMeter(item.height, scale),
+    widthMeter: item.widthM ?? pixelToMeter(item.height, scale),
     heightMeter: item.heightM ?? 0,
     packingType: item.type,
     weightKg: item.weightKg,

@@ -19,6 +19,7 @@ describe("stateAdapter", () => {
     type: "pallet",
     isLocked: false,
     heightM: 1.6,
+    widthM: 0.9,
     weightKg: 500,
     ...overrides,
   });
@@ -106,6 +107,7 @@ describe("stateAdapter", () => {
             rotation: 0 as const,
             color: "orange",
             heightM: 1.6,
+            widthM: 0.9,
             weightKg: 500,
           },
         ],
@@ -121,6 +123,7 @@ describe("stateAdapter", () => {
       expect(items[0].color).toBe("orange");
       expect(items[0].isLocked).toBe(false);
       expect(items[0].heightM).toBe(1.6);
+      expect(items[0].widthM).toBe(0.9);
       expect(items[0].weightKg).toBe(500);
     });
 
@@ -184,6 +187,7 @@ describe("stateAdapter", () => {
       };
       const items = deserializePlan(plan, scale);
       expect(items[0].heightM).toBeUndefined();
+      expect(items[0].widthM).toBeUndefined();
       expect(items[0].weightKg).toBeUndefined();
     });
   });

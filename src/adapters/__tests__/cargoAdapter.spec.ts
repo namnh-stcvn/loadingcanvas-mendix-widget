@@ -32,6 +32,7 @@ describe("cargoAdapter", () => {
       expect(result.color).toBe("orange");
       expect(result.type).toBe("pallet");
       expect(result.heightM).toBe(1.6);
+      expect(result.widthM).toBe(0.8);
       expect(result.weightKg).toBe(500);
       expect(result.rotation).toBe(0);
       expect(result.isLocked).toBe(false);
@@ -170,16 +171,35 @@ describe("cargoAdapter", () => {
         type: "pallet",
         isLocked: false,
         heightM: 1.6,
+        widthM: 0.9,
         weightKg: 500,
       };
       const result = cargoItemToPackingUnitData(item, scale.widthScale);
       expect(result.id).toBe("pu-1");
       expect(result.name).toBe("Pallet A");
       expect(result.lengthMeter).toBe(1.2); // 60 / 50
-      expect(result.widthMeter).toBe(0.8); // 40 / 50
+      // Explicit physical width wins over the pixel-derived footprint value
+      expect(result.widthMeter).toBe(0.9);
       expect(result.heightMeter).toBe(1.6);
       expect(result.packingType).toBe("pallet");
       expect(result.weightKg).toBe(500);
+    });
+
+    it("should fall back to pixel-derived width when widthM is missing", () => {
+      const item: CargoItem = {
+        id: "cargo-pu-1",
+        name: "Pallet A",
+        x: 100,
+        y: 200,
+        width: 60,
+        height: 40,
+        rotation: 0,
+        color: "orange",
+        type: "pallet",
+        isLocked: false,
+      };
+      const result = cargoItemToPackingUnitData(item, scale.widthScale);
+      expect(result.widthMeter).toBe(0.8); // 40 / 50
     });
   });
 
