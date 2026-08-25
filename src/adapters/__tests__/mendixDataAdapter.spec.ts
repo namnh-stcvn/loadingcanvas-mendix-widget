@@ -128,8 +128,8 @@ describe("loadCargoItems PackingUnit enrichment", () => {
     expect(items).toHaveLength(1);
     expect(items[0].id).toBe("cargo-order-guid-1");
     expect(items[0].name).toBe("EU Pallet");
-    expect(items[0].width).toBe(60); // 1.2 * 50
-    expect(items[0].height).toBe(40); // 0.8 * 50
+    expect(items[0].length).toBe(60); // 1.2 * 50
+    expect(items[0].width).toBe(40); // 0.8 * 50
     expect(items[0].type).toBe("box");
     expect(items[0].color).toBe("blue");
   });
@@ -164,9 +164,11 @@ describe("savePackingPlan Decimal constructor fallback", () => {
     const attrs: Record<string, unknown> = {
       PositionX: makeDecimal(0),
       PositionY: makeDecimal(0),
-      Width: makeDecimal(1.2),
+      Length: makeDecimal(1.2),
+      Width: makeDecimal(0.8),
       Height: makeDecimal(0.8),
-      HeightMeters: null,
+      LengthMeters: null,
+      WidthMeters: null,
       WeightKg: null,
     };
     return makeMxObject(guid, attrs);
@@ -210,7 +212,7 @@ describe("savePackingPlan Decimal constructor fallback", () => {
     (globalThis as { mx?: unknown }).mx = originalMx;
   });
 
-  it("borrows the Decimal constructor from another attribute when HeightMeters has no default value", async () => {
+  it("borrows the Decimal constructor from another attribute when LengthMeters has no default value", async () => {
     const state: CanvasState = {
       trailer: null,
       cargos: [
@@ -220,12 +222,13 @@ describe("savePackingPlan Decimal constructor fallback", () => {
           type: "pallet",
           x: 0,
           y: 0,
-          width: 1.2,
-          height: 0.8,
+          length: 1.2,
+          width: 0.8,
           rotation: 0,
           color: "gray",
           isLocked: false,
-          heightM: 1.6,
+          lengthM: 1.2,
+          widthM: 0.8,
           weightKg: 500,
         },
       ],
@@ -238,6 +241,7 @@ describe("savePackingPlan Decimal constructor fallback", () => {
     const result = await savePackingPlan("truck-1", state, { widthScale: 1, heightScale: 1 });
 
     expect(result.items).toHaveLength(1);
-    expect(result.items[0].heightM).toBe(1.6);
+    expect(result.items[0].lengthM).toBe(1.2);
+    expect(result.items[0].widthM).toBe(0.8);
   });
 });

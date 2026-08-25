@@ -31,9 +31,8 @@ describe("trailerAdapter", () => {
       expect(result.maxPayloadKg).toBe(20000);
       expect(result.axleCount).toBe(2);
       expect(result.maxLoadMeters).toBe(12);
-      expect(result.internalHeightMeter).toBe(2.5);
-      expect(result.width).toBe(600); // 12 * 50
-      expect(result.height).toBe(125); // 2.5 * 50
+      expect(result.length).toBe(600); // 12 * 50
+      expect(result.width).toBe(125); // 2.5 * 50
       expect(result.x).toBe(TRAILER_CANVAS_LEFT);
       expect(result.y).toBe(TRAILER_CANVAS_TOP);
       expect(result.rotation).toBe(0);
@@ -83,8 +82,8 @@ describe("trailerAdapter", () => {
       const result = trailerToTrailerItem(trailer, scale);
       expect(result.id).toBe("trailer-1");
       expect(result.code).toBe("TRAILER-001");
-      expect(result.width).toBe(600);
-      expect(result.height).toBe(125);
+      expect(result.length).toBe(600);
+      expect(result.width).toBe(125);
     });
   });
 

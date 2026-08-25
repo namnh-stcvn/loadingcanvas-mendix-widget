@@ -37,11 +37,10 @@ export const truckSelectionToTrailerItem = (
     maxPayloadKg: truck.maxPayloadKg ?? 0,
     axleCount: truck.axleCount ?? 2,
     maxLoadMeters: truck.maxLoadMeters ?? truck.internalLengthMeter,
-    internalHeightMeter: truck.internalHeightMeter,
     x: position.x,
     y: position.y,
-    width: Math.min(TRAILER_CANVAS_WIDTH, meterToPixel(truck.internalLengthMeter, scale.widthScale)),
-    height: Math.min(TRAILER_CANVAS_HEIGHT, meterToPixel(truck.internalWidthMeter, scale.heightScale)),
+    length: Math.min(TRAILER_CANVAS_WIDTH, meterToPixel(truck.internalLengthMeter, scale.widthScale)),
+    width: Math.min(TRAILER_CANVAS_HEIGHT, meterToPixel(truck.internalWidthMeter, scale.heightScale)),
     rotation: 0,
   };
 };
@@ -58,11 +57,10 @@ export const trailerToTrailerItem = (
     maxPayloadKg: trailer.maxPayloadKg,
     axleCount: trailer.axleCount,
     maxLoadMeters: trailer.maxLoadMeters ?? trailer.internalLengthMeter,
-    internalHeightMeter: trailer.internalHeightMeter,
     x: position.x,
     y: position.y,
-    width: Math.min(TRAILER_CANVAS_WIDTH, meterToPixel(trailer.internalLengthMeter, scale.widthScale)),
-    height: Math.min(TRAILER_CANVAS_HEIGHT, meterToPixel(trailer.internalWidthMeter, scale.heightScale)),
+    length: Math.min(TRAILER_CANVAS_WIDTH, meterToPixel(trailer.internalLengthMeter, scale.widthScale)),
+    width: Math.min(TRAILER_CANVAS_HEIGHT, meterToPixel(trailer.internalWidthMeter, scale.heightScale)),
     rotation: 0,
   };
 };

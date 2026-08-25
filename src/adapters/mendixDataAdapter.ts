@@ -119,7 +119,7 @@ const getDecimalConstructor = (obj: unknown, attribute: string, context: string)
   // All Decimal attributes on the same MxObject share the same Mendix Decimal constructor.
   // If the target attribute has no default value, borrow the constructor from another
   // Decimal attribute that does (e.g. PositionX/Width/Height usually have defaults).
-  const fallbackAttributes = ["PositionX", "PositionY", "Width", "Height", "WeightKg", "HeightMeters"];
+  const fallbackAttributes = ["PositionX", "PositionY", "Length", "Width", "LengthMeters", "WidthMeters", "WeightKg"];
   for (const attr of fallbackAttributes) {
     if (attr === attribute) {
       continue;
@@ -741,13 +741,17 @@ export const loadPackingPlan = async (
           type: itemType,
           x: Number(raw.PositionX ?? raw.positionX ?? raw.x ?? 0),
           y: Number(raw.PositionY ?? raw.positionY ?? raw.y ?? 0),
-          width: Number(raw.Width ?? raw.width ?? 1.2),
-          height: Number(raw.Height ?? raw.height ?? 0.8),
+          length: Number(raw.Length ?? raw.length ?? 1.2),
+          width: Number(raw.Width ?? raw.width ?? 0.8),
           rotation: Number(raw.Rotation ?? raw.rotation ?? 0) as 0 | 90 | 180 | 270,
           color: colorValue ?? (itemType === "box" ? "blue" : "orange"),
-          heightM:
-            raw.HeightMeters !== undefined || raw.heightMeters !== undefined || raw.heightM !== undefined
-              ? Number(raw.HeightMeters ?? raw.heightMeters ?? raw.heightM)
+          lengthM:
+            raw.LengthMeters !== undefined || raw.lengthMeters !== undefined || raw.lengthM !== undefined
+              ? Number(raw.LengthMeters ?? raw.lengthMeters ?? raw.lengthM)
+              : undefined,
+          widthM:
+            raw.WidthMeters !== undefined || raw.widthMeters !== undefined || raw.widthM !== undefined
+              ? Number(raw.WidthMeters ?? raw.widthMeters ?? raw.widthM)
               : undefined,
           weightKg:
             raw.WeightKg !== undefined || raw.weightKg !== undefined ? Number(raw.WeightKg ?? raw.weightKg) : undefined,
@@ -755,7 +759,7 @@ export const loadPackingPlan = async (
       }),
     };
 
-    return deserializePlan(planData, scale.widthScale);
+    return deserializePlan(planData, scale);
   } catch (err) {
     console.error("Failed to load PackingPlan:", err);
     return [];
@@ -771,7 +775,7 @@ export const savePackingPlan = async (
   scale: { widthScale: number; heightScale: number },
   onSaveMicroflow?: () => void
 ): Promise<PackingPlanData> => {
-  const plan = serializePlan(state, scale.widthScale);
+  const plan = serializePlan(state, scale);
 
   if (!isMendixRuntime()) {
     onSaveMicroflow?.();
@@ -862,11 +866,14 @@ export const savePackingPlan = async (
               );
               setMxDecimalAttribute(itemObj, "PositionX", item.x, `PackingPlanItem ${item.id}`);
               setMxDecimalAttribute(itemObj, "PositionY", item.y, `PackingPlanItem ${item.id}`);
+              setMxDecimalAttribute(itemObj, "Length", item.length, `PackingPlanItem ${item.id}`);
               setMxDecimalAttribute(itemObj, "Width", item.width, `PackingPlanItem ${item.id}`);
-              setMxDecimalAttribute(itemObj, "Height", item.height, `PackingPlanItem ${item.id}`);
+              // Height is a required column; the 2D canvas has no Z value so store 0.
+              setMxDecimalAttribute(itemObj, "Height", 0, `PackingPlanItem ${item.id}`);
               setMxAttribute(itemObj, "Rotation", item.rotation, `PackingPlanItem ${item.id}`);
               setMxAttribute(itemObj, "Color", item.color, `PackingPlanItem ${item.id}`);
-              setMxDecimalAttribute(itemObj, "HeightMeters", item.heightM ?? 0, `PackingPlanItem ${item.id}`);
+              setMxDecimalAttribute(itemObj, "LengthMeters", item.lengthM ?? 0, `PackingPlanItem ${item.id}`);
+              setMxDecimalAttribute(itemObj, "WidthMeters", item.widthM ?? 0, `PackingPlanItem ${item.id}`);
               setMxDecimalAttribute(itemObj, "WeightKg", item.weightKg ?? 0, `PackingPlanItem ${item.id}`);
               createdItems.push(itemObj);
               resolve();

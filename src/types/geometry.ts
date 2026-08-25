@@ -7,11 +7,12 @@ export interface Point {
 }
 
 /**
- * Width / Height
+ * Length / Width
+ * `length` = extent along X (trailer length), `width` = extent along Y (footprint width).
  */
 export interface Size {
+  length: number;
   width: number;
-  height: number;
 }
 
 /**
@@ -26,8 +27,8 @@ export interface Positionable {
  * Dimension only
  */
 export interface Sizeable {
+  length: number;
   width: number;
-  height: number;
 }
 
 /**
@@ -39,7 +40,7 @@ export interface Rotatable {
 
 /**
  * Any object that has:
- * x, y, width, height
+ * x, y, length, width
  */
 export interface RectLike extends Positionable, Sizeable {}
 

@@ -3,14 +3,14 @@ import { ValidationEngine } from "../ValidationEngine";
 import type { CargoItem } from "../../viewModels/CargoItem";
 
 describe("ValidationEngine", () => {
-  const bounds = { x: 0, y: 0, width: 1000, height: 600 };
+  const bounds = { x: 0, y: 0, length: 1000, width: 600 };
 
   const createCargoItem = (overrides: Partial<CargoItem> = {}): CargoItem => ({
     id: "item1",
     x: 100,
     y: 100,
+    length: 50,
     width: 50,
-    height: 50,
     rotation: 0,
     name: "Test Item",
     type: "pallet",
@@ -76,7 +76,7 @@ describe("ValidationEngine", () => {
 
     it("should account for rotation when validating bounds", () => {
       const engine = new ValidationEngine();
-      const items = [createCargoItem({ id: "item1", x: 950, y: 0, width: 100, height: 10, rotation: 90 })];
+      const items = [createCargoItem({ id: "item1", x: 950, y: 0, length: 100, width: 10, rotation: 90 })];
       const result = engine.validateItems(items, bounds);
       expect(result).toEqual({ valid: true, errors: [], itemErrors: {} });
     });
@@ -84,8 +84,8 @@ describe("ValidationEngine", () => {
     it("should detect overlap with rotated items", () => {
       const engine = new ValidationEngine();
       const items = [
-        createCargoItem({ id: "item1", x: 0, y: 0, width: 100, height: 10, rotation: 90 }),
-        createCargoItem({ id: "item2", x: 0, y: 0, width: 10, height: 100 }),
+        createCargoItem({ id: "item1", x: 0, y: 0, length: 100, width: 10, rotation: 90 }),
+        createCargoItem({ id: "item2", x: 0, y: 0, length: 10, width: 100 }),
       ];
       const result = engine.validateItems(items, bounds);
       expect(result.valid).toBe(false);

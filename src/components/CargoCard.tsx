@@ -39,8 +39,8 @@ export const CargoCard: React.FC<CargoCardProps> = ({
 }) => {
   const size = getRotatedSize(
     {
+      length: item.length,
       width: item.width,
-      height: item.height,
     },
     item.rotation
   );
@@ -68,9 +68,9 @@ export const CargoCard: React.FC<CargoCardProps> = ({
         data-id={item.id}
         onMouseDown={onMouseDown}
         style={{
-          width: size.width,
+          width: size.length,
 
-          height: size.height,
+          height: size.width,
 
           backgroundColor: item.color,
 
@@ -88,7 +88,7 @@ export const CargoCard: React.FC<CargoCardProps> = ({
         style={{
           position: "absolute",
 
-          top: size.height + 4,
+          top: size.width + 4,
 
           left: 0,
 
@@ -104,10 +104,10 @@ export const CargoCard: React.FC<CargoCardProps> = ({
         <br />
         pos: ({item.x}, {item.y})
         <br />
-        size: {item.width} × {item.height}
+        size: {item.length} × {item.width}
         <br />
-        rotation: {item.rotation}°{item.heightM && <br />}
-        {item.heightM && `height: ${item.heightM}m`}
+        rotation: {item.rotation}°{item.lengthM && <br />}
+        {item.lengthM && `length: ${item.lengthM}m`}
         {item.widthM && <br />}
         {item.widthM && `width: ${item.widthM}m`}
       </div>

@@ -3,7 +3,7 @@ import { calculateDragPosition } from "../dragRules";
 
 describe("dragRules", () => {
   describe("calculateDragPosition", () => {
-    const item = { x: 10, y: 10, width: 50, height: 30 };
+    const item = { x: 10, y: 10, length: 50, width: 30 };
     const startPosition = { x: 10, y: 10 };
     const canvasWidth = 1000;
     const canvasHeight = 600;
@@ -32,23 +32,23 @@ describe("dragRules", () => {
       expect(result.y).toBe(0);
     });
 
-    it("should clamp x to canvasWidth - item.width when target exceeds bounds", () => {
+    it("should clamp x to canvasWidth - item.length when target exceeds bounds", () => {
       const result = calculateDragPosition(item, { x: 2000, y: 100 }, 0, 0, canvasWidth, canvasHeight);
-      expect(result.x).toBe(canvasWidth - item.width);
+      expect(result.x).toBe(canvasWidth - item.length);
     });
 
-    it("should clamp y to canvasHeight - item.height when target exceeds bounds", () => {
+    it("should clamp y to canvasHeight - item.width when target exceeds bounds", () => {
       const result = calculateDragPosition(item, { x: 100, y: 2000 }, 0, 0, canvasWidth, canvasHeight);
-      expect(result.y).toBe(canvasHeight - item.height);
+      expect(result.y).toBe(canvasHeight - item.width);
     });
 
     it("should preserve other item properties", () => {
-      const itemWithExtra = { x: 10, y: 10, width: 50, height: 30, id: "test-id", rotation: 0 as const };
+      const itemWithExtra = { x: 10, y: 10, length: 50, width: 30, id: "test-id", rotation: 0 as const };
       const result = calculateDragPosition(itemWithExtra, { x: 100, y: 100 }, 0, 0, canvasWidth, canvasHeight);
       expect(result.id).toBe("test-id");
       expect(result.rotation).toBe(0);
-      expect(result.width).toBe(50);
-      expect(result.height).toBe(30);
+      expect(result.length).toBe(50);
+      expect(result.width).toBe(30);
     });
 
     it("should use custom grid size when provided", () => {

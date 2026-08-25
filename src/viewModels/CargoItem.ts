@@ -7,7 +7,7 @@ export interface CargoItem extends GeometryItem {
   type: CargoType;
   color: string;
   isLocked: boolean;
-  heightM?: number; // Height in meters for height validation
-  widthM?: number; // Width in meters for width validation
+  lengthM?: number; // Footprint length in meters
+  widthM?: number; // Footprint width in meters
   weightKg?: number; // Weight in kg for payload validation
 }

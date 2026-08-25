@@ -2,7 +2,7 @@ import type { RectLike, Rotation } from "../types/geometry";
 import type { CargoItem } from "../viewModels/CargoItem";
 import { overlaps, isInsideBounds } from "./geometryRules";
 
-export type ValidationError = "OVERLAP" | "OUT_OF_BOUNDS" | "LM_EXCEEDED" | "HEIGHT_EXCEEDED";
+export type ValidationError = "OVERLAP" | "OUT_OF_BOUNDS" | "LM_EXCEEDED";
 
 export interface ValidationResult {
   valid: boolean;
@@ -40,7 +40,7 @@ export const validateLoadMeters = (
   maxLoadMeters: number,
   scale: { widthScale: number; heightScale: number }
 ): ValidationResult => {
-  const totalLengthMeters = items.reduce((sum, item) => sum + item.width / scale.widthScale, 0);
+  const totalLengthMeters = items.reduce((sum, item) => sum + item.length / scale.widthScale, 0);
 
   if (totalLengthMeters > maxLoadMeters) {
     return {
@@ -55,33 +55,12 @@ export const validateLoadMeters = (
   };
 };
 
-// Validate item heights against trailer's internal height
-export const validateHeight = (items: CargoItem[], internalHeightMeter: number): ValidationResult => {
-  const itemErrors: Record<string, ValidationError[]> = {};
-  let hasError = false;
-
-  for (const item of items) {
-    const itemHeight = item.heightM ?? 0;
-    if (itemHeight > internalHeightMeter) {
-      itemErrors[item.id] = ["HEIGHT_EXCEEDED"];
-      hasError = true;
-    }
-  }
-
-  return {
-    valid: !hasError,
-    errors: hasError ? ["HEIGHT_EXCEEDED"] : [],
-    itemErrors,
-  };
-};
-
-// Validate all items against bounds, each other, LM, and height
+// Validate all items against bounds, each other, and LM
 export const validateAll = (
   items: CargoItem[],
   bounds: RectLike,
   options?: {
     maxLoadMeters?: number;
-    internalHeightMeter?: number;
     scale?: { widthScale: number; heightScale: number };
   }
 ): ValidationResult => {
@@ -103,15 +82,6 @@ export const validateAll = (
     const lmResult = validateLoadMeters(items, options.maxLoadMeters, options.scale);
     if (!lmResult.valid) {
       allErrors.push(...lmResult.errors);
-    }
-  }
-
-  // 3. Validate height
-  if (options?.internalHeightMeter) {
-    const heightResult = validateHeight(items, options.internalHeightMeter);
-    if (!heightResult.valid) {
-      allErrors.push(...heightResult.errors);
-      Object.assign(itemErrors, heightResult.itemErrors);
     }
   }
 

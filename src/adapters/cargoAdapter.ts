@@ -10,7 +10,7 @@ export interface PackingUnitData {
   name?: string;
   lengthMeter: number;
   widthMeter: number;
-  heightMeter: number;
+  heightMeter?: number;
   packingType: "pallet" | "box";
   weightKg?: number;
 }
@@ -46,13 +46,13 @@ export const packingUnitToCargoItem = (
     name,
     x: position.x,
     y: position.y,
-    width: meterToPixel(packingUnit.lengthMeter, scale.widthScale),
-    height: meterToPixel(packingUnit.widthMeter, scale.heightScale),
+    length: meterToPixel(packingUnit.lengthMeter, scale.widthScale),
+    width: meterToPixel(packingUnit.widthMeter, scale.heightScale),
     rotation: 0,
     color,
     type: packingUnit.packingType,
     isLocked: false,
-    heightM: packingUnit.heightMeter,
+    lengthM: packingUnit.lengthMeter,
     widthM: packingUnit.widthMeter,
     weightKg: packingUnit.weightKg,
   };
@@ -76,9 +76,9 @@ export const cargoItemToPackingUnitData = (item: CargoItem, scale: number): Pack
   return {
     id: item.id.replace("cargo-", ""),
     name: item.name,
-    lengthMeter: pixelToMeter(item.width, scale),
-    widthMeter: item.widthM ?? pixelToMeter(item.height, scale),
-    heightMeter: item.heightM ?? 0,
+    lengthMeter: item.lengthM ?? pixelToMeter(item.length, scale),
+    widthMeter: item.widthM ?? pixelToMeter(item.width, scale),
+    heightMeter: 0,
     packingType: item.type,
     weightKg: item.weightKg,
   };
@@ -162,9 +162,9 @@ const pixelToMeter = (pixel: number, scale: number): number => {
  * Get the visual bounding rectangle of a CargoItem, accounting for rotation.
  * For 90-degree rotation, width and height are swapped.
  */
-export const getCargoItemRect = (item: CargoItem): { x: number; y: number; width: number; height: number } => {
+export const getCargoItemRect = (item: CargoItem): { x: number; y: number; length: number; width: number } => {
   if (item.rotation === 90 || item.rotation === 270) {
-    return { x: item.x, y: item.y, width: item.height, height: item.width };
+    return { x: item.x, y: item.y, length: item.width, width: item.length };
   }
-  return { x: item.x, y: item.y, width: item.width, height: item.height };
+  return { x: item.x, y: item.y, length: item.length, width: item.width };
 };

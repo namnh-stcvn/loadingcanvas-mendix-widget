@@ -27,11 +27,11 @@ describe("cargoAdapter", () => {
       const result = packingUnitToCargoItem(packingUnit, scale);
       expect(result.id).toBe("cargo-pu-1");
       expect(result.name).toBe("Pallet A");
-      expect(result.width).toBe(60); // 1.2 * 50
-      expect(result.height).toBe(40); // 0.8 * 50
+      expect(result.length).toBe(60); // 1.2 * 50
+      expect(result.width).toBe(40); // 0.8 * 50
       expect(result.color).toBe("orange");
       expect(result.type).toBe("pallet");
-      expect(result.heightM).toBe(1.6);
+      expect(result.lengthM).toBe(1.2);
       expect(result.widthM).toBe(0.8);
       expect(result.weightKg).toBe(500);
       expect(result.rotation).toBe(0);
@@ -164,23 +164,25 @@ describe("cargoAdapter", () => {
         name: "Pallet A",
         x: 100,
         y: 200,
-        width: 60,
-        height: 40,
+        length: 60,
+        width: 40,
         rotation: 0,
         color: "orange",
         type: "pallet",
         isLocked: false,
-        heightM: 1.6,
+        lengthM: 1.2,
         widthM: 0.9,
         weightKg: 500,
       };
       const result = cargoItemToPackingUnitData(item, scale.widthScale);
       expect(result.id).toBe("pu-1");
       expect(result.name).toBe("Pallet A");
-      expect(result.lengthMeter).toBe(1.2); // 60 / 50
+      // Explicit physical length wins over the pixel-derived value
+      expect(result.lengthMeter).toBe(1.2);
       // Explicit physical width wins over the pixel-derived footprint value
       expect(result.widthMeter).toBe(0.9);
-      expect(result.heightMeter).toBe(1.6);
+      // No Z height on the 2D canvas
+      expect(result.heightMeter).toBe(0);
       expect(result.packingType).toBe("pallet");
       expect(result.weightKg).toBe(500);
     });
@@ -191,14 +193,15 @@ describe("cargoAdapter", () => {
         name: "Pallet A",
         x: 100,
         y: 200,
-        width: 60,
-        height: 40,
+        length: 60,
+        width: 40,
         rotation: 0,
         color: "orange",
         type: "pallet",
         isLocked: false,
       };
       const result = cargoItemToPackingUnitData(item, scale.widthScale);
+      expect(result.lengthMeter).toBe(1.2); // 60 / 50
       expect(result.widthMeter).toBe(0.8); // 40 / 50
     });
   });
@@ -210,32 +213,32 @@ describe("cargoAdapter", () => {
         name: "Test",
         x: 100,
         y: 200,
-        width: 60,
-        height: 40,
+        length: 60,
+        width: 40,
         rotation: 0,
         color: "red",
         type: "pallet",
         isLocked: false,
       };
       const rect = getCargoItemRect(item);
-      expect(rect).toEqual({ x: 100, y: 200, width: 60, height: 40 });
+      expect(rect).toEqual({ x: 100, y: 200, length: 60, width: 40 });
     });
 
-    it("should swap width/height for a 90-degree rotated item", () => {
+    it("should swap length/width for a 90-degree rotated item", () => {
       const item: CargoItem = {
         id: "cargo-1",
         name: "Test",
         x: 100,
         y: 200,
-        width: 60,
-        height: 40,
+        length: 60,
+        width: 40,
         rotation: 90,
         color: "red",
         type: "pallet",
         isLocked: false,
       };
       const rect = getCargoItemRect(item);
-      expect(rect).toEqual({ x: 100, y: 200, width: 40, height: 60 });
+      expect(rect).toEqual({ x: 100, y: 200, length: 40, width: 60 });
     });
   });
 

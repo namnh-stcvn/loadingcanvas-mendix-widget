@@ -19,40 +19,40 @@ export class CollisionEngine {
     bounds: RectLike,
     snapDistance: number = 0
   ): ValidPosition[] {
-    const itemVis = getRotatedSize({ width: item.width, height: item.height }, item.rotation ?? 0);
+    const itemVis = getRotatedSize({ length: item.length, width: item.width }, item.rotation ?? 0);
+    const itemLen = itemVis.length;
     const itemW = itemVis.width;
-    const itemH = itemVis.height;
 
     const xCandidates = new Set<number>();
     xCandidates.add(item.x);
     if (bounds) {
       xCandidates.add(bounds.x);
-      xCandidates.add(bounds.x + bounds.width - itemW);
+      xCandidates.add(bounds.x + bounds.length - itemLen);
     }
 
     const yCandidates = new Set<number>();
     yCandidates.add(item.y);
     if (bounds) {
       yCandidates.add(bounds.y);
-      yCandidates.add(bounds.y + bounds.height - itemH);
+      yCandidates.add(bounds.y + bounds.width - itemW);
     }
 
     for (const other of others) {
-      const otherVis = getRotatedSize({ width: other.width, height: other.height }, other.rotation ?? 0);
+      const otherVis = getRotatedSize({ length: other.length, width: other.width }, other.rotation ?? 0);
+      const otherLen = otherVis.length;
       const otherW = otherVis.width;
-      const otherH = otherVis.height;
 
       // X-axis candidates for item
-      xCandidates.add(other.x + otherW + snapDistance);
-      xCandidates.add(other.x - itemW - snapDistance);
+      xCandidates.add(other.x + otherLen + snapDistance);
+      xCandidates.add(other.x - itemLen - snapDistance);
       xCandidates.add(other.x);
-      xCandidates.add(other.x + otherW - itemW);
+      xCandidates.add(other.x + otherLen - itemLen);
 
       // Y-axis candidates for item
-      yCandidates.add(other.y + otherH + snapDistance);
-      yCandidates.add(other.y - itemH - snapDistance);
+      yCandidates.add(other.y + otherW + snapDistance);
+      yCandidates.add(other.y - itemW - snapDistance);
       yCandidates.add(other.y);
-      yCandidates.add(other.y + otherH - itemH);
+      yCandidates.add(other.y + otherW - itemW);
     }
 
     const validPositions: ValidPosition[] = [];

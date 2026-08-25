@@ -31,11 +31,10 @@ interface CanvasActionDispatcherOptions {
  * to the validation engine for LM and height checks.
  */
 const buildValidationOptions = (state: {
-  trailer?: { maxLoadMeters?: number; internalHeightMeter?: number } | null;
+  trailer?: { maxLoadMeters?: number } | null;
   scale: { widthScale: number; heightScale: number };
-}): { maxLoadMeters?: number; internalHeightMeter?: number; scale: { widthScale: number; heightScale: number } } => ({
+}): { maxLoadMeters?: number; scale: { widthScale: number; heightScale: number } } => ({
   maxLoadMeters: state.trailer?.maxLoadMeters,
-  internalHeightMeter: state.trailer?.internalHeightMeter,
   scale: state.scale,
 });
 
@@ -98,7 +97,7 @@ export class CanvasActionDispatcher {
         this.dragEngine.updateItems(items);
         const validation = this.validationEngine.validateItems(
           items,
-          { x: 0, y: 0, width: this.canvasWidth, height: this.canvasHeight },
+          { x: 0, y: 0, length: this.canvasWidth, width: this.canvasHeight },
           buildValidationOptions(state)
         );
 
@@ -129,30 +128,30 @@ export class CanvasActionDispatcher {
 
           const newRotation = rotate90(item.rotation);
 
-          // compute previous visual size and new visual size (without changing model w/h)
-          const prevVis = getRotatedSize({ width: item.width, height: item.height }, item.rotation);
-          const nextVis = getRotatedSize({ width: item.width, height: item.height }, newRotation);
+          // compute previous visual size and new visual size (without changing model l/w)
+          const prevVis = getRotatedSize({ length: item.length, width: item.width }, item.rotation);
+          const nextVis = getRotatedSize({ length: item.length, width: item.width }, newRotation);
 
           // keep center invariant based on visual sizes
-          const centerX = item.x + prevVis.width / 2;
-          const centerY = item.y + prevVis.height / 2;
+          const centerX = item.x + prevVis.length / 2;
+          const centerY = item.y + prevVis.width / 2;
 
-          const newX = centerX - nextVis.width / 2;
-          const newY = centerY - nextVis.height / 2;
+          const newX = centerX - nextVis.length / 2;
+          const newY = centerY - nextVis.width / 2;
 
           return {
             ...item,
             rotation: newRotation,
-            // keep model width/height unchanged; renderer uses getRotatedSize
-            x: Math.max(0, Math.min(newX, this.canvasWidth - nextVis.width)),
-            y: Math.max(0, Math.min(newY, this.canvasHeight - nextVis.height)),
+            // keep model length/width unchanged; renderer uses getRotatedSize
+            x: Math.max(0, Math.min(newX, this.canvasWidth - nextVis.length)),
+            y: Math.max(0, Math.min(newY, this.canvasHeight - nextVis.width)),
           };
         });
 
         this.dragEngine.updateItems(nextCargos);
         const validation = this.validationEngine.validateItems(
           nextCargos,
-          { x: 0, y: 0, width: this.canvasWidth, height: this.canvasHeight },
+          { x: 0, y: 0, length: this.canvasWidth, width: this.canvasHeight },
           buildValidationOptions(state)
         );
 
@@ -177,7 +176,7 @@ export class CanvasActionDispatcher {
         this.dragEngine.updateItems(action.items);
         const validation = this.validationEngine.validateItems(
           action.items,
-          { x: 0, y: 0, width: this.canvasWidth, height: this.canvasHeight },
+          { x: 0, y: 0, length: this.canvasWidth, width: this.canvasHeight },
           buildValidationOptions(state)
         );
         this.manager.updateState((current) => ({

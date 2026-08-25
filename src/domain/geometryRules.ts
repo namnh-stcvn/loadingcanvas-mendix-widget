@@ -8,14 +8,14 @@ import { isVerticalRotation } from "./rotationRules";
  */
 export const getRectangle = (item: RectLike & Partial<{ rotation: Rotation }>): Rectangle => {
   const isVertical = typeof item.rotation === "number" && isVerticalRotation(item.rotation as Rotation);
-  const width = isVertical ? item.height : item.width;
-  const height = isVertical ? item.width : item.height;
+  const length = isVertical ? item.width : item.length;
+  const width = isVertical ? item.length : item.width;
 
   return {
     left: item.x,
     top: item.y,
-    right: item.x + width,
-    bottom: item.y + height,
+    right: item.x + length,
+    bottom: item.y + width,
   };
 };
 
@@ -41,8 +41,8 @@ export const isInsideBounds = (item: RectLike & Partial<{ rotation: Rotation }>,
   return (
     rect.left >= bounds.x &&
     rect.top >= bounds.y &&
-    rect.right <= bounds.x + bounds.width &&
-    rect.bottom <= bounds.y + bounds.height
+    rect.right <= bounds.x + bounds.length &&
+    rect.bottom <= bounds.y + bounds.width
   );
 };
 

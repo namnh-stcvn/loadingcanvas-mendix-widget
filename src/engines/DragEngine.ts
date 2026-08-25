@@ -91,8 +91,8 @@ export class DragEngine<
       const bounds = {
         x: TRAILER_CANVAS_LEFT,
         y: TRAILER_CANVAS_TOP,
-        width: TRAILER_CANVAS_WIDTH,
-        height: TRAILER_CANVAS_HEIGHT,
+        length: TRAILER_CANVAS_WIDTH,
+        width: TRAILER_CANVAS_HEIGHT,
       };
       const others = this.items.filter((other) => other.id !== item.id);
 

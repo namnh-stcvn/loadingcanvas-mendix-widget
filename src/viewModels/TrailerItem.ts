@@ -8,5 +8,4 @@ export interface TrailerItem extends GeometryItem {
   maxPayloadKg: Trailer["maxPayloadKg"];
   axleCount: Trailer["axleCount"];
   maxLoadMeters?: number; // Maximum load meters along trailer length
-  internalHeightMeter?: number; // Internal height in meters for height validation
 }

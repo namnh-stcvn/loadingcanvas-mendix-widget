@@ -16,8 +16,8 @@ describe("CanvasActionDispatcher", () => {
     id: "item1",
     x: 100,
     y: 100,
+    length: 50,
     width: 50,
-    height: 50,
     rotation: 0,
     name: "Test Item",
     type: "pallet",
@@ -211,7 +211,7 @@ describe("CanvasActionDispatcher", () => {
 
     it("should preserve item center during rotation", () => {
       const { manager, dispatcher } = createDispatcher([
-        createCargoItem({ x: 100, y: 100, width: 100, height: 50, rotation: 0 }),
+        createCargoItem({ x: 100, y: 100, length: 100, width: 50, rotation: 0 }),
       ]);
       dispatcher.dispatch({ type: "ROTATE", itemId: "item1" });
       const state = manager.getState();
@@ -244,7 +244,7 @@ describe("CanvasActionDispatcher", () => {
 
     it("should clamp position within canvas bounds after rotation", () => {
       const { manager, dispatcher } = createDispatcher([
-        createCargoItem({ x: 950, y: 550, width: 100, height: 50, rotation: 0 }),
+        createCargoItem({ x: 950, y: 550, length: 100, width: 50, rotation: 0 }),
       ]);
       dispatcher.dispatch({ type: "ROTATE", itemId: "item1" });
       const state = manager.getState();

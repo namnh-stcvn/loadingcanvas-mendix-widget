@@ -39,33 +39,33 @@ describe("rotationRules", () => {
   });
 
   describe("getRotatedSize", () => {
-    const size = { width: 100, height: 50 };
+    const size = { length: 100, width: 50 };
 
     it("should return original size for 0 degrees", () => {
-      expect(getRotatedSize(size, 0)).toEqual({ width: 100, height: 50 });
+      expect(getRotatedSize(size, 0)).toEqual({ length: 100, width: 50 });
     });
 
-    it("should swap width and height for 90 degrees", () => {
-      expect(getRotatedSize(size, 90)).toEqual({ width: 50, height: 100 });
+    it("should swap length and width for 90 degrees", () => {
+      expect(getRotatedSize(size, 90)).toEqual({ length: 50, width: 100 });
     });
 
     it("should return original size for 180 degrees", () => {
-      expect(getRotatedSize(size, 180)).toEqual({ width: 100, height: 50 });
+      expect(getRotatedSize(size, 180)).toEqual({ length: 100, width: 50 });
     });
 
-    it("should swap width and height for 270 degrees", () => {
-      expect(getRotatedSize(size, 270)).toEqual({ width: 50, height: 100 });
+    it("should swap length and width for 270 degrees", () => {
+      expect(getRotatedSize(size, 270)).toEqual({ length: 50, width: 100 });
     });
 
     it("should not mutate the original size object", () => {
-      const original = { width: 100, height: 50 };
+      const original = { length: 100, width: 50 };
       getRotatedSize(original, 90);
-      expect(original).toEqual({ width: 100, height: 50 });
+      expect(original).toEqual({ length: 100, width: 50 });
     });
 
     it("should handle square items (swap has no visible effect)", () => {
-      const square = { width: 50, height: 50 };
-      expect(getRotatedSize(square, 90)).toEqual({ width: 50, height: 50 });
+      const square = { length: 50, width: 50 };
+      expect(getRotatedSize(square, 90)).toEqual({ length: 50, width: 50 });
     });
   });
 });

@@ -17,8 +17,8 @@ export const calculateDragPosition = <T extends RectLike>(
   return {
     ...item,
 
-    x: clamp(target.x, 0, canvasWidth - item.width),
+    x: clamp(target.x, 0, canvasWidth - item.length),
 
-    y: clamp(target.y, 0, canvasHeight - item.height),
+    y: clamp(target.y, 0, canvasHeight - item.width),
   };
 };

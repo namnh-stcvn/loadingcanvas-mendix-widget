@@ -21,8 +21,8 @@ export const isVerticalRotation = (rotation: Rotation): boolean => {
 export const getRotatedSize = (size: Size, rotation: Rotation): Size => {
   if (isVerticalRotation(rotation)) {
     return {
-      width: size.height,
-      height: size.width,
+      length: size.width,
+      width: size.length,
     };
   }
 
