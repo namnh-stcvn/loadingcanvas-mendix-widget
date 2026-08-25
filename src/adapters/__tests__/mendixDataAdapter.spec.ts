@@ -214,7 +214,7 @@ describe("savePackingPlan Decimal constructor fallback", () => {
 
   it("borrows the Decimal constructor from another attribute when LengthMeters has no default value", async () => {
     const state: CanvasState = {
-      trailer: null,
+      truck: null,
       cargos: [
         {
           id: "cargo-1",

@@ -6,16 +6,16 @@
  * In the dev environment (Vite), we fall back to JSON parsing for testing.
  *
  * This adapter handles:
- * - Loading TruckSelection → TrailerItem (via trailerAdapter)
+ * - Loading TruckSelection → TruckItem (via truckAdapter)
  * - Loading TransportOrders → CargoItem[] (via cargoAdapter)
  * - Loading PackingPlan → CargoItem[] (via stateAdapter)
  * - Saving PackingPlan (delete + recreate items)
  */
 
 import type { CargoItem } from "../viewModels/CargoItem";
-import type { TrailerItem } from "../viewModels/TrailerItem";
+import type { TruckItem } from "../viewModels/TruckItem";
 import { deserializePlan, serializePlan, type PackingPlanData } from "./stateAdapter";
-import { computeScale, truckSelectionToTrailerItem, type TruckSelectionData } from "./trailerAdapter";
+import { computeScale, truckSelectionToTruckItem, type TruckSelectionData } from "./truckAdapter";
 import {
   applyPackingUnitData,
   packingTypeFromColor,
@@ -273,7 +273,7 @@ export const extractTruckData = (obj: unknown, fallbackGuid?: string): TruckSele
     return null;
   }
   const raw = toPlainObject(obj);
-  const id = String(raw.id ?? raw.guid ?? fallbackGuid ?? "trailer-1");
+  const id = String(raw.id ?? raw.guid ?? fallbackGuid ?? "truck-1");
 
   const length = Number(
     raw.internalLengthMeter ??
@@ -320,14 +320,15 @@ export const extractTruckData = (obj: unknown, fallbackGuid?: string): TruckSele
       raw.TrailerCode ??
       raw.name ??
       raw.Name ??
-      "TRAILER"
+      "TRUCK"
   );
 
-  const trailerType = (raw.trailerType ??
+  // raw.* names are Mendix entity attributes and remain unchanged
+  const truckType = (raw.trailerType ??
     raw.TrailerType ??
     raw.type ??
     raw.Type ??
-    "DryVan") as TruckSelectionData["trailerType"];
+    "DryVan") as TruckSelectionData["truckType"];
 
   const maxPayloadKg = Number(
     raw.maxPayloadKg ??
@@ -350,7 +351,7 @@ export const extractTruckData = (obj: unknown, fallbackGuid?: string): TruckSele
   return {
     id,
     code,
-    trailerType: trailerType || "DryVan",
+    truckType: truckType || "DryVan",
     maxPayloadKg: isNaN(maxPayloadKg) ? 24000 : maxPayloadKg,
     axleCount: isNaN(axleCount) ? 2 : axleCount,
     internalLengthMeter: length > 0 ? length : 13.6,
@@ -545,42 +546,42 @@ export const executeMendixAction = async (actionId: string, params: Record<strin
   return null;
 };
 
-export interface LoadedTrailerResult {
-  trailer: TrailerItem | null;
+export interface LoadedTruckResult {
+  truck: TruckItem | null;
   scale: { widthScale: number; heightScale: number };
   truckGuid: string | null;
 }
 
 /**
- * Load TruckSelection once, calculate scale, and convert to TrailerItem.
+ * Load TruckSelection once, calculate scale, and convert to TruckItem.
  */
-export const loadTrailerAndScale = async (truckRef: string | undefined): Promise<LoadedTrailerResult> => {
+export const loadTruckAndScale = async (truckRef: string | undefined): Promise<LoadedTruckResult> => {
   if (!truckRef) {
-    return { trailer: null, scale: { widthScale: 1, heightScale: 1 }, truckGuid: null };
+    return { truck: null, scale: { widthScale: 1, heightScale: 1 }, truckGuid: null };
   }
 
   try {
     const rawObj = await loadMendixObject(truckRef);
     const truckData = extractTruckData(rawObj, truckRef);
     if (!truckData) {
-      return { trailer: null, scale: { widthScale: 1, heightScale: 1 }, truckGuid: null };
+      return { truck: null, scale: { widthScale: 1, heightScale: 1 }, truckGuid: null };
     }
     const scale = computeScale(truckData);
-    const trailer = truckSelectionToTrailerItem(truckData, scale);
-    return { trailer, scale, truckGuid: truckData.id };
+    const truck = truckSelectionToTruckItem(truckData, scale);
+    return { truck, scale, truckGuid: truckData.id };
   } catch (err) {
     console.error("Failed to load TruckSelection:", err);
-    return { trailer: null, scale: { widthScale: 1, heightScale: 1 }, truckGuid: null };
+    return { truck: null, scale: { widthScale: 1, heightScale: 1 }, truckGuid: null };
   }
 };
 
 /**
- * Load the TruckSelection object and convert it to a TrailerItem view model.
+ * Load the TruckSelection object and convert it to a TruckItem view model.
  */
-export const loadTrailerItem = async (
+export const loadTruckItem = async (
   truckRef: string | undefined,
   scale: { widthScale: number; heightScale: number }
-): Promise<TrailerItem | null> => {
+): Promise<TruckItem | null> => {
   if (!truckRef) {
     return null;
   }
@@ -591,7 +592,7 @@ export const loadTrailerItem = async (
     if (!truckData) {
       return null;
     }
-    return truckSelectionToTrailerItem(truckData, scale);
+    return truckSelectionToTruckItem(truckData, scale);
   } catch (err) {
     console.error("Failed to load TruckSelection:", err);
     return null;

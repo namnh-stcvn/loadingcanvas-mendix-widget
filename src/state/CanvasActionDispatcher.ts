@@ -27,14 +27,14 @@ interface CanvasActionDispatcherOptions {
 
 /**
  * Helper: build validation options from the current canvas state.
- * Passes trailer-specific constraints (max load meters, internal height, scale)
- * to the validation engine for LM and height checks.
+ * Passes truck-specific constraints (max load meters, scale)
+ * to the validation engine for LM checks.
  */
 const buildValidationOptions = (state: {
-  trailer?: { maxLoadMeters?: number } | null;
+  truck?: { maxLoadMeters?: number } | null;
   scale: { widthScale: number; heightScale: number };
 }): { maxLoadMeters?: number; scale: { widthScale: number; heightScale: number } } => ({
-  maxLoadMeters: state.trailer?.maxLoadMeters,
+  maxLoadMeters: state.truck?.maxLoadMeters,
   scale: state.scale,
 });
 

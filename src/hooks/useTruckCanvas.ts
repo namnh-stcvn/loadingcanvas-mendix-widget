@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent, type RefObject } from "react";
 import type { CargoItem } from "../viewModels/CargoItem";
-import type { TrailerItem } from "../viewModels/TrailerItem";
+import type { TruckItem } from "../viewModels/TruckItem";
 import { DragEngine } from "../engines/DragEngine";
 import { CollisionEngine } from "../engines/CollisionEngine";
 import { SnapEngine } from "../engines/SnapEngine";
@@ -13,16 +13,16 @@ import { useCanvasActions } from "./useCanvasActions";
 import { getCanvasPoint } from "../domain/coordinateRules";
 import type { CanvasState } from "../state/CanvasState";
 
-interface UseTrailerCanvasProps {
+interface UseTruckCanvasProps {
   initialItems: CargoItem[];
   canvasWidth: number;
   canvasHeight: number;
   canvasRef: RefObject<HTMLDivElement | null>;
   scale?: { widthScale: number; heightScale: number };
-  trailer?: TrailerItem | null;
+  truck?: TruckItem | null;
 }
 
-interface UseTrailerCanvasResult {
+interface UseTruckCanvasResult {
   items: CargoItem[];
   activeItemId: string | null;
   selectedIds: string[];
@@ -37,9 +37,9 @@ interface UseTrailerCanvasResult {
 const createInitialCanvasState = (
   initialItems: CargoItem[],
   scale: { widthScale: number; heightScale: number },
-  trailer: TrailerItem | null
+  truck: TruckItem | null
 ): CanvasState => ({
-  trailer,
+  truck,
   cargos: initialItems,
   selectedIds: [],
   activeItemId: null,
@@ -50,14 +50,14 @@ const createInitialCanvasState = (
   scale,
 });
 
-export const useTrailerCanvas = ({
+export const useTruckCanvas = ({
   initialItems,
   canvasWidth,
   canvasHeight,
   canvasRef,
   scale = { widthScale: 1, heightScale: 1 },
-  trailer = null,
-}: UseTrailerCanvasProps): UseTrailerCanvasResult => {
+  truck = null,
+}: UseTruckCanvasProps): UseTruckCanvasResult => {
   const collisionEngine = useMemo(() => new CollisionEngine(), []);
   const snapEngine = useMemo(() => new SnapEngine(), []);
   const dragEngine = useMemo(
@@ -66,8 +66,8 @@ export const useTrailerCanvas = ({
   );
   const validationEngine = useMemo(() => new ValidationEngine(), []);
   const stateManager = useMemo(
-    () => new CanvasStateManager(createInitialCanvasState(initialItems, scale, trailer)),
-    [initialItems, scale, trailer]
+    () => new CanvasStateManager(createInitialCanvasState(initialItems, scale, truck)),
+    [initialItems, scale, truck]
   );
   const actionDispatcher = useMemo(
     () =>
@@ -129,9 +129,9 @@ export const useTrailerCanvas = ({
       .join("|");
     const initialIds = initialItems.map((item) => item.id).join("|");
     if (currentIds !== initialIds) {
-      stateManager.setState(createInitialCanvasState(initialItems, scale, trailer));
+      stateManager.setState(createInitialCanvasState(initialItems, scale, truck));
     }
-  }, [initialItems, stateManager, scale, trailer]);
+  }, [initialItems, stateManager, scale, truck]);
 
   return {
     items: state.cargos,

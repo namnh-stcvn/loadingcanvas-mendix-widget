@@ -3,13 +3,13 @@ import { LoadingCanvas } from "./LoadingCanvas";
 import type { LoadingCanvasProps, LoadingCanvasViewModelProps } from "./LoadingCanvas.properties";
 import {
   getObjectGuid,
-  loadTrailerAndScale,
+  loadTruckAndScale,
   loadCargoItems,
   loadPackingPlan,
   savePackingPlan,
 } from "../adapters/mendixDataAdapter";
 import type { CargoItem } from "../viewModels/CargoItem";
-import type { TrailerItem } from "../viewModels/TrailerItem";
+import type { TruckItem } from "../viewModels/TruckItem";
 import type { CanvasState } from "../state/CanvasState";
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from "../constants/canvas";
 
@@ -41,8 +41,8 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
   const transportOrdersKey = transportOrderGuids.join("|");
 
   // --- State for loaded data ---
-  const [trailerItem, setTrailerItem] = useState<TrailerItem | null>(null);
-  const [palletList, setPalletList] = useState<CargoItem[]>([]);
+  const [truckItem, setTruckItem] = useState<TruckItem | null>(null);
+  const [availableCargo, setAvailableCargo] = useState<CargoItem[]>([]);
   const [initialCanvasItems, setInitialCanvasItems] = useState<CargoItem[]>([]);
   const [scale, setScale] = useState({ widthScale: 1, heightScale: 1 });
   const [truckGuid, setTruckGuid] = useState<string | null>(null);
@@ -54,7 +54,7 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
     const loadTruck = async (): Promise<void> => {
       if (!truckGuidKey) {
         if (cancelled) return;
-        setTrailerItem(null);
+        setTruckItem(null);
         setTruckGuid(null);
         setScale({ widthScale: 1, heightScale: 1 });
         setIsLoading(false);
@@ -62,9 +62,9 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
       }
 
       try {
-        const result = await loadTrailerAndScale(truckGuidKey);
+        const result = await loadTruckAndScale(truckGuidKey);
         if (cancelled) return;
-        setTrailerItem(result.trailer);
+        setTruckItem(result.truck);
         setTruckGuid(result.truckGuid);
         setScale(result.scale);
       } catch (err) {
@@ -81,19 +81,19 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
     };
   }, [truckGuidKey, canvasWidth, canvasHeight]);
 
-  // --- Load transport orders (pallet list) ---
+  // --- Load transport orders (available cargo) ---
   useEffect(() => {
     let cancelled = false;
     const loadOrders = async (): Promise<void> => {
       if (transportOrderGuids.length === 0 || scale.widthScale === 1) {
-        setPalletList([]);
+        setAvailableCargo([]);
         return;
       }
 
       try {
         const items = await loadCargoItems(transportOrderGuids, scale);
         if (cancelled) return;
-        setPalletList(items);
+        setAvailableCargo(items);
       } catch (err) {
         if (cancelled) return;
         console.error("Failed to load transport orders:", err);
@@ -138,7 +138,7 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
       }
 
       const state: CanvasState = {
-        trailer: trailerItem,
+        truck: truckItem,
         cargos: items,
         selectedIds: [],
         activeItemId: null,
@@ -149,7 +149,7 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
       await savePackingPlan(truckGuid, state, currentScale, onSavePlanCallback);
       // Items stay in canvas state - no need to reload from DB
     },
-    [truckGuid, trailerItem, onSavePlanCallback]
+    [truckGuid, truckItem, onSavePlanCallback]
   );
 
   // --- Load plan handler ---
@@ -175,8 +175,8 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
   // --- Build view model props ---
   const viewModel: LoadingCanvasViewModelProps = useMemo(
     () => ({
-      trailer: trailerItem,
-      palletList,
+      truck: truckItem,
+      availableCargo,
       initialCanvasItems,
       scale,
       canvasWidth,
@@ -184,7 +184,7 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
       onSavePlan: handleSavePlan,
       onLoadPlan: handleLoadPlan,
     }),
-    [trailerItem, palletList, initialCanvasItems, scale, canvasWidth, canvasHeight, handleSavePlan, handleLoadPlan]
+    [truckItem, availableCargo, initialCanvasItems, scale, canvasWidth, canvasHeight, handleSavePlan, handleLoadPlan]
   );
 
   return <LoadingCanvas viewModel={viewModel} isLoading={isLoading} />;

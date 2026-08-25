@@ -4,7 +4,7 @@ import type { CanvasState } from "../CanvasState";
 
 describe("CanvasStateManager", () => {
   const createInitialState = (): CanvasState => ({
-    trailer: null,
+    truck: null,
     cargos: [],
     selectedIds: [],
     activeItemId: null,

@@ -8,7 +8,7 @@ export interface Point {
 
 /**
  * Length / Width
- * `length` = extent along X (trailer length), `width` = extent along Y (footprint width).
+ * `length` = extent along X (truck length), `width` = extent along Y (footprint width).
  */
 export interface Size {
   length: number;

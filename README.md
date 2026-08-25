@@ -2,7 +2,7 @@
 
 ## Overview
 
-**LoadingCanvas** is a Mendix pluggable widget for interactive truck loading and packing planning. It provides an interactive canvas where users can drag, rotate, and validate cargo items (pallet/box) within a trailer boundary. The widget supports grid snapping, real-time collision detection, and integration with Mendix Data API for saving/loading packing plans.
+**LoadingCanvas** is a Mendix pluggable widget for interactive truck loading and packing planning. It provides an interactive canvas where users can drag, rotate, and validate cargo items (pallet/box) within a truck boundary. The widget supports grid snapping, real-time collision detection, and integration with Mendix Data API for saving/loading packing plans.
 
 Built with **React 19**, **TypeScript**, and **Vite**, the widget follows a strict layered architecture with clear separation of concerns between UI, state management, business logic, and domain rules.
 
@@ -15,7 +15,7 @@ Built with **React 19**, **TypeScript**, and **Vite**, the widget follows a stri
 - **90° rotation** support for cargo items
 - **Grid snapping** for precise positioning
 - **Real-time collision detection** and overlap validation
-- **Boundary validation** to keep items within trailer limits
+- **Boundary validation** to keep items within truck limits
 - **Load/save packing plans** via Mendix Data API
 - **Undo/redo history** for drag operations
 - **Info panel** displaying validation status and item details
@@ -34,7 +34,7 @@ The widget follows a **strict layered architecture**:
 ### 1. UI Layer
 
 - React components: `LoadingCanvas`, `CargoCard`, `GridOverlay`, `PalletList`
-- Hooks: `useTrailerCanvas`, `useCanvasState`, `useMouseEvents`
+- Hooks: `useTruckCanvas`, `useCanvasState`, `useMouseEvents`
 
 ### 2. State Management
 
@@ -57,12 +57,12 @@ The widget follows a **strict layered architecture**:
 ### 5. Adapter Layer
 
 - **cargoAdapter**: Converts Mendix data to view models
-- **trailerAdapter**: Converts TruckSelection data to TrailerItem
+- **truckAdapter**: Converts TruckSelection data to TruckItem
 - **mendixDataAdapter**: Bridges to Mendix Data API
 
 ### 6. Data Model Layer
 
-- Business models: `Trailer`, `CargoItem`, `TrailerItem`
+- Business models: `Truck`, `CargoItem`, `TruckItem`
 - Shared types: `Point`, `Rectangle`, `Rotation`
 
 ### 7. Constants Layer
@@ -103,12 +103,12 @@ src/
 │   ├── SnapEngine.ts          # Snapping calculations
 │   └── ValidationEngine.ts    # Validation engine
 ├── hooks/                     # React hooks
-│   ├── useTrailerCanvas.ts    # Main hook: wires engines & state
+│   ├── useTruckCanvas.ts      # Main hook: wires engines & state
 │   ├── useCanvasState.ts      # Subscribes to state manager
 │   ├── useCanvasActions.ts    # Wraps action dispatcher
 │   └── useMouseEvents.ts      # Global mouse event listeners
 ├── models/                    # Business models
-│   └── Trailer.ts             # Trailer dimensions and properties
+│   └── Truck.ts               # Truck dimensions and properties
 ├── state/                     # State management
 │   ├── CanvasState.ts         # Canvas state interface
 │   ├── CanvasStateManager.ts  # Single source of truth
@@ -119,7 +119,7 @@ src/
 │   └── mx.d.ts                # Mendix widget framework types
 ├── adapters/                  # Mendix data adapters
 │   ├── cargoAdapter.ts        # PackingUnit ↔ CargoItem conversion
-│   ├── trailerAdapter.ts      # TruckSelection ↔ TrailerItem
+│   ├── truckAdapter.ts        # TruckSelection ↔ TruckItem
 │   ├── stateAdapter.ts        # Packing plan serialization
 │   └── mendixDataAdapter.ts   # Mendix Data API bridge
 ├── widget/                    # Widget entry points
@@ -138,11 +138,11 @@ src/
 1. **LoadingCanvasContainer** receives props from Mendix (TruckSelection GUID, TransportOrder list, canvas dimensions, callbacks)
 2. Loads data via `mendixDataAdapter.ts`:
    - Loads TruckSelection data → computes scale
-   - Loads TrailerItem view model
+   - Loads TruckItem view model
    - Loads CargoItem[] for pallet list (available items)
    - Loads CargoItem[] for saved packing plan
 3. Passes view models to `LoadingCanvas` via `LoadingCanvasViewModelProps`
-4. **LoadingCanvas** initializes `useTrailerCanvas` hook with view models
+4. **LoadingCanvas** initializes `useTruckCanvas` hook with view models
 5. React renders from current `CanvasState` — items, active item, selected items, validation status
 6. User interaction (mousedown on cargo card) triggers drag operations
 7. `CanvasActionDispatcher` routes actions to engines (drag, snap, collision, validation)

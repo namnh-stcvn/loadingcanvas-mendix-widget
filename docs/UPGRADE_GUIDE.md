@@ -188,13 +188,13 @@ UI (React) → Hooks → State/Engines → Domain → Adapters → Mendix
 
    ```bash
    npm run test
-   # Expected: 186/186 tests PASSED
+   # Expected: 204/204 tests PASSED
    # Coverage targets:
-   #   Engines: 97.51%
-   #   Adapters: 100%
+   #   Engines: 97.53%
+   #   Adapters: 70.43% (cargo/state/truck adapters at 100%; mendixDataAdapter ~64%)
    #   Constants: 100%
    #   State: 89.69%
-   #   Domain: 81.57%
+   #   Domain: 90.9%
    ```
 
 4. **Run build**:
@@ -221,7 +221,7 @@ UI (React) → Hooks → State/Engines → Domain → Adapters → Mendix
 
 3. **Verify widget loads** on a page that uses LoadingCanvas:
    - Check that the canvas renders correctly
-   - Check that trailer boundary displays
+   - Check that truck boundary displays
    - Check that cargo items load from TransportOrders
 
 4. **Test core interactions**:
@@ -252,7 +252,7 @@ UI (React) → Hooks → State/Engines → Domain → Adapters → Mendix
 ## Pre-Upgrade Checklist
 
 - [ ] Compatibility Matrix confirms target version combination is supported
-- [ ] Baseline tests pass (186/186)
+- [ ] Baseline tests pass (204/204)
 - [ ] Baseline build succeeds
 - [ ] Baseline lint passes
 - [ ] Backup branch created
@@ -267,7 +267,7 @@ UI (React) → Hooks → State/Engines → Domain → Adapters → Mendix
 
 | Check                      | Expected Result     | How to Verify             |
 | :------------------------- | :------------------ | :------------------------ |
-| Unit tests                 | 186/186 PASSED      | `npm run test`            |
+| Unit tests                 | 204/204 PASSED      | `npm run test`            |
 | Lint                       | No errors           | `npm run lint`            |
 | Type check                 | No errors           | `npx tsc --noEmit`        |
 | Build                      | Succeeds            | `npm run build`           |

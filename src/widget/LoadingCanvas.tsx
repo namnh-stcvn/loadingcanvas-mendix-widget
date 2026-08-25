@@ -1,8 +1,8 @@
 import { useEffect, useRef, type DragEvent, type ReactElement, type RefObject } from "react";
 import { CargoCard } from "../components/CargoCard";
-import { PalletList } from "../components/PalletList";
+import { CargoList } from "../components/CargoList";
 import { GridOverlay } from "../components/GridOverlay";
-import { useTrailerCanvas } from "../hooks/useTrailerCanvas";
+import { useTruckCanvas } from "../hooks/useTruckCanvas";
 import {
   DEFAULT_CANVAS_WIDTH,
   DEFAULT_CANVAS_HEIGHT,
@@ -29,8 +29,8 @@ import type { LoadingCanvasWidgetProps } from "./LoadingCanvas.properties";
  * interactive packing canvas.
  *
  * Key responsibilities:
- * - Render the canvas with trailer boundary, cargo items, and info panel
- * - Manage drag-and-drop from the pallet list onto the canvas
+ * - Render the canvas with truck boundary, cargo items, and info panel
+ * - Manage drag-and-drop from the cargo list onto the canvas
  * - Handle rotation, grid snapping, and real-time validation
  * - Display validation status (colors, errors)
  * - Expose save/load callbacks to the container
@@ -38,8 +38,8 @@ import type { LoadingCanvasWidgetProps } from "./LoadingCanvas.properties";
 export const LoadingCanvas = (props: LoadingCanvasWidgetProps): ReactElement => {
   const { viewModel, isLoading } = props;
   const {
-    trailer,
-    palletList,
+    truck,
+    availableCargo,
     initialCanvasItems,
     scale,
     canvasWidth = DEFAULT_CANVAS_WIDTH,
@@ -61,24 +61,24 @@ export const LoadingCanvas = (props: LoadingCanvasWidgetProps): ReactElement => 
     handleRotate,
     addItem,
     setItems,
-  } = useTrailerCanvas({
+  } = useTruckCanvas({
     initialItems: initialCanvasItems,
     canvasWidth,
     canvasHeight,
     canvasRef: canvasRef as RefObject<HTMLDivElement | null>,
     scale,
-    trailer,
+    truck,
   });
 
-  // Available pallets = palletList minus those already on the canvas.
+  // Available cargo = availableCargo minus those already on the canvas.
   // Derived from canvas items (single source of truth), so the list always
   // reflects reality after drag-in, plan load, or canvas reset.
   // Normalize IDs by removing "cargo-" prefix for comparison.
   const normalizeId = (id: string) => (id.startsWith("cargo-") ? id.replace("cargo-", "") : id);
-  const availablePallets = palletList.filter((p) => !items.some((i) => normalizeId(i.id) === normalizeId(p.id)));
+  const availableCargoItems = availableCargo.filter((p) => !items.some((i) => normalizeId(i.id) === normalizeId(p.id)));
 
   // --- Restore items when loaded from plan ---
-  // The useTrailerCanvas hook already handles initialItems changes via its
+  // The useTruckCanvas hook already handles initialItems changes via its
   // own useEffect, but we also set items directly when a plan is loaded
   // after the initial render to ensure the canvas reflects the saved state.
   useEffect(() => {
@@ -97,11 +97,11 @@ export const LoadingCanvas = (props: LoadingCanvasWidgetProps): ReactElement => 
     onLoadPlan();
   };
 
-  // --- Drag-and-drop from pallet list to canvas ---
+  // --- Drag-and-drop from cargo list to canvas ---
   const handlePalletDrop = (e: DragEvent<HTMLDivElement>): void => {
     e.preventDefault();
     const palletId = e.dataTransfer.getData("text/plain");
-    const pallet = availablePallets.find((p) => p.id === palletId);
+    const pallet = availableCargoItems.find((p) => p.id === palletId);
     if (!pallet) {
       return;
     }
@@ -176,15 +176,15 @@ export const LoadingCanvas = (props: LoadingCanvasWidgetProps): ReactElement => 
       {/* Grid overlay */}
       <GridOverlay width={canvasWidth} height={canvasHeight} gridSize={GRID_SIZE} />
 
-      {/* Trailer boundary */}
-      {trailer && (
+      {/* Truck boundary */}
+      {truck && (
         <div
           style={{
             position: "absolute",
-            left: trailer.x,
-            top: trailer.y,
-            width: trailer.length,
-            height: trailer.width,
+            left: truck.x,
+            top: truck.y,
+            width: truck.length,
+            height: truck.width,
             border: "2px dashed #888",
             boxSizing: "border-box",
             pointerEvents: "none",
@@ -227,12 +227,12 @@ export const LoadingCanvas = (props: LoadingCanvasWidgetProps): ReactElement => 
         </div>
       </div>
 
-      {/* Pallet list (debug view) */}
-      <PalletList
-        pallets={availablePallets}
-        onAddPallet={(pallet: CargoItem) => {
-          // Add pallet to canvas at a default position
-          const newItem = { ...pallet, x: 50, y: 50 };
+      {/* Cargo list (debug view) */}
+      <CargoList
+        availableItems={availableCargoItems}
+        onAddCargo={(cargo: CargoItem) => {
+          // Add cargo to canvas at a default position
+          const newItem = { ...cargo, x: 50, y: 50 };
           addItem(newItem);
         }}
       />

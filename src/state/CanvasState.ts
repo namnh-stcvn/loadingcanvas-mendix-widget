@@ -1,9 +1,9 @@
 import type { CargoItem } from "../viewModels/CargoItem";
-import type { TrailerItem } from "../viewModels/TrailerItem";
+import type { TruckItem } from "../viewModels/TruckItem";
 import type { ValidationResult } from "../domain/validationRules";
 
 export interface CanvasState {
-  trailer: TrailerItem | null;
+  truck: TruckItem | null;
   cargos: CargoItem[];
   selectedIds: string[];
   activeItemId: string | null;

@@ -27,7 +27,7 @@ describe("CanvasActionDispatcher", () => {
   });
 
   const createInitialState = (cargos: CargoItem[] = []): CanvasState => ({
-    trailer: null,
+    truck: null,
     cargos,
     selectedIds: [],
     activeItemId: null,

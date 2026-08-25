@@ -36,7 +36,7 @@ describe("SnapEngine", () => {
       const item: TestItem = { id: "item", x: 5, y: 5, length: 50, width: 50 };
       const targetPos = { x: 5, y: 5 };
       const result = engine.calculateSnapTarget(item, [], targetPos, { bounds, gridSize: 20, threshold: 15 });
-      // Both X and Y near boundary Ã¢â€ â€™ should snap to boundary
+      // Both X and Y near boundary Ã¢â€ â€™ should snap to boundary
       expect(result.position.x).toBe(0);
       expect(result.position.y).toBe(0);
       expect(result.type).toBe("boundary");
@@ -87,7 +87,7 @@ describe("SnapEngine", () => {
       const item: TestItem = { id: "item", x: 500, y: 300, length: 50, width: 50 };
       const targetPos = { x: 512, y: 312 }; // not near any edge/align/boundary
       const result = engine.calculateSnapTarget(item, [], targetPos, { bounds, gridSize: 20, threshold: 15 });
-      // Should snap to grid: 512 Ã¢â€ â€™ 520, 312 Ã¢â€ â€™ 320
+      // Should snap to grid: 512 Ã¢â€ â€™ 520, 312 Ã¢â€ â€™ 320
       expect(result.position.x).toBe(520);
       expect(result.position.y).toBe(320);
       expect(result.type).toBe("grid");
@@ -96,7 +96,7 @@ describe("SnapEngine", () => {
     it("should return target position as-is when no snap candidate is within threshold", () => {
       const engine = new SnapEngine();
       const item: TestItem = { id: "item", x: 500, y: 300, length: 50, width: 50 };
-      const targetPos = { x: 507, y: 307 }; // not near grid (507 Ã¢â€ â€™ 500, distance 7 < 15, so it WILL snap)
+      const targetPos = { x: 507, y: 307 }; // not near grid (507 Ã¢â€ â€™ 500, distance 7 < 15, so it WILL snap)
       const result = engine.calculateSnapTarget(item, [], targetPos, { bounds, gridSize: 20, threshold: 15 });
       // 507 is 7px from grid 500, which is within threshold 15
       expect(result.position.x).toBe(500);

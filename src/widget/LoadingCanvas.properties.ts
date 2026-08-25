@@ -1,5 +1,5 @@
 import type { CargoItem } from "../viewModels/CargoItem";
-import type { TrailerItem } from "../viewModels/TrailerItem";
+import type { TruckItem } from "../viewModels/TruckItem";
 import type { MxObject } from "../types/mx";
 
 export interface LoadingCanvasProps {
@@ -13,8 +13,8 @@ export interface LoadingCanvasProps {
 }
 
 export interface LoadingCanvasViewModelProps {
-  trailer: TrailerItem | null;
-  palletList: CargoItem[];
+  truck: TruckItem | null;
+  availableCargo: CargoItem[];
   initialCanvasItems: CargoItem[];
   scale: { widthScale: number; heightScale: number };
   canvasWidth: number;

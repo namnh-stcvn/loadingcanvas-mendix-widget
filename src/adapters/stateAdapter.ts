@@ -42,7 +42,7 @@ export const serializePlan = (state: CanvasState, scale: number | PlanScale): Pa
   const heightScale = typeof scale === "number" ? scale : scale.heightScale;
 
   return {
-    truckId: state.trailer?.id ?? null,
+    truckId: state.truck?.id ?? null,
     items: state.cargos.map((item) => ({
       id: item.id,
       name: item.name,

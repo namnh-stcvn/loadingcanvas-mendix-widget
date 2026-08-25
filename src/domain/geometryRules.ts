@@ -3,8 +3,8 @@ import type { Rectangle, RectLike, Rotation } from "../types/geometry";
 import { isVerticalRotation } from "./rotationRules";
 
 /**
- * Convert x,y,width,height
- * to bounding rectangle
+ * Convert x,y,length,width (accounting for rotation)
+ * to bounding rectangle (left, top, right, bottom)
  */
 export const getRectangle = (item: RectLike & Partial<{ rotation: Rotation }>): Rectangle => {
   const isVertical = typeof item.rotation === "number" && isVerticalRotation(item.rotation as Rotation);

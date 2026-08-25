@@ -2,16 +2,16 @@
 
 ## Overview
 
-This repository implements a modular **LoadingCanvas** widget for drag-and-drop trailer loading planning. Built with React 19, TypeScript, and Vite, the widget provides an interactive canvas where users can place, drag, rotate, and validate cargo items within a trailer boundary.
+This repository implements a modular **LoadingCanvas** widget for drag-and-drop truck loading planning. Built with React 19, TypeScript, and Vite, the widget provides an interactive canvas where users can place, drag, rotate, and validate cargo items within a truck boundary.
 
 The architecture follows a strict **layered separation of concerns**:
 
-- **UI layer** — React components and hooks (`LoadingCanvas`, `LoadingCanvasContainer`, `CargoCard`, `RotationHandle`, `GridOverlay`, `PalletList`, `useTrailerCanvas`, `useCanvasState`, `useCanvasActions`, `useMouseEvents`)
+- **UI layer** — React components and hooks (`LoadingCanvas`, `LoadingCanvasContainer`, `CargoCard`, `RotationHandle`, `GridOverlay`, `PalletList`, `useTruckCanvas`, `useCanvasState`, `useCanvasActions`, `useMouseEvents`)
 - **State management layer** — `CanvasStateManager` (single source of truth) and `CanvasActionDispatcher` (action routing)
 - **Engine layer** — `DragEngine`, `CollisionEngine`, `SnapEngine`, `ValidationEngine` (pure business logic)
 - **Domain rule layer** — geometry, snap, validation, coordinate, rotation, drag, and boundary helpers
-- **Adapter layer** — `cargoAdapter`, `trailerAdapter`, `stateAdapter`, `mendixDataAdapter` (Mendix data integration)
-- **Data model layer** — business models (`Trailer`), view models (`CargoItem`, `TrailerItem`), and shared types (`Point`, `RectLike`, `Rotation`, etc.)
+- **Adapter layer** — `cargoAdapter`, `truckAdapter`, `stateAdapter`, `mendixDataAdapter` (Mendix data integration)
+- **Data model layer** — business models (`Truck`), view models (`CargoItem`, `TruckItem`), and shared types (`Point`, `RectLike`, `Rotation`, etc.)
 - **Constants layer** — canvas dimensions, grid, rotation, snap, card styling, and theme values
 
 ## Goals
@@ -26,7 +26,7 @@ The architecture follows a strict **layered separation of concerns**:
 
 ```
 src/
-├── LoadingCanvas.tsx               # Main widget component: renders canvas, trailer, cargo, info panel, grid
+├── LoadingCanvas.tsx               # Main widget component: renders canvas, truck, cargo, info panel, grid
 ├── LoadingCanvas.editorConfig.ts  # Mendix editor configuration (property panes, preview)
 ├── LoadingCanvas.editorPreview.tsx # Mendix Studio Pro design-time preview
 ├── LoadingCanvas.xml               # Mendix widget XML manifest
@@ -51,7 +51,7 @@ src/
 │   ├── geometryRules.ts            # getRectangle(), isIntersecting(), overlaps(), isInsideBounds(), findCollisions()
 │   ├── rotationRules.ts            # rotate90(), isVerticalRotation(), getRotatedSize()
 │   ├── snapRules.ts                # snapToGrid(), snapPosition()
-│   ├── validationRules.ts          # validateItem(), validateLoadMeters(), validateHeight(), validateAll()
+│   ├── validationRules.ts          # validateItem(), validateLoadMeters(), validateAll()
 │   └── __tests__/                  # Domain rule unit tests
 │
 ├── engines/
@@ -62,16 +62,16 @@ src/
 │   └── __tests__/                  # Engine unit tests
 │
 ├── hooks/
-│   ├── useTrailerCanvas.ts         # Main hook: wires engines, state manager, dispatcher, and mouse events
+│   ├── useTruckCanvas.ts           # Main hook: wires engines, state manager, dispatcher, and mouse events
 │   ├── useCanvasState.ts           # Subscribes to CanvasStateManager, returns current CanvasState
 │   ├── useCanvasActions.ts         # Wraps CanvasActionDispatcher with memoized action callbacks
 │   └── useMouseEvents.ts           # Attaches window mousemove/mouseup/blur listeners during drag
 │
 ├── models/
-│   └── Trailer.ts                  # Business model: trailer dimensions (meters), payload, axle count, type
+│   └── Truck.ts                    # Business model: truck dimensions (meters), payload, axle count, type
 │
 ├── state/
-│   ├── CanvasState.ts              # Interface: trailer, cargos, selectedIds, activeItemId, validation, scale, offset
+│   ├── CanvasState.ts              # Interface: truck, cargos, selectedIds, activeItemId, validation, scale, offset
 │   ├── CanvasStateManager.ts       # Single source of truth; immutable updates, subscribe/notify, undo/redo history
 │   ├── CanvasActionDispatcher.ts   # Routes CanvasAction types to state mutations via engines
 │   ├── CanvasStateListener.ts      # Type alias: (state: CanvasState) => void
@@ -90,11 +90,11 @@ src/
 │
 ├── viewModels/
 │   ├── CargoItem.ts                # View model: extends GeometryItem with id, name, type, color, isLocked
-│   └── TrailerItem.ts              # View model: extends GeometryItem with trailer business fields
+│   └── TruckItem.ts                # View model: extends GeometryItem with truck business fields
 │
 ├── adapters/
 │   ├── cargoAdapter.ts             # Converts PackingUnit/TransportOrder data to CargoItem view models
-│   ├── trailerAdapter.ts           # Converts TruckSelection data to TrailerItem view model, computes scale
+│   ├── truckAdapter.ts             # Converts TruckSelection data to TruckItem view model, computes scale
 │   ├── stateAdapter.ts             # Serializes/deserializes PackingPlanData for persistence
 │   ├── mendixDataAdapter.ts        # Bridges to Mendix Data API (mx.data) for load/save
 │   └── __tests__/                  # Adapter unit tests
@@ -124,8 +124,8 @@ src/
 
 - **`LoadingCanvas`** (`src/LoadingCanvas.tsx`) is the pure React component.
   - Receives `LoadingCanvasWidgetProps` (view models + loading state)
-  - Manages canvas state via `useTrailerCanvas` hook
-  - Renders the canvas, trailer boundary, cargo items, info panel, grid overlay, and pallet list
+  - Manages canvas state via `useTruckCanvas` hook
+  - Renders the canvas, truck boundary, cargo items, info panel, grid overlay, and pallet list
   - Handles drag-and-drop from pallet list to canvas (HTML5 DnD)
   - Calls save/load callbacks on the view model
 
@@ -147,12 +147,12 @@ src/
   - During `ROTATE`, the dispatcher computes the new rotation (90° clockwise), preserves the item's center using `getRotatedSize`, clamps to canvas bounds, re-validates, and updates state.
 
 - **`CanvasState`** (`src/state/CanvasState.ts`) defines the shape of the entire canvas:
-  - `trailer: TrailerItem | null` — the trailer boundary
+  - `truck: TruckItem | null` — the truck boundary
   - `cargos: CargoItem[]` — all cargo items on the canvas
   - `selectedIds: string[]` — currently selected item IDs
   - `activeItemId: string | null` — the item being actively dragged
   - `validation: ValidationResult` — current validation status and errors
-  - `scale: { widthScale: number; heightScale: number }` — separate width/height pixel-to-meter scale factors (2-scale approach using TRAILER_CANVAS 1453x297)
+  - `scale: { widthScale: number; heightScale: number }` — separate width/height pixel-to-meter scale factors (2-scale approach using TRUCK_CANVAS 1453x297)
   - `offsetX: number`, `offsetY: number` — canvas pan offsets
 
 ### Engines
@@ -184,7 +184,7 @@ src/
 
 - **`ValidationEngine`** (`src/engines/ValidationEngine.ts`)
   - `validateItems(items, bounds, options)` — delegates to `validateAll()` in `validationRules.ts`.
-  - Checks: `OUT_OF_BOUNDS`, `OVERLAP`, `LM_EXCEEDED`, `HEIGHT_EXCEEDED`.
+  - Checks: `OUT_OF_BOUNDS`, `OVERLAP`, `LM_EXCEEDED`.
   - Returns `ValidationResult` with `valid`, `errors`, and `itemErrors` (per-item error mapping for UI highlighting).
 
 ### Adapters
@@ -195,10 +195,10 @@ src/
   - `cargoItemToPackingUnitData()` — CargoItem → PackingUnitData (for persistence)
   - `getCargoItemRect()` — gets the visual rectangle of a CargoItem (accounting for rotation)
 
-- **`trailerAdapter.ts`** — Converts between TruckSelection data (meters) and TrailerItem view model (pixels).
-  - `truckSelectionToTrailerItem()` — TruckSelectionData → TrailerItem
-  - `trailerToTrailerItem()` — Trailer business model → TrailerItem
-- `computeScale()` — computes separate width/height pixel-to-meter scale factors using TRAILER_CANVAS (1453x297) with padding=0; returns `{ widthScale, heightScale }`
+- **`truckAdapter.ts`** — Converts between TruckSelection data (meters) and TruckItem view model (pixels).
+  - `truckSelectionToTruckItem()` — TruckSelectionData → TruckItem
+  - `truckToTruckItem()` — Truck business model → TruckItem
+- `computeScale()` — computes separate width/height pixel-to-meter scale factors using TRUCK_CANVAS (1453x297) with padding=0; returns `{ widthScale, heightScale }`
 
 - **`stateAdapter.ts`** — Serializes/deserializes packing plans for persistence.
   - `serializePlan()` — CanvasState → PackingPlanData (meters)
@@ -209,14 +209,14 @@ src/
   - `loadMendixObject()` — loads a single object by GUID via `mx.data.load`
   - `loadMendixList()` — loads a list of objects via XPath via `mx.data.list`
   - `executeMendixAction()` — executes a microflow via `mx.data.action`
-  - `loadTrailerItem()` — loads TruckSelection and converts to TrailerItem
+  - `loadTruckItem()` — loads TruckSelection and converts to TruckItem
   - `loadCargoItems()` — loads TransportOrders and converts to CargoItem[]
   - `loadPackingPlan()` — loads saved PackingPlan from Mendix entities
   - `savePackingPlan()` — saves canvas state as PackingPlan (delete + recreate items)
 
 ### React Hooks
 
-- **`useTrailerCanvas`** (`src/hooks/useTrailerCanvas.ts`) — the main entry point.
+- **`useTruckCanvas`** (`src/hooks/useTruckCanvas.ts`) — the main entry point.
   - Memoizes engine instances (`CollisionEngine`, `SnapEngine`, `DragEngine`, `ValidationEngine`) and the `CanvasStateManager` + `CanvasActionDispatcher`.
   - Wires `useCanvasState()` and `useCanvasActions()` to the manager and dispatcher.
   - Provides `handleMouseDown`, `handleCanvasMouseDown`, and `handleRotate` callbacks.
@@ -233,9 +233,9 @@ src/
 ### UI Components
 
 - **`LoadingCanvas`** (`src/LoadingCanvas.tsx`) — the main widget component.
-  - Receives view models from the container (trailer, pallet list, initial canvas items, scale).
+  - Receives view models from the container (truck, pallet list, initial canvas items, scale).
   - Manages pallet list state (useState) for the debug palette view.
-  - Renders the canvas with trailer boundary, cargo items, info panel, grid overlay, and pallet list.
+  - Renders the canvas with truck boundary, cargo items, info panel, grid overlay, and pallet list.
   - Handles drag-and-drop from pallet list to canvas (HTML5 DnD).
   - Displays validation status (colors, errors) in the info panel.
 
@@ -267,11 +267,11 @@ src/
 1. **`LoadingCanvasContainer`** receives props from Mendix (TruckSelection GUID, TransportOrder list, Session, canvas dimensions, callbacks).
 2. Container loads data via `mendixDataAdapter.ts`:
    a. `loadMendixObjectRaw()` → raw TruckSelection data → `computeScale()` → scale
-   b. `loadTrailerItem()` → TrailerItem view model
+   b. `loadTruckItem()` → TruckItem view model
    c. `loadCargoItems()` → CargoItem[] (pallet list)
    d. `loadPackingPlan()` → CargoItem[] (saved items on canvas)
 3. Container passes view models to `LoadingCanvas` via `LoadingCanvasViewModelProps`.
-4. **`LoadingCanvas`** initializes `useTrailerCanvas` with the view models.
+4. **`LoadingCanvas`** initializes `useTruckCanvas` with the view models.
 5. **React renders** from the current `CanvasState` — `items` (cargos), `activeItemId`, `selectedIds`, `validation`.
 6. **User interaction** (mousedown on a cargo card) triggers `handleMouseDown`, which converts the browser coordinate to a canvas coordinate via `getCanvasPoint()` and dispatches `START_DRAG` through `useCanvasActions()`.
 7. **`CanvasActionDispatcher.dispatch()`** routes the action: `START_DRAG` calls `dragEngine.startDrag()` and updates `selectedIds` / `activeItemId` in the state manager.
@@ -311,7 +311,6 @@ src/
 
 - `validateItem(item, bounds, others)` — checks `OUT_OF_BOUNDS` and `OVERLAP` errors; returns `ValidationResult` with `valid` and `errors`.
 - `validateLoadMeters(items, maxLoadMeters, scale)` — checks if total length exceeds max load meters.
-- `validateHeight(items, internalHeightMeter)` — checks if any item's height exceeds trailer's internal height.
 - `validateAll(items, bounds, options)` — combines all validation checks into a single result.
 
 ### Coordinate (`coordinateRules.ts`)
@@ -327,7 +326,7 @@ src/
 
 | Constant                     | File        | Value               | Purpose                                    |
 | ---------------------------- | ----------- | ------------------- | ------------------------------------------ |
-| `DEFAULT_CANVAS_WIDTH`       | `canvas.ts` | 1000                | Canvas width in pixels                     |
+| `DEFAULT_CANVAS_WIDTH`       | `canvas.ts` | 1800                | Canvas width in pixels                     |
 | `DEFAULT_CANVAS_HEIGHT`      | `canvas.ts` | 600                 | Canvas height in pixels                    |
 | `CANVAS_BORDER`              | `canvas.ts` | `"2px solid black"` | Canvas border style                        |
 | `GRID_SIZE`                  | `canvas.ts` | 20                  | Grid snapping interval                     |
@@ -382,5 +381,5 @@ See `docs/PACKING_PLAN_ENTITY.md` for the full entity design.
 
 - Existing engine and hook code remains compatible and framework-agnostic — domain rules and engines have no React dependencies.
 - The `useCanvasState` and `useCanvasActions` hooks expose the state manager cleanly to React components.
-- The `Trailer` business model uses metric units (meters, kg); the canvas view layer uses pixels. The `coordinateRules.ts` module provides conversion helpers for Mendix integration.
+- The `Truck` business model uses metric units (meters, kg); the canvas view layer uses pixels. The `coordinateRules.ts` module provides conversion helpers for Mendix integration.
 - This architecture supports future export/import, undo/redo, and Mendix data sync.

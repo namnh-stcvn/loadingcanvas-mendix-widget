@@ -1,11 +1,11 @@
 import type { GeometryItem } from "../types/geometry";
-import type { Trailer } from "../models/Trailer";
+import type { Truck } from "../models/Truck";
 
-export interface TrailerItem extends GeometryItem {
-  id: Trailer["id"];
-  code: Trailer["code"];
-  trailerType: Trailer["trailerType"];
-  maxPayloadKg: Trailer["maxPayloadKg"];
-  axleCount: Trailer["axleCount"];
-  maxLoadMeters?: number; // Maximum load meters along trailer length
+export interface TruckItem extends GeometryItem {
+  id: Truck["id"];
+  code: Truck["code"];
+  truckType: Truck["truckType"];
+  maxPayloadKg: Truck["maxPayloadKg"];
+  axleCount: Truck["axleCount"];
+  maxLoadMeters?: number; // Maximum load meters along truck length
 }

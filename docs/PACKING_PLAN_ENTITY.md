@@ -33,14 +33,16 @@ store the saved packing arrangement for each truck (TruckSelection).
 | ---------------- | --------------------------------------------- | -------- | ------------------------------------------------- |
 | `PackingPlan`    | Reference (TCSLoadingMeter.PackingPlan)       | Yes      | Parent plan (many-to-1)                           |
 | `TransportOrder` | Reference (TCSTransportModule.TransportOrder) | Yes      | Which transport order this item represents        |
-| `PositionX`      | Decimal                                       | Yes      | X position in meters (relative to trailer origin) |
-| `PositionY`      | Decimal                                       | Yes      | Y position in meters (relative to trailer origin) |
-| `Width`          | Decimal                                       | Yes      | Item width in meters                              |
-| `Height`         | Decimal                                       | Yes      | Item height in meters                             |
-| `Rotation`       | Integer                                       | Yes      | Rotation: 0, 90, 180, or 270                      |
-| `Color`          | String                                        | No       | Display color (e.g., "orange", "blue")            |
-| `HeightMeters`   | Decimal                                       | No       | Item height in meters (for height validation)     |
-| `WeightKg`       | Decimal                                       | No       | Item weight in kg (for payload validation)        |
+| `PositionX`      | Decimal                                       | Yes      | X position in meters (relative to truck origin) |
+| `PositionY`      | Decimal                                       | Yes      | Y position in meters (relative to truck origin) |
+| `Length`          | Decimal                                       | Yes      | Item length in meters (extent along X)            |
+| `Width`           | Decimal                                       | Yes      | Item width in meters (footprint extent along Y)   |
+| `Height`          | Decimal                                       | Yes      | Item height in meters (2D canvas: 0, no Z axis)   |
+| `Rotation`        | Integer                                       | Yes      | Rotation: 0, 90, 180, or 270                      |
+| `Color`           | String                                        | No       | Display color (e.g., "orange", "blue")            |
+| `LengthMeters`    | Decimal                                       | No       | Item length in meters (for load-meter validation) |
+| `WidthMeters`     | Decimal                                       | No       | Item width in meters (for load-meter validation)  |
+| `WeightKg`        | Decimal                                       | No       | Item weight in kg (for payload validation)        |
 
 **Note:** Mendix automatically creates a hidden `id` attribute for every entity. This serves as the primary key and is used internally for object identification and relationships. No manual ID attribute is needed.
 
@@ -69,7 +71,6 @@ TCSLoadingMeter Module (NEW entities):
   ├─ Color (String)
   ├─ LengthMeters (Decimal, optional)
   ├─ WidthMeters (Decimal, optional)
-  ├─ HeightMeters (Decimal, optional)
   └─ WeightKg (Decimal, optional)
 ```
 
@@ -199,12 +200,13 @@ _(or `//TCSLoadingMeter.PackingPlanItem[TCSLoadingMeter.PackingPlan = '{planGuid
 
 ## Notes
 
-- The `PositionX` and `PositionY` are relative to the trailer's internal origin
-  (top-left corner of the trailer interior), not the canvas origin.
-- The `Width` and `Height` are the item's dimensions in meters (before rotation).
+- The `PositionX` and `PositionY` are relative to the truck's internal origin
+  (top-left corner of the truck interior), not the canvas origin.
+- The `Length` and `Width` are the item's footprint dimensions in meters (before rotation).
+  `Height` is stored as 0 because the canvas is 2D (no Z axis).
 - The `Rotation` is stored as an integer (0, 90, 180, 270) representing
   clockwise rotation in degrees.
 - The `Color` is stored as a string for display purposes (e.g., "orange" for
   pallets, "blue" for boxes).
-- `HeightMeters` and `WeightKg` are optional and used for validation
-  (height check, payload check).
+- `LengthMeters`, `WidthMeters`, and `WeightKg` are optional and used for
+  validation (load-meter and payload checks).

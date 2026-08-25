@@ -1,14 +1,14 @@
 import type { FC } from "react";
 import type { CargoItem } from "../viewModels/CargoItem";
 
-interface PalletListProps {
-  pallets: CargoItem[]; // Cargo items available to drag onto canvas
-  onAddPallet: (pallet: CargoItem) => void; // Called when pallet is dragged onto canvas
+interface CargoListProps {
+  availableItems: CargoItem[]; // Cargo items available to drag onto canvas
+  onAddCargo: (cargo: CargoItem) => void; // Called when cargo is dragged onto canvas
 }
 
-// PalletList — debug view showing available cargo items draggable onto canvas
-export const PalletList: FC<PalletListProps> = ({ pallets, onAddPallet }) => {
-  if (pallets.length === 0) {
+// CargoList — debug view showing available cargo items draggable onto canvas
+export const CargoList: FC<CargoListProps> = ({ availableItems, onAddCargo }) => {
+  if (availableItems.length === 0) {
     return (
       <div
         style={{
@@ -22,7 +22,7 @@ export const PalletList: FC<PalletListProps> = ({ pallets, onAddPallet }) => {
           fontSize: 12,
           color: "#666",
         }}>
-        No pallets available
+        No cargo items available
       </div>
     );
   }
@@ -41,16 +41,16 @@ export const PalletList: FC<PalletListProps> = ({ pallets, onAddPallet }) => {
         borderRadius: 4,
         zIndex: 1000,
       }}>
-      {pallets.map((pallet) => (
+      {availableItems.map((cargo) => (
         <div
-          key={pallet.id}
+          key={cargo.id}
           draggable
           onDragStart={(e) => {
-            // Set the pallet ID as drag data
-            e.dataTransfer.setData("text/plain", pallet.id);
+            // Set the cargo ID as drag data
+            e.dataTransfer.setData("text/plain", cargo.id);
             e.dataTransfer.effectAllowed = "move";
           }}
-          onClick={() => onAddPallet(pallet)}
+          onClick={() => onAddCargo(cargo)}
           style={{
             display: "flex",
             flexDirection: "column",
@@ -58,12 +58,12 @@ export const PalletList: FC<PalletListProps> = ({ pallets, onAddPallet }) => {
             cursor: "grab",
             userSelect: "none",
           }}
-          title={`Drag ${pallet.name} onto canvas`}>
+          title={`Drag ${cargo.name} onto canvas`}>
           <div
             style={{
               width: 40,
               height: 40,
-              backgroundColor: pallet.color,
+              backgroundColor: cargo.color,
               border: "2px solid #333",
               borderRadius: 4,
               boxSizing: "border-box",
@@ -74,11 +74,11 @@ export const PalletList: FC<PalletListProps> = ({ pallets, onAddPallet }) => {
               color: "#fff",
               fontWeight: "bold",
             }}>
-            {pallet.type === "pallet" ? "📦" : "📦"}
+            {cargo.type === "pallet" ? "📦" : "📦"}
           </div>
-          <span style={{ fontSize: 10, marginTop: 2, color: "#333" }}>{pallet.name}</span>
+          <span style={{ fontSize: 10, marginTop: 2, color: "#333" }}>{cargo.name}</span>
           <span style={{ fontSize: 8, color: "#666" }}>
-            {pallet.length}×{pallet.width}
+            {cargo.length}×{cargo.width}
           </span>
         </div>
       ))}

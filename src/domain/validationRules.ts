@@ -34,7 +34,7 @@ export const validateItem = (
   };
 };
 
-// Validate total load meters (LM) against trailer's max load meters
+// Validate total load meters (LM) against truck's max load meters
 export const validateLoadMeters = (
   items: CargoItem[],
   maxLoadMeters: number,

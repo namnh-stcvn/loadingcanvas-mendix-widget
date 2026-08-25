@@ -59,12 +59,12 @@ describe("DragEngine", () => {
 
     it("should record pointer offset for cursor-relative dragging", () => {
       const engine = new DragEngine(createItems());
-      // Mouse at (120, 120), item1 at (100, 100) Ã¢â€ â€™ offset = (20, 20)
+      // Mouse at (120, 120), item1 at (100, 100) Ã¢â€ â€™ offset = (20, 20)
       engine.startDrag("item1", ["item1"], { x: 120, y: 120 });
-      // Move mouse to (200, 200) Ã¢â€ â€™ base position = (200-20, 200-20) = (180, 180)
+      // Move mouse to (200, 200) Ã¢â€ â€™ base position = (200-20, 200-20) = (180, 180)
       const result = engine.move({ x: 200, y: 200 }, canvasHeight, canvasHeight);
       const item1 = result.find((i) => i.id === "item1");
-      // 180 snapped to grid 20 Ã¢â€ â€™ 180
+      // 180 snapped to grid 20 Ã¢â€ â€™ 180
       expect(item1!.x).toBe(180);
       expect(item1!.y).toBe(180);
     });
@@ -82,7 +82,7 @@ describe("DragEngine", () => {
       engine.startDrag("item1", ["item1"], { x: 120, y: 120 });
       const result = engine.move({ x: 300, y: 300 }, canvasHeight, canvasHeight);
       const item1 = result.find((i) => i.id === "item1");
-      // base = (300-20, 300-20) = (280, 280), snapped to grid 20 Ã¢â€ â€™ 280
+      // base = (300-20, 300-20) = (280, 280), snapped to grid 20 Ã¢â€ â€™ 280
       expect(item1!.x).toBe(280);
       expect(item1!.y).toBe(280);
     });
@@ -99,7 +99,7 @@ describe("DragEngine", () => {
     it("should apply grid snapping during move", () => {
       const engine = new DragEngine(createItems());
       engine.startDrag("item1", ["item1"], { x: 120, y: 120 });
-      // Move to (215, 215) Ã¢â€ â€™ base = (195, 195) Ã¢â€ â€™ snapped to 200
+      // Move to (215, 215) Ã¢â€ â€™ base = (195, 195) Ã¢â€ â€™ snapped to 200
       const result = engine.move({ x: 215, y: 215 }, canvasHeight, canvasHeight);
       const item1 = result.find((i) => i.id === "item1");
       expect(item1!.x).toBe(200);

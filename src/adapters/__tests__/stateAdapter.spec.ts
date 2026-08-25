@@ -25,10 +25,10 @@ describe("stateAdapter", () => {
   });
 
   const createCanvasState = (cargos: CargoItem[]): CanvasState => ({
-    trailer: {
+    truck: {
       id: "truck-1",
       code: "TRUCK-001",
-      trailerType: "DryVan",
+      truckType: "DryVan",
       maxPayloadKg: 20000,
       axleCount: 2,
       maxLoadMeters: 12,
@@ -76,9 +76,9 @@ describe("stateAdapter", () => {
       expect(plan.items[1].id).toBe("cargo-2");
     });
 
-    it("should handle null trailer", () => {
+    it("should handle null truck", () => {
       const state = createCanvasState([createCargoItem()]);
-      state.trailer = null;
+      state.truck = null;
       const plan = serializePlan(state, scale);
       expect(plan.truckId).toBeNull();
     });
