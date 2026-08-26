@@ -91,5 +91,24 @@ describe("validationRules", () => {
       const result = validateItem(item, bounds, []);
       expect(result).toEqual({ valid: true, errors: [] });
     });
+
+    it("should account for non-uniform scale when checking rotated bounds", () => {
+      const scale = { widthScale: 2, heightScale: 1 };
+      const item = { x: 0, y: 0, length: 80, width: 60, rotation: 90 as const };
+      // Scale-correct footprint: X = 60*(2/1)=120, Y = 80*(1/2)=40 -> fits height 50.
+      // A naive pixel swap would give 60x80 and wrongly report OUT_OF_BOUNDS.
+      const result = validateItem(item, { x: 0, y: 0, length: 200, width: 50 }, [], scale);
+      expect(result).toEqual({ valid: true, errors: [] });
+    });
+
+    it("should account for non-uniform scale when checking rotated overlap", () => {
+      const scale = { widthScale: 2, heightScale: 1 };
+      const item = { x: 0, y: 0, length: 80, width: 60, rotation: 90 as const };
+      // Scale-correct footprint 120x40 overlaps an item starting at x=110
+      const others = [{ x: 110, y: 0, length: 20, width: 40 }];
+      const result = validateItem(item, bounds, others, scale);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain("OVERLAP");
+    });
   });
 });

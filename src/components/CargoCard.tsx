@@ -2,7 +2,7 @@ import React from "react";
 
 import type { CargoItem } from "../viewModels/CargoItem";
 
-import { getRotatedSize } from "../domain/rotationRules";
+import { DEFAULT_AXIS_SCALE, getRotatedScreenSize, type AxisScale } from "../domain/rotationRules";
 
 import { RotationHandle } from "./RotationHandle";
 
@@ -27,6 +27,8 @@ interface CargoCardProps {
   onRotate: (itemId: string) => void;
 
   hasError: boolean;
+
+  scale?: AxisScale;
 }
 
 export const CargoCard: React.FC<CargoCardProps> = ({
@@ -36,13 +38,15 @@ export const CargoCard: React.FC<CargoCardProps> = ({
   onMouseDown,
   onRotate,
   hasError,
+  scale = DEFAULT_AXIS_SCALE,
 }) => {
-  const size = getRotatedSize(
+  const size = getRotatedScreenSize(
     {
       length: item.length,
       width: item.width,
     },
-    item.rotation
+    item.rotation,
+    scale
   );
 
   const isSelected = selectedIds.includes(item.id);

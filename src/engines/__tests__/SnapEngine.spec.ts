@@ -154,5 +154,21 @@ describe("SnapEngine", () => {
       expect(result.position.x).toBe(50);
       expect(result.type).toBe("edge");
     });
+
+    it("should use scale-correct rotated size for boundary snapping", () => {
+      const engine = new SnapEngine();
+      const item: TestItem = { id: "item", x: 5, y: 85, length: 80, width: 60, rotation: 90 };
+      const targetPos = { x: 5, y: 85 };
+      const result = engine.calculateSnapTarget(item, [], targetPos, {
+        bounds: { x: 0, y: 0, length: 400, width: 120 },
+        gridSize: 20,
+        threshold: 15,
+        scale: { widthScale: 2, heightScale: 1 },
+      });
+      // Rotated Y-extent = 80*(1/2) = 40 -> bottom boundary candidate y = 120-40 = 80
+      expect(result.position.x).toBe(0);
+      expect(result.position.y).toBe(80);
+      expect(result.type).toBe("boundary");
+    });
   });
 });

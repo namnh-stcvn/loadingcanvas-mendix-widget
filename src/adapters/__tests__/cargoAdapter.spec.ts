@@ -240,6 +240,24 @@ describe("cargoAdapter", () => {
       const rect = getCargoItemRect(item);
       expect(rect).toEqual({ x: 100, y: 200, length: 40, width: 60 });
     });
+
+    it("should project rotated extents through axis scales when provided", () => {
+      const item: CargoItem = {
+        id: "cargo-1",
+        name: "Test",
+        x: 100,
+        y: 200,
+        length: 80,
+        width: 60,
+        rotation: 90,
+        color: "red",
+        type: "pallet",
+        isLocked: false,
+      };
+      const rect = getCargoItemRect(item, { widthScale: 2, heightScale: 1 });
+      // Rotated footprint: X = 60*(2/1)=120, Y = 80*(1/2)=40
+      expect(rect).toEqual({ x: 100, y: 200, length: 120, width: 40 });
+    });
   });
 
   describe("packingTypeFromColor", () => {

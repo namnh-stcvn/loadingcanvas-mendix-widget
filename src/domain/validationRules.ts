@@ -1,6 +1,7 @@
 import type { RectLike, Rotation } from "../types/geometry";
 import type { CargoItem } from "../viewModels/CargoItem";
 import { overlaps, isInsideBounds } from "./geometryRules";
+import { DEFAULT_AXIS_SCALE, type AxisScale } from "./rotationRules";
 
 export type ValidationError = "OVERLAP" | "OUT_OF_BOUNDS" | "LM_EXCEEDED";
 
@@ -14,15 +15,16 @@ export interface ValidationResult {
 export const validateItem = (
   item: RectLike & Partial<{ rotation: Rotation }>,
   bounds: RectLike,
-  others: Array<RectLike & Partial<{ rotation: Rotation }>>
+  others: Array<RectLike & Partial<{ rotation: Rotation }>>,
+  scale: AxisScale = DEFAULT_AXIS_SCALE
 ): ValidationResult => {
   const errors: ValidationError[] = [];
 
-  if (!isInsideBounds(item, bounds)) {
+  if (!isInsideBounds(item, bounds, scale)) {
     errors.push("OUT_OF_BOUNDS");
   }
 
-  const hasOverlap = others.some((other) => overlaps(item, other));
+  const hasOverlap = others.some((other) => overlaps(item, other, scale));
 
   if (hasOverlap) {
     errors.push("OVERLAP");
@@ -70,7 +72,7 @@ export const validateAll = (
   // 1. Validate each item against bounds and overlaps
   for (const item of items) {
     const others = items.filter((other) => other.id !== item.id);
-    const result = validateItem(item, bounds, others);
+    const result = validateItem(item, bounds, others, options?.scale ?? DEFAULT_AXIS_SCALE);
     if (!result.valid) {
       allErrors.push(...result.errors);
       itemErrors[item.id] = result.errors;

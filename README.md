@@ -33,7 +33,7 @@ The widget follows a **strict layered architecture**:
 
 ### 1. UI Layer
 
-- React components: `LoadingCanvas`, `CargoCard`, `GridOverlay`, `PalletList`
+- React components: `LoadingCanvas`, `CargoCard`, `GridOverlay`, `CargoList`
 - Hooks: `useTruckCanvas`, `useCanvasState`, `useMouseEvents`
 
 ### 2. State Management
@@ -83,7 +83,7 @@ src/
 ├── components/                # UI components
 │   ├── CargoCard.tsx          # Renders a single cargo item
 │   ├── GridOverlay.tsx        # Visual grid on canvas
-│   ├── PalletList.tsx         # Debug view: draggable cargo items
+│   ├── CargoList.tsx          # Debug palette: available cargo items
 │   └── RotationHandle.tsx     # Rotation handle UI
 ├── constants/                 # Configuration values
 │   ├── canvas.ts              # Canvas dimensions, grid, rotation
@@ -139,7 +139,7 @@ src/
 2. Loads data via `mendixDataAdapter.ts`:
    - Loads TruckSelection data → computes scale
    - Loads TruckItem view model
-   - Loads CargoItem[] for pallet list (available items)
+   - Loads CargoItem[] for the available cargo list
    - Loads CargoItem[] for saved packing plan
 3. Passes view models to `LoadingCanvas` via `LoadingCanvasViewModelProps`
 4. **LoadingCanvas** initializes `useTruckCanvas` hook with view models

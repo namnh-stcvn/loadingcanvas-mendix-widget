@@ -1,6 +1,6 @@
 import type { Point, Rotation, RectLike } from "../types/geometry";
 import { snapToGrid } from "../domain/snapRules";
-import { getRotatedSize } from "../domain/rotationRules";
+import { DEFAULT_AXIS_SCALE, getRotatedScreenSize, type AxisScale } from "../domain/rotationRules";
 import { GRID_SIZE, SNAP_THRESHOLD } from "../constants/canvas";
 
 export interface SnapTarget {
@@ -15,6 +15,7 @@ export interface SnapConfig {
   bounds?: RectLike; // Bounding rectangle for boundary snapping
   gridSize: number; // Grid size for grid snapping (0 disables)
   threshold: number; // Maximum distance to snap (pixels)
+  scale?: AxisScale; // Axis scales for rotation-aware footprints
 }
 
 // Internal representation of a snap candidate along a single axis
@@ -115,9 +116,14 @@ export class SnapEngine {
     targetPos: Point,
     config: Partial<SnapConfig> = {}
   ): SnapTarget {
-    const { bounds, gridSize = DEFAULT_SNAP_CONFIG.gridSize, threshold = DEFAULT_SNAP_CONFIG.threshold } = config;
+    const {
+      bounds,
+      gridSize = DEFAULT_SNAP_CONFIG.gridSize,
+      threshold = DEFAULT_SNAP_CONFIG.threshold,
+      scale = DEFAULT_AXIS_SCALE,
+    } = config;
 
-    const itemVis = getRotatedSize({ length: item.length, width: item.width }, item.rotation ?? 0);
+    const itemVis = getRotatedScreenSize({ length: item.length, width: item.width }, item.rotation ?? 0, scale);
 
     // Collect all X-axis candidates
     const xCandidates: SnapCandidate[] = [];
@@ -129,7 +135,7 @@ export class SnapEngine {
 
     // 2. Edge contact & alignment candidates against other items
     for (const other of others) {
-      const otherVis = getRotatedSize({ length: other.length, width: other.width }, other.rotation ?? 0);
+      const otherVis = getRotatedScreenSize({ length: other.length, width: other.width }, other.rotation ?? 0, scale);
 
       xCandidates.push(...calculateItemSnapCandidates(targetPos.x, itemVis.length, other, otherVis.length, "x"));
     }
@@ -153,7 +159,7 @@ export class SnapEngine {
 
     // 2. Edge contact & alignment candidates against other items
     for (const other of others) {
-      const otherVis = getRotatedSize({ length: other.length, width: other.width }, other.rotation ?? 0);
+      const otherVis = getRotatedScreenSize({ length: other.length, width: other.width }, other.rotation ?? 0, scale);
 
       yCandidates.push(...calculateItemSnapCandidates(targetPos.y, itemVis.width, other, otherVis.width, "y"));
     }

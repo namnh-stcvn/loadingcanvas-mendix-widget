@@ -1,5 +1,6 @@
 import type { CargoItem } from "../viewModels/CargoItem";
 import { meterToPixel } from "../domain/coordinateRules";
+import { DEFAULT_AXIS_SCALE, getRotatedScreenSize, type AxisScale } from "../domain/rotationRules";
 
 /**
  * Shape of a PackingUnit as it arrives from Mendix.
@@ -158,13 +159,12 @@ const pixelToMeter = (pixel: number, scale: number): number => {
   return pixel / scale;
 };
 
-/**
- * Get the visual bounding rectangle of a CargoItem, accounting for rotation.
- * For 90-degree rotation, width and height are swapped.
- */
-export const getCargoItemRect = (item: CargoItem): { x: number; y: number; length: number; width: number } => {
-  if (item.rotation === 90 || item.rotation === 270) {
-    return { x: item.x, y: item.y, length: item.width, width: item.length };
-  }
-  return { x: item.x, y: item.y, length: item.length, width: item.width };
+// Visual bounding rectangle of a CargoItem; rotated extents are projected
+// through the matching axis scales when a non-uniform scale is given.
+export const getCargoItemRect = (
+  item: CargoItem,
+  scale: AxisScale = DEFAULT_AXIS_SCALE
+): { x: number; y: number; length: number; width: number } => {
+  const visual = getRotatedScreenSize({ length: item.length, width: item.width }, item.rotation, scale);
+  return { x: item.x, y: item.y, length: visual.length, width: visual.width };
 };

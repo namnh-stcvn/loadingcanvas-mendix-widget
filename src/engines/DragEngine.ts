@@ -3,6 +3,7 @@ import type { DragState } from "../state/DragState";
 import type { CollisionEngine } from "./CollisionEngine";
 import type { SnapEngine } from "./SnapEngine";
 import { calculateDragPosition } from "../domain/dragRules";
+import { DEFAULT_AXIS_SCALE, type AxisScale } from "../domain/rotationRules";
 import { TRUCK_CANVAS_LEFT, TRUCK_CANVAS_TOP, TRUCK_CANVAS_WIDTH, TRUCK_CANVAS_HEIGHT } from "../constants/canvas";
 
 export class DragEngine<
@@ -65,7 +66,7 @@ export class DragEngine<
     };
   }
 
-  move(mouse: Point, canvasWidth: number, canvasHeight: number): T[] {
+  move(mouse: Point, canvasWidth: number, canvasHeight: number, scale: AxisScale = DEFAULT_AXIS_SCALE): T[] {
     if (!this.state.isDragging) {
       return this.items;
     }
@@ -97,13 +98,21 @@ export class DragEngine<
       if (this.snapEngine) {
         const snapTarget = this.snapEngine.calculateSnapTarget(item, others, targetPos, {
           bounds,
+          scale,
         });
         targetPos = snapTarget.position;
       }
 
       // Resolve collision overlaps if collision engine is active
       if (this.collisionEngine) {
-        targetPos = this.collisionEngine.resolveNonOverlappingPosition(item, targetPos, startPos, others, bounds);
+        targetPos = this.collisionEngine.resolveNonOverlappingPosition(
+          item,
+          targetPos,
+          startPos,
+          others,
+          bounds,
+          scale
+        );
       }
 
       return { ...item, x: targetPos.x, y: targetPos.y } as T;

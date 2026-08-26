@@ -35,7 +35,9 @@ export const truckSelectionToTruckItem = (
     x: position.x,
     y: position.y,
     length: Math.min(TRUCK_CANVAS_WIDTH, meterToPixel(truck.internalLengthMeter, scale.widthScale)),
-    width: Math.min(TRUCK_CANVAS_HEIGHT, meterToPixel(truck.internalWidthMeter, scale.heightScale)),
+    // Frame covers the reserved canvas band so it lines up with drag bounds
+    // and the background truck image; cargo keeps its own uniform scale.
+    width: TRUCK_CANVAS_HEIGHT,
     rotation: 0,
   };
 };
@@ -55,7 +57,9 @@ export const truckToTruckItem = (
     x: position.x,
     y: position.y,
     length: Math.min(TRUCK_CANVAS_WIDTH, meterToPixel(truck.internalLengthMeter, scale.widthScale)),
-    width: Math.min(TRUCK_CANVAS_HEIGHT, meterToPixel(truck.internalWidthMeter, scale.heightScale)),
+    // Frame covers the reserved canvas band so it lines up with drag bounds
+    // and the background truck image; cargo keeps its own uniform scale.
+    width: TRUCK_CANVAS_HEIGHT,
     rotation: 0,
   };
 };
@@ -63,7 +67,12 @@ export const truckToTruckItem = (
 export const computeScale = (truck: TruckSelectionData, padding: number = 0): ScalePair => {
   const lengthM = truck.internalLengthMeter > 0 ? truck.internalLengthMeter : 13.6;
   const widthM = truck.internalWidthMeter > 0 ? truck.internalWidthMeter : 2.45;
-  const widthScale = Math.max(TRUCK_CANVAS_WIDTH - padding, 100) / lengthM;
-  const heightScale = Math.max(TRUCK_CANVAS_HEIGHT - padding, 100) / widthM;
-  return { widthScale, heightScale };
+  // Single uniform scale keeps true proportions on screen: separate axis scales
+  // make a 90°-rotated item change its rendered shape (rectangle -> square).
+  // The binding axis is whichever would overflow the canvas first.
+  const scale = Math.min(
+    Math.max(TRUCK_CANVAS_WIDTH - padding, 100) / lengthM,
+    Math.max(TRUCK_CANVAS_HEIGHT - padding, 100) / widthM
+  );
+  return { widthScale: scale, heightScale: scale };
 };

@@ -1,7 +1,7 @@
 import type { Point } from "../types/geometry";
 import type { CargoItem } from "../viewModels/CargoItem";
 import type { CanvasStateManager } from "./CanvasStateManager";
-import { rotate90, getRotatedSize } from "../domain/rotationRules";
+import { rotate90, getRotatedScreenSize } from "../domain/rotationRules";
 import { DragEngine } from "../engines/DragEngine";
 import { ValidationEngine } from "../engines/ValidationEngine";
 
@@ -93,7 +93,7 @@ export class CanvasActionDispatcher {
       }
 
       case "DRAG_MOVE": {
-        const items = this.dragEngine.move(action.mouse, this.canvasWidth, this.canvasHeight);
+        const items = this.dragEngine.move(action.mouse, this.canvasWidth, this.canvasHeight, state.scale);
         this.dragEngine.updateItems(items);
         const validation = this.validationEngine.validateItems(
           items,
@@ -129,8 +129,8 @@ export class CanvasActionDispatcher {
           const newRotation = rotate90(item.rotation);
 
           // compute previous visual size and new visual size (without changing model l/w)
-          const prevVis = getRotatedSize({ length: item.length, width: item.width }, item.rotation);
-          const nextVis = getRotatedSize({ length: item.length, width: item.width }, newRotation);
+          const prevVis = getRotatedScreenSize({ length: item.length, width: item.width }, item.rotation, state.scale);
+          const nextVis = getRotatedScreenSize({ length: item.length, width: item.width }, newRotation, state.scale);
 
           // keep center invariant based on visual sizes
           const centerX = item.x + prevVis.length / 2;

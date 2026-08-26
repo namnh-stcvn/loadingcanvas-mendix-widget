@@ -245,6 +245,7 @@ export const LoadingCanvas = (props: LoadingCanvasWidgetProps): ReactElement => 
           isActive={activeItemId === item.id}
           selectedIds={selectedIds}
           hasError={getItemErrors(item.id).length > 0}
+          scale={scale}
           onMouseDown={(e) => handleMouseDown(e, item.id)}
           onRotate={handleRotate}
         />

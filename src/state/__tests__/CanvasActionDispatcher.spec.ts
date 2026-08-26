@@ -26,24 +26,25 @@ describe("CanvasActionDispatcher", () => {
     ...overrides,
   });
 
-  const createInitialState = (cargos: CargoItem[] = []): CanvasState => ({
+  const createInitialState = (cargos: CargoItem[] = [], scale = { widthScale: 1, heightScale: 1 }): CanvasState => ({
     truck: null,
     cargos,
     selectedIds: [],
     activeItemId: null,
     validation: { valid: true, errors: [] },
-    scale: { widthScale: 1, heightScale: 1 },
+    scale,
   });
 
   const createDispatcher = (
-    initialCargos: CargoItem[] = []
+    initialCargos: CargoItem[] = [],
+    scale = { widthScale: 1, heightScale: 1 }
   ): {
     manager: CanvasStateManager;
     dispatcher: CanvasActionDispatcher;
     dragEngine: DragEngine<CargoItem>;
     validationEngine: ValidationEngine;
   } => {
-    const manager = new CanvasStateManager(createInitialState(initialCargos));
+    const manager = new CanvasStateManager(createInitialState(initialCargos, scale));
     const collisionEngine = new CollisionEngine();
     const snapEngine = new SnapEngine();
     const dragEngine = new DragEngine<CargoItem>(initialCargos, collisionEngine, snapEngine);
@@ -222,6 +223,25 @@ describe("CanvasActionDispatcher", () => {
       expect(item.x).toBe(125);
       expect(item.y).toBe(75);
       expect(item.rotation).toBe(90);
+    });
+
+    it("should preserve center using scale-correct sizes under non-uniform scale", () => {
+      const scale = { widthScale: 1453 / 13.6, heightScale: 297 / 2.45 };
+      const { manager, dispatcher } = createDispatcher(
+        [createCargoItem({ x: 10, y: 10, length: 0.3 * scale.widthScale, width: 0.2 * scale.heightScale })],
+        scale
+      );
+      dispatcher.dispatch({ type: "ROTATE", itemId: "item1" });
+      const item = manager.getState().cargos[0];
+      // Center preserved from the base orientation footprint
+      const centerX = 10 + (0.3 * scale.widthScale) / 2;
+      const centerY = 10 + (0.2 * scale.heightScale) / 2;
+      // New rotated footprint projected through the matching axis scales
+      const nextL = 0.2 * scale.heightScale * (scale.widthScale / scale.heightScale);
+      const nextW = 0.3 * scale.widthScale * (scale.heightScale / scale.widthScale);
+      expect(item.rotation).toBe(90);
+      expect(item.x).toBeCloseTo(centerX - nextL / 2);
+      expect(item.y).toBeCloseTo(centerY - nextW / 2);
     });
 
     it("should not rotate locked items", () => {

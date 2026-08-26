@@ -20,7 +20,7 @@ This guide documents the **compatibility matrix** and **4-step upgrade process**
 | **@mendix/pluggable-widgets-tools** | ^10.0.2                     | ^11.0.0     | Mendix widget build toolchain.                                                                |
 | **Vite**                            | ^8.2.1                      | —           | Build tool and dev server.                                                                    |
 | **ESLint**                          | 10                          | —           | With `typescript-eslint`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`.         |
-| **Vitest**                          | —                           | —           | Test runner with jsdom environment. 186 tests.                                                |
+| **Vitest**                          | —                           | —           | Test runner with jsdom environment. 213 tests.                                                |
 
 ### Version Matrix Summary
 

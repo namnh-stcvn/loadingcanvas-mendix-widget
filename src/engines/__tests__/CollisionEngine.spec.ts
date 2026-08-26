@@ -180,4 +180,18 @@ describe("CollisionEngine", () => {
       expect(result.y).toBeLessThanOrEqual(bounds.width - item.width);
     });
   });
+
+  describe("non-uniform scale handling", () => {
+    const scale = { widthScale: 2, heightScale: 1 };
+
+    it("should detect collisions using the scale-correct rotated footprint", () => {
+      const engine = new CollisionEngine();
+      const target = { id: "target", x: 0, y: 0, length: 80, width: 60, rotation: 90 as Rotation };
+      // Scale-correct footprint: 120x40 -> overlaps an item starting at x=110
+      const others = [{ id: "a", x: 110, y: 0, length: 20, width: 40 }];
+      expect(engine.detectCollisions(target, others, scale)).toHaveLength(1);
+      // Without the scale the naive swapped footprint 60x80 misses it
+      expect(engine.detectCollisions(target, others)).toHaveLength(0);
+    });
+  });
 });
