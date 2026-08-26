@@ -9,7 +9,7 @@ The architecture follows a strict **layered separation of concerns**:
 - **UI layer** — React components and hooks (`LoadingCanvas`, `LoadingCanvasContainer`, `CargoCard`, `RotationHandle`, `GridOverlay`, `CargoList`, `useTruckCanvas`, `useCanvasState`, `useCanvasActions`, `useMouseEvents`)
 - **State management layer** — `CanvasStateManager` (single source of truth) and `CanvasActionDispatcher` (action routing)
 - **Engine layer** — `DragEngine`, `CollisionEngine`, `SnapEngine`, `ValidationEngine` (pure business logic)
-- **Domain rule layer** — geometry, snap, validation, coordinate, rotation, drag, and boundary helpers
+- **Domain rule layer** — geometry, snap, validation, coordinate, rotation, drag, boundary, and packing helpers
 - **Adapter layer** — `cargoAdapter`, `truckAdapter`, `stateAdapter`, `mendixDataAdapter` (Mendix data integration)
 - **Data model layer** — business models (`Truck`), view models (`CargoItem`, `TruckItem`), and shared types (`Point`, `RectLike`, `Rotation`, etc.)
 - **Constants layer** — canvas dimensions, grid, rotation, snap, card styling, and theme values
@@ -49,6 +49,7 @@ src/
 │   ├── coordinateRules.ts          # getCanvasPoint(), meterToPixel(), pixelToMeter()
 │   ├── dragRules.ts                # calculateDragPosition() — grid-snapped, clamped drag position
 │   ├── geometryRules.ts            # getRectangle(), isIntersecting(), overlaps(), isInsideBounds(), findCollisions()
+│   ├── packingRules.ts             # packCargoIntoBounds() — First-Fit Decreasing auto-packing with optional 90° rotation
 │   ├── rotationRules.ts            # rotate90(), isVerticalRotation(), getRotatedScreenSize()
 │   ├── snapRules.ts                # snapToGrid(), snapPosition()
 │   ├── validationRules.ts          # validateItem(), validateLoadMeters(), validateAll()
@@ -239,6 +240,7 @@ src/
   - Renders the canvas with truck boundary, cargo items, info panel, grid overlay, and cargo list.
   - Handles drag-and-drop from the cargo list onto the canvas (HTML5 DnD).
   - Displays validation status (colors, errors) in the info panel.
+  - Provides the info-panel buttons: **Save Plan**, **Load Plan**, and **Auto Load** (repacks every cargo — on canvas plus still in the list — tightly into the truck frame via `packCargoIntoBounds()`; items that do not fit stay in the cargo list and a red notice reports their count).
 
 - **`LoadingCanvasContainer`** (`src/widget/LoadingCanvas.container.tsx`) — the Mendix bridge.
   - Receives Mendix props (object references as GUID strings).
@@ -282,6 +284,7 @@ src/
 11. **React re-renders** the cargo cards at their new positions.
 12. **Mouse up** dispatches `END_DRAG`, which calls `dragEngine.endDrag()` and clears `activeItemId`.
 13. **User clicks "Save Plan"** → `handleSavePlan` → `onSavePlan(items, scale)` → container's `handleSavePlan` → `savePackingPlan()` → deletes existing plan items + creates new ones via `mx.data`.
+14. **User clicks "Auto Load"** → `handleAutoLoad` merges canvas items + available cargo list, calls the pure `packCargoIntoBounds()` (First-Fit Decreasing, optional 90° rotation, flush edge-to-edge placement inside the truck frame), then dispatches `SET_ITEMS` with the packed result so validation runs as usual; items that do not fit remain in the cargo list and their count is shown in the info panel.
 
 ## Domain Rules
 
@@ -292,6 +295,14 @@ src/
 - `overlaps(a, b, scale?)` — checks if two items overlap using `getRectangle` + `isIntersecting`.
 - `isInsideBounds(item, bounds, scale?)` — checks if an item (accounting for rotation) is fully within bounds.
 - `findCollisions(target, items, scale?)` — filters items that overlap the target.
+
+### Packing (`packingRules.ts`)
+
+- `packCargoIntoBounds(items, bounds, scale?, options?)` — pure auto-packing used by the **Auto Load** button.
+  - First-Fit Decreasing: sorts by visual area descending, then places each item at the first candidate position (bounds origin plus right/bottom edges of placed rects, ordered by y then x) that passes `isInsideBounds` + `findCollisions`.
+  - Items sit **flush edge-to-edge** (candidate positions are exact neighbor edges, no grid snapping), and the first item hugs the bounds origin even when it is not a grid multiple.
+  - Optional 90° rotation (`options.allowRotation`, default on): tried only when 0° has no valid spot; ties keep 0°.
+  - Returns `{ placed, unplaced }`; input order is preserved within each group and all cargo identity fields (id, name, color, metric sizes, weight) are untouched — only `x`, `y`, `rotation` are recomputed.
 
 ### Rotation (`rotationRules.ts`)
 

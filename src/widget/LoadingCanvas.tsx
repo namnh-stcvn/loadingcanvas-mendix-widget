@@ -1,7 +1,8 @@
-import { useEffect, useRef, type DragEvent, type ReactElement, type RefObject } from "react";
+import { useEffect, useRef, useState, type DragEvent, type ReactElement, type RefObject } from "react";
 import { CargoCard } from "../components/CargoCard";
 import { CargoList } from "../components/CargoList";
 import { GridOverlay } from "../components/GridOverlay";
+import { packCargoIntoBounds } from "../domain/packingRules";
 import { useTruckCanvas } from "../hooks/useTruckCanvas";
 import {
   DEFAULT_CANVAS_WIDTH,
@@ -95,6 +96,15 @@ export const LoadingCanvas = (props: LoadingCanvasWidgetProps): ReactElement => 
   // --- Load plan handler ---
   const handleLoadPlan = (): void => {
     onLoadPlan();
+  };
+
+  // --- Auto Load handler: repack every cargo (on canvas + still in list) into the truck ---
+  const [autoLoadUnplaced, setAutoLoadUnplaced] = useState(0);
+  const handleAutoLoad = (): void => {
+    const bounds = truck ?? { x: 0, y: 0, length: canvasWidth, width: canvasHeight };
+    const { placed, unplaced } = packCargoIntoBounds([...items, ...availableCargoItems], bounds, scale);
+    setItems(placed);
+    setAutoLoadUnplaced(unplaced.length);
   };
 
   // --- Drag-and-drop from cargo list to canvas ---
@@ -223,8 +233,14 @@ export const LoadingCanvas = (props: LoadingCanvasWidgetProps): ReactElement => 
           <button onClick={handleSavePlan} style={{ marginRight: 8 }}>
             Save Plan
           </button>
-          <button onClick={handleLoadPlan}>Load Plan</button>
+          <button onClick={handleLoadPlan} style={{ marginRight: 8 }}>
+            Load Plan
+          </button>
+          <button onClick={handleAutoLoad} disabled={items.length === 0 && availableCargoItems.length === 0}>
+            Auto Load
+          </button>
         </div>
+        {autoLoadUnplaced > 0 && <div style={{ color: "red", fontSize: 12 }}>{autoLoadUnplaced} item(s) did not fit</div>}
       </div>
 
       {/* Cargo list (debug view) */}

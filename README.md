@@ -17,6 +17,7 @@ Built with **React 19**, **TypeScript**, and **Vite**, the widget follows a stri
 - **Real-time collision detection** and overlap validation
 - **Boundary validation** to keep items within truck limits
 - **Load/save packing plans** via Mendix Data API
+- **Auto Load** button that repacks all cargo tightly into the truck (First-Fit Decreasing with optional 90° rotation)
 - **Undo/redo history** for drag operations
 - **Info panel** displaying validation status and item details
 - **Grid overlay** for visual guidance
@@ -94,6 +95,7 @@ src/
 │   ├── coordinateRules.ts     # Meter/pixel conversion
 │   ├── dragRules.ts           # Drag position calculations
 │   ├── geometryRules.ts       # Intersection checks
+│   ├── packingRules.ts        # Auto-packing (First-Fit Decreasing) for the Auto Load button
 │   ├── rotationRules.ts       # 90° rotation logic
 │   ├── snapRules.ts           # Snapping logic
 │   └── validationRules.ts     # Validation rules
@@ -148,6 +150,7 @@ src/
 7. `CanvasActionDispatcher` routes actions to engines (drag, snap, collision, validation)
 8. `CanvasStateManager` notifies subscribers; React re-renders with updated state
 9. User clicks "Save Plan" → packing plan saved to Mendix entities
+10. User clicks "Auto Load" → `packCargoIntoBounds()` repacks every cargo (canvas + cargo list) flush into the truck frame; items that do not fit stay in the cargo list
 
 ---
 

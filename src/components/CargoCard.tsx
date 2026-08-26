@@ -88,7 +88,7 @@ export const CargoCard: React.FC<CargoCardProps> = ({
         }}
       />
 
-      <div
+      {/* <div
         style={{
           position: "absolute",
 
@@ -108,14 +108,14 @@ export const CargoCard: React.FC<CargoCardProps> = ({
         <br />
         pos: ({item.x}, {item.y})
         <br />
-        size: {item.length} × {item.width}
+        size: {item.length.toFixed(2)} × {item.width.toFixed(2)}
         <br />
         rotation: {item.rotation}°{item.lengthM && <br />}
         {item.lengthM && `length: ${item.lengthM}m`}
         {item.widthM && <br />}
         {item.widthM && `width: ${item.widthM}m`}
       </div>
-
+ */}
       <RotationHandle
         onMouseDown={(e) => {
           e.stopPropagation();
