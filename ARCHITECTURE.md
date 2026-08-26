@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository implements a modular **LoadingCanvas** widget for drag-and-drop truck loading planning. Built with React 19, TypeScript, and Vite, the widget provides an interactive canvas where users can place, drag, rotate, and validate cargo items within a truck boundary.
+This repository implements a modular **LoadingCanvas** widget for drag-and-drop truck loading planning. Built with React 18 and TypeScript on the Mendix pluggable-widget toolchain, the widget provides an interactive canvas where users can place, drag, rotate, and validate cargo items within a truck boundary.
 
 The architecture follows a strict **layered separation of concerns**:
 
@@ -101,8 +101,9 @@ src/
 │   └── __tests__/                  # Adapter unit tests
 │
 └── widget/
-    ├── index.ts                    # Mendix widget entry point (exports LoadingCanvasContainer)
+    ├── index.ts                    # Public API barrel for the widget feature (container + prop types)
     ├── LoadingCanvas.container.tsx # Mendix bridge: loads data via mx.data, passes view models to widget
+    ├── LoadingCanvasView.tsx       # Pure React canvas renderer used by the container
     └── LoadingCanvas.properties.ts # Property definitions and prop interfaces
 ```
 
@@ -118,8 +119,8 @@ src/
   - Handles save plan (delete + recreate) and load plan via `mendixDataAdapter.ts`
 
 - **`LoadingCanvas`** (`src/LoadingCanvas.tsx`) is the Mendix entry wrapper: maps typed widget props to `LoadingCanvasContainerProps` and renders `LoadingCanvasContainer`.
-- **`LoadingCanvas`** (`src/widget/LoadingCanvas.tsx`) is the pure React renderer.
-  - Receives `LoadingCanvasWidgetProps` (view models + loading state)
+- **`LoadingCanvasView`** (`src/widget/LoadingCanvasView.tsx`) is the pure React renderer.
+  - Receives `LoadingCanvasViewProps` (view models + loading state)
   - Manages canvas state via `useTruckCanvas` hook
   - Renders the canvas, truck boundary, cargo items, info panel, grid overlay, and cargo list
   - Handles drag-and-drop from the cargo list onto the canvas (HTML5 DnD) and click-to-add
@@ -228,7 +229,7 @@ src/
 
 ### UI Components
 
-- **`LoadingCanvas`** (`src/widget/LoadingCanvas.tsx`) — the main widget component.
+- **`LoadingCanvasView`** (`src/widget/LoadingCanvasView.tsx`) — the main canvas renderer component.
   - Receives view models from the container (truck, available cargo, initial plan items, scale).
   - Derives the available cargo list (cargo not yet on the canvas) from `state.cargos` — no separate state.
   - Renders the canvas with truck boundary, cargo items, info panel, grid overlay, and cargo list.
@@ -356,13 +357,13 @@ src/
 
 ## Build & Tooling
 
-- **Vite** — build tool and dev server with HMR
-- **React 19** with `@vitejs/plugin-react` (Oxc-based Fast Refresh)
-- **TypeScript 6** with strict mode, `verbatimModuleSyntax`, and `noUnusedLocals`/`noUnusedParameters`
-- **ESLint 10** with `typescript-eslint`, `eslint-plugin-react-hooks`, and `eslint-plugin-react-refresh`
-- **Vitest** — test runner with jsdom environment
-- **Prettier** — code formatting (printWidth 120, 2-space indent, single quotes, trailing commas)
-- **Rollup** — Mendix widget build config (`rollup.config.mjs`)
+- **Mendix pluggable-widgets-tools** (`@mendix/pluggable-widgets-tools` v10) — all pipelines: `build:web` bundle, `start:web` dev server with HMR, `lint`, and unit tests
+- **Rollup** — widget bundler under the hood of pluggable-widgets-tools (uses the tools' defaults; no custom `rollup.config.mjs`)
+- **React 18.2** (pinned via package.json `overrides`/`resolutions`) with the automatic JSX runtime (`jsx: "react-jsx"`)
+- **TypeScript 5.9** — strict mode, `erasableSyntaxOnly`, bundler module resolution, `allowArbitraryExtensions`; `noUnusedLocals`/`noUnusedParameters` intentionally disabled because the rollup TypeScript plugin fails the build on TS6133 (unused code stays reported as eslint warnings)
+- **ESLint 9** — flat config in `.eslintrc.js` with `typescript-eslint` and `eslint-plugin-react-hooks`, plus complexity/size guard rules (`complexity`, `max-depth`, `max-lines-per-function`)
+- **Jest + ts-jest** — unit test runner via `test:unit:web:enzyme-free` (jsdom environment, CSS/PNG assets stubbed, `*.spec.*` files under `src/`)
+- **Prettier** — code formatting checked during lint (printWidth 120, 2-space indent, double quotes, es5 trailing commas)
 
 ## Mendix Integration
 
@@ -379,7 +380,7 @@ The `mendixDataAdapter.ts` module bridges the widget to the Mendix Data API:
 
 - **Loading**: Uses `mx.data.load()` and `mx.data.list()` to resolve object references.
 - **Saving**: Uses `mx.data.create()`, `mx.data.remove()`, and `mx.data.commit()` to persist packing plans.
-- **Dev fallback**: When `mx` is not available (Vite dev server), falls back to JSON parsing and localStorage.
+- **Dev fallback**: When `mx` is not available (local dev server), falls back to JSON parsing and localStorage.
 
 ### PackingPlan Entity
 

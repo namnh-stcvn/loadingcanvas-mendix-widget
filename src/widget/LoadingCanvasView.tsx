@@ -20,14 +20,15 @@ import {
 import { CANVAS_BACKGROUND_COLOR } from "../constants/theme";
 import truckBackground from "../assets/Truck_horizontal.png";
 import type { CargoItem } from "../viewModels/CargoItem";
-import type { LoadingCanvasWidgetProps } from "./LoadingCanvas.properties";
+import type { LoadingCanvasViewProps } from "./LoadingCanvas.properties";
 
 /**
- * LoadingCanvas — the Mendix Pluggable Widget entry point.
+ * LoadingCanvasView — pure React canvas renderer.
  *
  * This component receives view models from the LoadingCanvasContainer
  * (which resolves Mendix object references via mx.data) and renders the
- * interactive packing canvas.
+ * interactive packing canvas. It is not the Mendix build entry point;
+ * that role belongs to src/LoadingCanvas.tsx.
  *
  * Key responsibilities:
  * - Render the canvas with truck boundary, cargo items, and info panel
@@ -36,7 +37,7 @@ import type { LoadingCanvasWidgetProps } from "./LoadingCanvas.properties";
  * - Display validation status (colors, errors)
  * - Expose save/load callbacks to the container
  */
-export const LoadingCanvas = (props: LoadingCanvasWidgetProps): ReactElement => {
+export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement => {
   const { viewModel, isLoading } = props;
   const {
     truck,
@@ -304,4 +305,4 @@ export const LoadingCanvas = (props: LoadingCanvasWidgetProps): ReactElement => 
   );
 };
 
-export default LoadingCanvas;
+export default LoadingCanvasView;

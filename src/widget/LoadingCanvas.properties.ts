@@ -23,7 +23,7 @@ export interface LoadingCanvasViewModelProps {
   onLoadPlan: () => void;
 }
 
-export interface LoadingCanvasWidgetProps {
+export interface LoadingCanvasViewProps {
   viewModel: LoadingCanvasViewModelProps;
   isLoading: boolean;
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
-import { LoadingCanvas } from "./LoadingCanvas";
+import { LoadingCanvasView } from "./LoadingCanvasView";
 import type { LoadingCanvasProps, LoadingCanvasViewModelProps } from "./LoadingCanvas.properties";
 import {
   getObjectGuid,
@@ -187,7 +187,7 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
     [truckItem, availableCargo, initialCanvasItems, scale, canvasWidth, canvasHeight, handleSavePlan, handleLoadPlan]
   );
 
-  return <LoadingCanvas viewModel={viewModel} isLoading={isLoading} />;
+  return <LoadingCanvasView viewModel={viewModel} isLoading={isLoading} />;
 };
 
 export default LoadingCanvasContainer;
