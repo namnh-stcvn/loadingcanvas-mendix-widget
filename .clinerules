@@ -2,7 +2,7 @@
 
 ## Architecture Rules
 
-- Preserve dependency direction: UI → Hooks → Services → Adapters → Mendix Runtime.
+- Preserve dependency direction: UI → Hooks → State → Engine → Domain → Adapters → Mendix Runtime.
 - UI must never depend directly on Mendix runtime APIs.
 - Domain modules must not import React, Mendix APIs, browser globals, or widget framework APIs.
 - Adapters are the only layer allowed to interact directly with Mendix runtime objects.
