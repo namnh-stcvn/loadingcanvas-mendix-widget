@@ -107,6 +107,19 @@ export const LoadingCanvas = (props: LoadingCanvasWidgetProps): ReactElement => 
     setAutoLoadUnplaced(unplaced.length);
   };
 
+  // --- Verify handler: checks that every cargo of the exercise was loaded onto the truck ---
+  // Expected count = total TransportOrders given to the widget (availableCargo),
+  // so verification passes only when the cargo list has been emptied onto the canvas.
+  const [verifyResult, setVerifyResult] = useState<{ placed: number; expected: number } | null>(null);
+  const handleVerify = (): void => {
+    setVerifyResult({ placed: items.length, expected: availableCargo.length });
+  };
+
+  // A changed item count invalidates the previous verification result.
+  useEffect(() => {
+    setVerifyResult(null);
+  }, [items.length]);
+
   // --- Drag-and-drop from cargo list to canvas ---
   const handlePalletDrop = (e: DragEvent<HTMLDivElement>): void => {
     e.preventDefault();
@@ -236,8 +249,21 @@ export const LoadingCanvas = (props: LoadingCanvasWidgetProps): ReactElement => 
           <button onClick={handleLoadPlan} style={{ marginRight: 8 }}>
             Load Plan
           </button>
-          <button onClick={handleAutoLoad} disabled={items.length === 0 && availableCargoItems.length === 0}>
+          <button onClick={handleAutoLoad} style={{ marginRight: 8 }} disabled={items.length === 0 && availableCargoItems.length === 0}>
             Auto Load
+          </button>
+          <button
+            onClick={handleVerify}
+            disabled={availableCargo.length === 0}
+            style={
+              verifyResult
+                ? {
+                    backgroundColor: verifyResult.placed === verifyResult.expected ? "green" : "red",
+                    color: "#fff",
+                  }
+                : undefined
+            }>
+            Verify
           </button>
         </div>
         {autoLoadUnplaced > 0 && <div style={{ color: "red", fontSize: 12 }}>{autoLoadUnplaced} item(s) did not fit</div>}
