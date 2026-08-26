@@ -249,7 +249,13 @@ export const LoadingCanvas = (props: LoadingCanvasWidgetProps): ReactElement => 
           <button onClick={handleLoadPlan} style={{ marginRight: 8 }}>
             Load Plan
           </button>
-          <button onClick={handleAutoLoad} style={{ marginRight: 8 }} disabled={items.length === 0 && availableCargoItems.length === 0}>
+          {/* Hidden debug controls – re-enable by removing this wrapper.
+              Requires noUnusedLocals/noUnusedParameters = false in tsconfig.json,
+              otherwise @rollup/plugin-typescript fails the build on TS6133. */}
+          {/* <button
+            onClick={handleAutoLoad}
+            style={{ marginRight: 8 }}
+            disabled={items.length === 0 && availableCargoItems.length === 0}>
             Auto Load
           </button>
           <button
@@ -264,9 +270,11 @@ export const LoadingCanvas = (props: LoadingCanvasWidgetProps): ReactElement => 
                 : undefined
             }>
             Verify
-          </button>
+          </button> */}
         </div>
-        {autoLoadUnplaced > 0 && <div style={{ color: "red", fontSize: 12 }}>{autoLoadUnplaced} item(s) did not fit</div>}
+        {autoLoadUnplaced > 0 && (
+          <div style={{ color: "red", fontSize: 12 }}>{autoLoadUnplaced} item(s) did not fit</div>
+        )}
       </div>
 
       {/* Cargo list (debug view) */}

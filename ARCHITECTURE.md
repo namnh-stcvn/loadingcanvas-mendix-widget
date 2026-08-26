@@ -100,16 +100,10 @@ src/
 │   ├── mendixDataAdapter.ts        # Bridges to Mendix Data API (mx.data) for load/save
 │   └── __tests__/                  # Adapter unit tests
 │
-├── widget/
-│   ├── index.ts                    # Mendix widget entry point (exports LoadingCanvasContainer)
-│   ├── LoadingCanvas.container.tsx # Mendix bridge: loads data via mx.data, passes view models to widget
-│   └── LoadingCanvas.properties.ts # Property definitions and prop interfaces
-│
-├── fixtures/
-│   └── InitialCargoItem.ts         # Debug fixture: initial cargo items for testing
-│
-└── __tests__/
-    └── setup.ts                    # Vitest setup file
+└── widget/
+    ├── index.ts                    # Mendix widget entry point (exports LoadingCanvasContainer)
+    ├── LoadingCanvas.container.tsx # Mendix bridge: loads data via mx.data, passes view models to widget
+    └── LoadingCanvas.properties.ts # Property definitions and prop interfaces
 ```
 
 ## Core Components

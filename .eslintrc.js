@@ -11,7 +11,7 @@ const reactHooksConfig =
 
 module.exports = [
   {
-    ignores: ["dist/**", "extracted/**", "typings/**"],
+    ignores: ["dist/**", "typings/**"],
   },
   ...(reactHooksConfig ? [reactHooksConfig] : []),
   {

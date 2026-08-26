@@ -93,9 +93,6 @@ UI (React) → Hooks → State/Engines → Domain → Adapters → Mendix
 | File                              | Change Required                                             |
 | :-------------------------------- | :---------------------------------------------------------- |
 | `tsconfig.json`                   | Update compiler options if new strict checks are introduced |
-| `tsconfig.app.json`               | Update app-specific compiler options                        |
-| `tsconfig.node.json`              | Update node-specific compiler options                       |
-| `tsconfig.eslint.json`            | Update ESLint TypeScript config                             |
 | `src/types/mx.d.ts`               | Update Mendix type declarations if API changes              |
 | `typings/LoadingCanvasProps.d.ts` | Regenerated from `LoadingCanvas.xml`                        |
 
@@ -156,7 +153,6 @@ UI (React) → Hooks → State/Engines → Domain → Adapters → Mendix
 
 3. **Update TypeScript config** (if upgrading TypeScript):
    - Review `tsconfig.json` for new strict options
-   - Check `tsconfig.app.json`, `tsconfig.node.json`, `tsconfig.eslint.json`
 
 4. **Update Mendix manifest** (if upgrading Mendix):
    - Review `src/LoadingCanvas.xml` for schema changes

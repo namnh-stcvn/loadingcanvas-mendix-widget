@@ -128,9 +128,6 @@ src/
 │   ├── index.ts               # Mendix widget entry point
 │   ├── LoadingCanvas.container.tsx # Mendix bridge component
 │   └── LoadingCanvas.properties.ts # Property definitions
-├── fixtures/                  # Test fixtures
-│   └── InitialCargoItem.ts    # Debug fixture
-└── __tests__/                 # Test files
 ```
 
 ---

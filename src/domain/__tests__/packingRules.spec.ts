@@ -144,10 +144,7 @@ describe("packCargoIntoBounds", () => {
 
   it("places items flush edge-to-edge horizontally and vertically", () => {
     const wideBounds: RectLike = { x: 0, y: 0, length: 300, width: 100 };
-    const { placed: row } = packCargoIntoBounds(
-      [makeCargo("h1", 120, 60), makeCargo("h2", 120, 60)],
-      wideBounds
-    );
+    const { placed: row } = packCargoIntoBounds([makeCargo("h1", 120, 60), makeCargo("h2", 120, 60)], wideBounds);
 
     expect(row).toHaveLength(2);
     expect(row[1].y).toBe(row[0].y);
@@ -180,4 +177,3 @@ describe("packCargoIntoBounds", () => {
     expect(packed.width).toBe(60);
   });
 });
-
