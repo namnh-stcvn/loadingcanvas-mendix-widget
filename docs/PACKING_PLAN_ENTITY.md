@@ -33,16 +33,16 @@ store the saved packing arrangement for each truck (TruckSelection).
 | ---------------- | --------------------------------------------- | -------- | ------------------------------------------------- |
 | `PackingPlan`    | Reference (TCSLoadingMeter.PackingPlan)       | Yes      | Parent plan (many-to-1)                           |
 | `TransportOrder` | Reference (TCSTransportModule.TransportOrder) | Yes      | Which transport order this item represents        |
-| `PositionX`      | Decimal                                       | Yes      | X position in meters (relative to truck origin) |
-| `PositionY`      | Decimal                                       | Yes      | Y position in meters (relative to truck origin) |
-| `Length`          | Decimal                                       | Yes      | Item length in meters (extent along X)            |
-| `Width`           | Decimal                                       | Yes      | Item width in meters (footprint extent along Y)   |
-| `Height`          | Decimal                                       | Yes      | Item height in meters (2D canvas: 0, no Z axis)   |
-| `Rotation`        | Integer                                       | Yes      | Rotation: 0, 90, 180, or 270                      |
-| `Color`           | String                                        | No       | Display color (e.g., "orange", "blue")            |
-| `LengthMeters`    | Decimal                                       | No       | Item length in meters (for load-meter validation) |
-| `WidthMeters`     | Decimal                                       | No       | Item width in meters (for load-meter validation)  |
-| `WeightKg`        | Decimal                                       | No       | Item weight in kg (for payload validation)        |
+| `PositionX`      | Decimal                                       | Yes      | X position in meters (relative to truck origin)   |
+| `PositionY`      | Decimal                                       | Yes      | Y position in meters (relative to truck origin)   |
+| `Length`         | Decimal                                       | Yes      | Item length in meters (extent along X)            |
+| `Width`          | Decimal                                       | Yes      | Item width in meters (footprint extent along Y)   |
+| `Height`         | Decimal                                       | Yes      | Item height in meters (2D canvas: 0, no Z axis)   |
+| `Rotation`       | Integer                                       | Yes      | Rotation: 0, 90, 180, or 270                      |
+| `Color`          | String                                        | No       | Display color (e.g., "orange", "blue")            |
+| `LengthMeters`   | Decimal                                       | No       | Item length in meters (for load-meter validation) |
+| `WidthMeters`    | Decimal                                       | No       | Item width in meters (for load-meter validation)  |
+| `WeightKg`       | Decimal                                       | No       | Item weight in kg (for payload validation)        |
 
 **Note:** Mendix automatically creates a hidden `id` attribute for every entity. This serves as the primary key and is used internally for object identification and relationships. No manual ID attribute is needed.
 
@@ -120,7 +120,7 @@ PackingUnit:
 ...
 
 PackingType:
-- E_PackingType (Enum, "Pallet", Box)
+- E_PackingType (Enum, "Pallet", "Box")
 
 NEW:
 TCSLoadingMeter.PackingPlan (1 per TruckSelection)

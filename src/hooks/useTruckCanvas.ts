@@ -1,4 +1,4 @@
-import { useMemo, useState, type MouseEvent as ReactMouseEvent, type RefObject } from "react";
+import { useCallback, useMemo, useState, type MouseEvent as ReactMouseEvent, type RefObject } from "react";
 import type { CargoItem } from "../viewModels/CargoItem";
 import type { TruckItem } from "../viewModels/TruckItem";
 import { DragEngine } from "../engines/DragEngine";
@@ -9,7 +9,7 @@ import { CanvasStateManager } from "../state/CanvasStateManager";
 import { CanvasActionDispatcher } from "../state/CanvasActionDispatcher";
 import { useCanvasState } from "./useCanvasState";
 import { useCanvasActions } from "./useCanvasActions";
-import { getCanvasPoint } from "../domain/coordinateRules";
+import { getCanvasPoint } from "./coordinateRule";
 import type { CanvasState } from "../state/CanvasState";
 
 interface UseTruckCanvasProps {
@@ -82,32 +82,48 @@ export const useTruckCanvas = ({
 
   const [dragging, setDragging] = useState(false);
 
-  const handleMouseDown = (e: ReactMouseEvent, itemId: string): void => {
-    e.stopPropagation();
-    const point = getCanvasPoint(canvasRef.current, e.clientX, e.clientY);
-    actions.startDrag(itemId, point);
-    setDragging(true);
-  };
+  // Destructure so the useCallback dependencies below reference the stable
+  // per-action callbacks rather than the recreated `actions` object identity.
+  const { startDrag, dragMove: dispatchDragMove, endDrag, deselect, rotateItem, addItem, setItems } = actions;
 
-  const handleCanvasMouseDown = (_e: ReactMouseEvent<HTMLDivElement>): void => {
-    actions.deselect();
-  };
+  const handleMouseDown = useCallback(
+    (e: ReactMouseEvent, itemId: string): void => {
+      e.stopPropagation();
+      const point = getCanvasPoint(canvasRef.current, e.clientX, e.clientY);
+      startDrag(itemId, point);
+      setDragging(true);
+    },
+    [canvasRef, startDrag]
+  );
 
-  const dragMove = (e: MouseEvent): void => {
-    const point = getCanvasPoint(canvasRef.current, e.clientX, e.clientY);
-    actions.dragMove(point);
-  };
+  const handleCanvasMouseDown = useCallback(
+    (_e: ReactMouseEvent<HTMLDivElement>): void => {
+      deselect();
+    },
+    [deselect]
+  );
 
-  const handleMouseUp = (): void => {
-    actions.endDrag();
+  const dragMove = useCallback(
+    (e: MouseEvent): void => {
+      const point = getCanvasPoint(canvasRef.current, e.clientX, e.clientY);
+      dispatchDragMove(point);
+    },
+    [canvasRef, dispatchDragMove]
+  );
+
+  const handleMouseUp = useCallback((): void => {
+    endDrag();
     setDragging(false);
-  };
+  }, [endDrag]);
 
-  const handleCancel = (): void => {
-    actions.endDrag();
+  const handleCancel = useCallback((): void => {
+    endDrag();
     setDragging(false);
-  };
+  }, [endDrag]);
 
+  // Stable handlers mean useMouseEvents attaches the mousemove/mouseup/blur
+  // listeners once per gesture instead of tearing them down and re-adding them
+  // on every render triggered by each pointer-move frame.
   useMouseEvents({
     dragging,
     moveItems: dragMove,
@@ -126,8 +142,8 @@ export const useTruckCanvas = ({
     validation: state.validation,
     handleMouseDown,
     handleCanvasMouseDown,
-    handleRotate: actions.rotateItem,
-    addItem: actions.addItem,
-    setItems: actions.setItems,
+    handleRotate: rotateItem,
+    addItem,
+    setItems,
   };
 };

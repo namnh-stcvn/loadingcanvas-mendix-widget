@@ -1,5 +1,5 @@
 import type { Point, RectLike, Rotation } from "../types/geometry";
-import type { DragState } from "../state/DragState";
+import type { DragState } from "./DragState";
 import type { CollisionEngine } from "./CollisionEngine";
 import type { SnapEngine } from "./SnapEngine";
 import { calculateDragPosition } from "../domain/dragRules";

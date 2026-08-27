@@ -1,7 +1,7 @@
 import type { RectLike, Rotation } from "../types/geometry";
 import type { CargoItem } from "../viewModels/CargoItem";
 import { overlaps, isInsideBounds } from "./geometryRules";
-import { DEFAULT_AXIS_SCALE, type AxisScale } from "./rotationRules";
+import { DEFAULT_AXIS_SCALE, getRotatedScreenSize, type AxisScale } from "./rotationRules";
 
 export type ValidationError = "OVERLAP" | "OUT_OF_BOUNDS" | "LM_EXCEEDED";
 
@@ -42,7 +42,15 @@ export const validateLoadMeters = (
   maxLoadMeters: number,
   scale: { widthScale: number; heightScale: number }
 ): ValidationResult => {
-  const totalLengthMeters = items.reduce((sum, item) => sum + item.length / scale.widthScale, 0);
+  // Load meters measure the truck length each item occupies along the X axis, so a
+  // 90°/270° rotated item contributes its rotated (width) extent, not its raw pixel
+  // length. getRotatedScreenSize projects the footprint through the axis scales.
+  const totalLengthMeters = items.reduce(
+    (sum, item) =>
+      sum +
+      getRotatedScreenSize({ length: item.length, width: item.width }, item.rotation, scale).length / scale.widthScale,
+    0
+  );
 
   if (totalLengthMeters > maxLoadMeters) {
     return {

@@ -107,12 +107,14 @@ Every state value must have a clear owner:
 - Do not silently change requirements or expand task scope without a technical reason.
 - Preserve existing conventions unless they conflict with an explicit rule.
 - When uncertain about a runtime-specific contract, inspect the existing adapter, types, tests, or project documentation before implementing.
+- Prepare all context need and details steps in plan mode to reduce work in act mode
 
 ## Core Philosophy (Smart Zone & Vertical Slices)
 
 - NEVER attempt to build a large feature all at once. Create plan consist of many small tasks
 - Work in **Micro Vertical Slices**: each task must be small, self-contained, and for only a tiny piece of functionality.
 - Keep modifications scoped to a minimum number of files per task (ideally 2-5 files max). Do not touch unrelated files.
+- Auto continue to next slice after verification is done
 
 ## Strict Prohibitions
 

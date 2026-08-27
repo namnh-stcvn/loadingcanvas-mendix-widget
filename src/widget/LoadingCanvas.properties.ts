@@ -19,6 +19,7 @@ export interface LoadingCanvasViewModelProps {
   scale: { widthScale: number; heightScale: number };
   canvasWidth: number;
   canvasHeight: number;
+  saveError?: string | null;
   onSavePlan: (items: CargoItem[], scale: { widthScale: number; heightScale: number }) => void;
   onLoadPlan: () => void;
 }

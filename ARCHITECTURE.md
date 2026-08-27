@@ -46,7 +46,7 @@ src/
 │
 ├── domain/
 │   ├── boundaryRules.ts            # clamp() — keeps values within a range; plus getCanvasBounds()/getTruckBounds() — single authority shared by both the dispatcher's OUT_OF_BOUNDS validation and DragEngine's collision clamping (kept identical by construction)
-│   ├── coordinateRules.ts          # getCanvasPoint(), meterToPixel(), pixelToMeter()
+│   ├── coordinateRules.ts          # meterToPixel(), pixelToMeter() (pure unit conversion only)
 │   ├── dragRules.ts                # calculateDragPosition() — grid-snapped, clamped drag position
 │   ├── geometryRules.ts            # getRectangle(), isIntersecting(), overlaps(), isInsideBounds(), findCollisions()
 │   ├── packingRules.ts             # packCargoIntoBounds() — First-Fit Decreasing auto-packing with optional 90° rotation
@@ -57,6 +57,7 @@ src/
 │
 ├── engines/
 │   ├── DragEngine.ts               # Manages drag state, computes new positions with snap + collision resolution
+│   ├── DragState.ts                # Engine-internal drag tracking (isDragging, activeId, startMouse, startPositions, startOffsets)
 │   ├── CollisionEngine.ts          # Detects overlaps, finds valid non-overlapping positions
 │   ├── SnapEngine.ts               # Calculates best snap target (boundary, edge, align, grid)
 │   └── __tests__/                  # Engine unit tests
@@ -65,7 +66,9 @@ src/
 │   ├── useTruckCanvas.ts           # Main hook: wires engines, state manager, dispatcher, and mouse events
 │   ├── useCanvasState.ts           # Subscribes to CanvasStateManager, returns current CanvasState
 │   ├── useCanvasActions.ts         # Wraps CanvasActionDispatcher with memoized action callbacks
-│   └── useMouseEvents.ts           # Attaches window mousemove/mouseup/blur listeners during drag
+│   ├── useMouseEvents.ts           # Attaches window mousemove/mouseup/blur listeners during drag
+│   ├── coordinateRule.ts           # getCanvasPoint() — browser→canvas coordinate conversion; DOM-dependent, kept out of domain
+│   └── __tests__/                  # Hook/util unit tests
 │
 ├── models/
 │   └── Truck.ts                    # Business model: truck dimensions (meters), payload, axle count, type
@@ -75,7 +78,6 @@ src/
 │   ├── CanvasStateManager.ts       # Single source of truth; immutable updates, subscribe/notify, undo/redo history
 │   ├── CanvasActionDispatcher.ts   # Routes CanvasAction types to state mutations via engines
 │   ├── CanvasStateListener.ts      # Type alias: (state: CanvasState) => void
-│   ├── DragState.ts                # Internal drag tracking: isDragging, activeId, startMouse, startPositions, startOffsets
 │   └── __tests__/                  # State management unit tests
 │
 ├── types/
@@ -154,7 +156,7 @@ src/
 ### Engines
 
 - **`DragEngine<T>`** (`src/engines/DragEngine.ts`) — generic over `T extends RectLike & { id: string; rotation: Rotation }`.
-  - Maintains internal `DragState` (isDragging, activeId, startMouse, startPositions, startOffsets).
+  - Maintains internal `DragState` (**`src/engines/DragState.ts`**) — engine-internal gesture state (isDragging, activeId, startMouse, startPositions, startOffsets). It lives beside its sole owner the engine so no engine→state dependency exists.
   - `startDrag(activeId, selectedIds, mouse)` records each selected item's start position and the pointer offset (mouse − item position) so the cursor maintains its relative position during drag.
   - `move(mouse, canvasWidth, canvasHeight, scale?)` computes each dragged item's new position:
     1. Base position = mouse − startOffset (preserves cursor relationship)
@@ -205,14 +207,15 @@ src/
   - `loadPackingPlan()` — loads saved PackingPlan from Mendix entities
   - `savePackingPlan()` — saves canvas state as PackingPlan (delete + recreate items)
 
+> **Adapters & dependency direction.** The declared chain is `UI → Hooks → State → Engine → Domain → Adapters → Mendix Runtime`. Adapters are the mappers that *produce* the domain/view models and translate between Mendix meter data and pixel/view coordinates, so they intentionally import down into `domain/*` (`coordinateRules`, `cargoIdentity`, `rotationRules`) and reference the `viewModels/*` they construct, plus `state/CanvasState` when serializing a plan. These are **deliberate, documented** boundary crossings in the mapper role — there is no upward import out of domain/engines/state into adapters, and only adapters ever touch the Mendix runtime.
+
 ### React Hooks
 
 - **`useTruckCanvas`** (`src/hooks/useTruckCanvas.ts`) — the main entry point.
   - Memoizes engine instances (`CollisionEngine`, `SnapEngine`, `DragEngine`) and the `CanvasStateManager` + `CanvasActionDispatcher`.
   - Wires `useCanvasState()` and `useCanvasActions()` to the manager and dispatcher.
-  - Provides `handleMouseDown`, `handleCanvasMouseDown`, and `handleRotate` callbacks.
-  - Uses `useMouseEvents()` to attach global mousemove/mouseup/blur listeners during drag.
-  - Syncs the drag engine's internal items whenever `state.cargos` changes.
+  - Provides `handleMouseDown`, `handleCanvasMouseDown`, `dragMove`, `handleMouseUp`, and `handleCancel` callbacks, all `useCallback`-memoized so their identity is stable across renders.
+  - Uses `useMouseEvents()` to attach global mousemove/mouseup/blur listeners during drag; because the handlers are stable, the listeners attach once per gesture instead of being torn down and re-added on every pointer-move frame.
   - Returns: `items`, `activeItemId`, `selectedIds`, `validation`, `handleMouseDown`, `handleCanvasMouseDown`, `handleRotate`, `addItem`, `setItems`.
 
 - **`useCanvasState`** (`src/hooks/useCanvasState.ts`) — subscribes to the `CanvasStateManager` via `useEffect`, returns the current `CanvasState`.
@@ -227,16 +230,17 @@ src/
   - Receives view models from the container (truck, available cargo, initial plan items, scale).
   - Derives the available cargo list (cargo not yet on the canvas) from `state.cargos` — no separate state.
   - Renders the canvas with truck boundary, cargo items, info panel, grid overlay, and cargo list.
-  - Handles drag-and-drop from the cargo list onto the canvas (HTML5 DnD).
+  - Handles drag-and-drop from the cargo list onto the canvas (HTML5 DnD); newly added/dropped cargo is placed at the raw position (list clicks default to `{x: 50, y: 50}`), which may fall outside the truck band and be flagged `OUT_OF_BOUNDS` until the user drags it into place.
   - Displays validation status (colors, errors) in the info panel.
   - Provides the info-panel buttons: **Save Plan**, **Load Plan**, and **Auto Load** (repacks every cargo — on canvas plus still in the list — tightly into the truck frame via `packCargoIntoBounds()`; items that do not fit stay in the cargo list and a red notice reports their count).
+  - Shows a "Save failed" notice in the info panel when the container reports a `saveError`.
 
 - **`LoadingCanvasContainer`** (`src/widget/LoadingCanvas.container.tsx`) — the Mendix bridge.
   - Receives Mendix props (object references as GUID strings).
   - Loads data via `mx.data` API (with JSON fallback for dev).
   - Converts to view models using adapters.
   - Passes view models to `LoadingCanvas`.
-  - Handles save/load plan via `mendixDataAdapter.ts`.
+  - Handles save/load plan via `mendixDataAdapter.ts`; `handleSavePlan` wraps `savePackingPlan()` in a try/catch and surfaces failures through a `saveError` view-model field (kept in the info panel) instead of failing silently.
 
 - **`CargoCard`** (`src/components/CargoCard.tsx`) — renders a single cargo item.
   - Computes the visual size via `getRotatedScreenSize()` to account for rotation.
@@ -311,13 +315,13 @@ src/
 ### Validation (`validationRules.ts`)
 
 - `validateItem(item, bounds, others, scale?)` — checks `OUT_OF_BOUNDS` and `OVERLAP` errors; returns `ValidationResult` with `valid` and `errors`.
-- `validateLoadMeters(items, maxLoadMeters, scale)` — checks if total length exceeds max load meters.
+- `validateLoadMeters(items, maxLoadMeters, scale)` — checks if total load meters exceed `maxLoadMeters`; each item contributes its rotation-aware X-extent (via `getRotatedScreenSize`) so a 90°/270° rotated cargo counts the length it actually takes along the truck.
 - `validateAll(items, bounds, options)` — combines all validation checks into a single result.
 
-### Coordinate (`coordinateRules.ts`)
+### Coordinate (`coordinateRules.ts` + `hooks/coordinateRule.ts`)
 
-- `getCanvasPoint(canvas, clientX, clientY)` — converts browser client coordinates to canvas-relative coordinates.
-- `meterToPixel(meter, scale)` / `pixelToMeter(pixel, scale)` — unit conversion for Mendix integration.
+- `getCanvasPoint(canvas, clientX, clientY)` — converts browser client coordinates to canvas-relative coordinates. Lives in `src/hooks/coordinateRule.ts` because it depends on the DOM; the domain layer stays DOM-free.
+- `meterToPixel(meter, scale)` / `pixelToMeter(pixel, scale)` — unit conversion for Mendix integration (pure, kept in `domain/coordinateRules.ts`).
 
 ### Boundary (`boundaryRules.ts`)
 

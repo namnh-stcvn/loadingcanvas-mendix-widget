@@ -16,7 +16,8 @@ Built with **React 18.2** (pinned via package.json `overrides`/`resolutions`, au
 - **Grid snapping** for precise positioning
 - **Real-time collision detection** and overlap validation
 - **Boundary validation** to keep items within truck limits
-- **Load/save packing plans** via Mendix Data API
+- **Rotation-aware load-meter (LM) validation** — counts a 90°/270° rotated cargo by the length it actually occupies along the truck
+- **Load/save packing plans** via Mendix Data API, with save failures surfaced in the info panel instead of failing silently
 - **Auto Load** button that repacks all cargo tightly into the truck (First-Fit Decreasing with optional 90° rotation)
 - **Undo/redo history** for committed state transitions (per-gesture granularity for drags; one undo step covers a full drag operation)
 - **Info panel** displaying validation status and item details
@@ -90,9 +91,9 @@ src/
 │   ├── canvas.ts              # Canvas dimensions, grid, rotation
 │   ├── card.ts                # Card border styles
 │   └── theme.ts               # Canvas background color
-├── domain/                    # Geometry and validation rules
+│ ├── domain/                    # Geometry and validation rules
 │   ├── boundaryRules.ts       # Clamp values within range
-│   ├── coordinateRules.ts     # Meter/pixel conversion
+│   ├── coordinateRules.ts     # Meter/pixel conversion (pure; DOM-free)
 │   ├── dragRules.ts           # Drag position calculations
 │   ├── geometryRules.ts       # Intersection checks
 │   ├── packingRules.ts        # Auto-packing (First-Fit Decreasing) for the Auto Load button
@@ -102,20 +103,21 @@ src/
 │   └── validationRules.ts     # Validation rules
 ├── engines/                   # Core business logic engines
 │   ├── DragEngine.ts          # Drag state management
+│   ├── DragState.ts           # Engine-internal drag tracking
 │   ├── CollisionEngine.ts     # Collision detection
 │   └── SnapEngine.ts          # Snapping calculations
 ├── hooks/                     # React hooks
 │   ├── useTruckCanvas.ts      # Main hook: wires engines & state
 │   ├── useCanvasState.ts      # Subscribes to state manager
 │   ├── useCanvasActions.ts    # Wraps action dispatcher
-│   └── useMouseEvents.ts      # Global mouse event listeners
+│   ├── useMouseEvents.ts      # Global mouse event listeners
+│   └── coordinateRule.ts      # Browser→canvas coordinate conversion (DOM, kept out of domain)
 ├── models/                    # Business models
 │   └── Truck.ts               # Truck dimensions and properties
 ├── state/                     # State management
 │   ├── CanvasState.ts         # Canvas state interface
 │   ├── CanvasStateManager.ts  # Single source of truth
 │   ├── CanvasActionDispatcher.ts # Action routing
-│   └── DragState.ts           # Internal drag tracking
 ├── types/                     # TypeScript type definitions
 │   ├── geometry.ts            # Point, Size, Rectangle types
 │   └── mx.d.ts                # Mendix widget framework types

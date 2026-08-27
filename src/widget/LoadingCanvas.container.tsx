@@ -134,13 +134,21 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
   }, [truckGuid, scale]);
 
   // --- Save plan handler ---
+  const [saveError, setSaveError] = useState<string | null>(null);
   const handleSavePlan = useCallback(
     async (items: CargoItem[], currentScale: { widthScale: number; heightScale: number }) => {
       if (!truckGuid) {
         return;
       }
 
-      await savePackingPlan(truckGuid, { truck: truckItem, cargos: items }, currentScale, onSavePlanCallback);
+      try {
+        await savePackingPlan(truckGuid, { truck: truckItem, cargos: items }, currentScale, onSavePlanCallback);
+        setSaveError(null);
+      } catch (err) {
+        // Keep the canvas state; surface the failure so the user is not left
+        // with a silent "Save" that did nothing.
+        setSaveError(err instanceof Error ? err.message : "Failed to save packing plan");
+      }
       // Items stay in canvas state - no need to reload from DB
     },
     [truckGuid, truckItem, onSavePlanCallback]
@@ -175,10 +183,21 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
       scale,
       canvasWidth,
       canvasHeight,
+      saveError,
       onSavePlan: handleSavePlan,
       onLoadPlan: handleLoadPlan,
     }),
-    [truckItem, availableCargo, initialCanvasItems, scale, canvasWidth, canvasHeight, handleSavePlan, handleLoadPlan]
+    [
+      truckItem,
+      availableCargo,
+      initialCanvasItems,
+      scale,
+      canvasWidth,
+      canvasHeight,
+      saveError,
+      handleSavePlan,
+      handleLoadPlan,
+    ]
   );
 
   return <LoadingCanvasView viewModel={viewModel} isLoading={isLoading} />;

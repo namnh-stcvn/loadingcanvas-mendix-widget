@@ -113,7 +113,14 @@ describe("validationRules", () => {
     });
   });
 
-  const makeCargo = (id: string, x: number, y: number, length: number, width: number): CargoItem => ({
+  const makeCargo = (
+    id: string,
+    x: number,
+    y: number,
+    length: number,
+    width: number,
+    rotation: 0 | 90 | 180 | 270 = 0
+  ): CargoItem => ({
     id,
     name: id,
     type: "pallet",
@@ -123,7 +130,7 @@ describe("validationRules", () => {
     y,
     length,
     width,
-    rotation: 0,
+    rotation,
   });
 
   describe("validateLoadMeters", () => {
@@ -148,6 +155,40 @@ describe("validationRules", () => {
 
     it("should return valid for an empty item list", () => {
       expect(validateLoadMeters([], 10, scale)).toEqual({ valid: true, errors: [] });
+    });
+
+    it("should count only the rotated X-extent for a 90° item (not its raw length)", () => {
+      const uniform = { widthScale: 100, heightScale: 100 };
+      // A 1.2 × 0.8 m pallet: unrotated length = 120 px, rotated X-extent = 80 px.
+      const rotated = makeCargo("a", 0, 0, 120, 80, 90);
+      // 20 m budget: the rotated item spans 0.8 m, a naive length-based sum would
+      // wrongly report 1.2 m > 1.0 m and fail.
+      expect(validateLoadMeters([rotated], 1, uniform)).toEqual({ valid: true, errors: [] });
+      expect(validateLoadMeters([rotated], 0.79, uniform)).toEqual({
+        valid: false,
+        errors: ["LM_EXCEEDED"],
+      });
+    });
+
+    it("should count the rotated X-extent for a 270° item", () => {
+      const uniform = { widthScale: 100, heightScale: 100 };
+      const rotated = makeCargo("a", 0, 0, 120, 80, 270);
+      expect(validateLoadMeters([rotated], 1, uniform)).toEqual({ valid: true, errors: [] });
+      expect(validateLoadMeters([rotated], 0.79, uniform)).toEqual({
+        valid: false,
+        errors: ["LM_EXCEEDED"],
+      });
+    });
+
+    it("should sum the rotated X-extents of multiple rotated items correctly", () => {
+      const uniform = { widthScale: 100, heightScale: 100 };
+      // Two 1.2 × 0.8 m pallets, both rotated 90° → 0.8 + 0.8 = 1.6 m.
+      const items = [makeCargo("a", 0, 0, 120, 80, 90), makeCargo("b", 200, 0, 120, 80, 90)];
+      expect(validateLoadMeters(items, 1.6, uniform)).toEqual({ valid: true, errors: [] });
+      expect(validateLoadMeters(items, 1.59, uniform)).toEqual({
+        valid: false,
+        errors: ["LM_EXCEEDED"],
+      });
     });
   });
 

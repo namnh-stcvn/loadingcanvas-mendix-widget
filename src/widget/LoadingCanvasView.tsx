@@ -38,8 +38,17 @@ import type { LoadingCanvasViewProps } from "./LoadingCanvas.properties";
  */
 export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement => {
   const { viewModel, isLoading } = props;
-  const { truck, availableCargo, initialCanvasItems, scale, canvasWidth, canvasHeight, onSavePlan, onLoadPlan } =
-    viewModel;
+  const {
+    truck,
+    availableCargo,
+    initialCanvasItems,
+    scale,
+    canvasWidth,
+    canvasHeight,
+    saveError,
+    onSavePlan,
+    onLoadPlan,
+  } = viewModel;
 
   const canvasRef = useRef<HTMLDivElement | null>(null);
 
@@ -254,6 +263,11 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
         </div>
         {autoLoadUnplaced > 0 && (
           <div style={{ color: "red", fontSize: 12 }}>{autoLoadUnplaced} item(s) did not fit</div>
+        )}
+        {saveError && (
+          <div style={{ color: "#b00020", fontSize: 12, maxWidth: 260 }} title={saveError}>
+            Save failed: {saveError}
+          </div>
         )}
       </div>
 
