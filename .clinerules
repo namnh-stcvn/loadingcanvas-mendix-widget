@@ -107,7 +107,7 @@ Every state value must have a clear owner:
 - Do not silently change requirements or expand task scope without a technical reason.
 - Preserve existing conventions unless they conflict with an explicit rule.
 - When uncertain about a runtime-specific contract, inspect the existing adapter, types, tests, or project documentation before implementing.
-- Prepare all context need and details steps in plan mode to reduce work in act mode
+- Prepare all context need and details steps in plan mode so that can act mode in 200k AI model: resolve correctness-critical context, dependencies, rules, invariants, contracts, tests, and risks before implementation. Use repository evidence, not assumptions.
 
 ## Core Philosophy (Smart Zone & Vertical Slices)
 

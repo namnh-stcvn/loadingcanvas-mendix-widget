@@ -71,8 +71,8 @@ export const truckToTruckItem = (
 };
 
 export const computeScale = (truck: TruckSelectionData, padding: number = 0): ScalePair => {
-  const lengthM = truck.internalLengthMeter > 0 ? truck.internalLengthMeter : 13.6;
-  const widthM = truck.internalWidthMeter > 0 ? truck.internalWidthMeter : 2.45;
+  const lengthM = truck.internalLengthMeter > 0 ? truck.internalLengthMeter : DEFAULT_TRUCK_LENGTH_METER;
+  const widthM = truck.internalWidthMeter > 0 ? truck.internalWidthMeter : DEFAULT_TRUCK_WIDTH_METER;
   // Single uniform scale keeps true proportions on screen: separate axis scales
   // make a 90°-rotated item change its rendered shape (rectangle -> square).
   // The binding axis is whichever would overflow the canvas first.
