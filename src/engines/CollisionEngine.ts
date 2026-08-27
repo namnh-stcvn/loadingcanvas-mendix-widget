@@ -4,7 +4,6 @@ import { DEFAULT_AXIS_SCALE, getRotatedScreenSize, type AxisScale } from "../dom
 
 export interface ValidPosition {
   position: Point;
-  type: "snap_left" | "snap_right" | "snap_top" | "snap_bottom" | "grid";
   distance: number;
 }
 
@@ -75,7 +74,6 @@ export class CollisionEngine {
         if (this.isValidPosition(item, candidatePos, others, bounds, scale)) {
           validPositions.push({
             position: candidatePos,
-            type: "grid",
             distance: Math.hypot(x - item.x, y - item.y),
           });
         }

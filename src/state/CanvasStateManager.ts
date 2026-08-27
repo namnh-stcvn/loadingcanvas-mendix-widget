@@ -39,6 +39,17 @@ export class CanvasStateManager {
     this.setState(update(this.state));
   }
 
+  // High-frequency interaction frames skip history recording, so UNDO
+  // granularity stays per gesture instead of per pointer-move event.
+  setStateTransient(nextState: CanvasState): void {
+    this.state = cloneState(nextState);
+    this.notifyListeners();
+  }
+
+  updateStateTransient(update: (state: CanvasState) => CanvasState): void {
+    this.setStateTransient(update(this.state));
+  }
+
   subscribe(listener: StateListener): () => void {
     this.listeners.add(listener);
     listener(this.getState());

@@ -4,9 +4,10 @@ import { CanvasStateManager } from "../CanvasStateManager";
 import { DragEngine } from "../../engines/DragEngine";
 import { CollisionEngine } from "../../engines/CollisionEngine";
 import { SnapEngine } from "../../engines/SnapEngine";
-import { ValidationEngine } from "../../engines/ValidationEngine";
 import type { CargoItem } from "../../viewModels/CargoItem";
 import type { CanvasState } from "../CanvasState";
+import { isInsideBounds } from "../../domain/geometryRules";
+import { getTruckBounds } from "../../domain/boundaryRules";
 
 describe("CanvasActionDispatcher", () => {
   const canvasWidth = 1000;
@@ -42,20 +43,17 @@ describe("CanvasActionDispatcher", () => {
     manager: CanvasStateManager;
     dispatcher: CanvasActionDispatcher;
     dragEngine: DragEngine<CargoItem>;
-    validationEngine: ValidationEngine;
   } => {
     const manager = new CanvasStateManager(createInitialState(initialCargos, scale));
     const collisionEngine = new CollisionEngine();
     const snapEngine = new SnapEngine();
     const dragEngine = new DragEngine<CargoItem>(initialCargos, collisionEngine, snapEngine);
-    const validationEngine = new ValidationEngine();
     const dispatcher = new CanvasActionDispatcher(manager, {
       canvasWidth,
       canvasHeight,
       dragEngine,
-      validationEngine,
     });
-    return { manager, dispatcher, dragEngine, validationEngine };
+    return { manager, dispatcher, dragEngine };
   };
 
   describe("SELECT", () => {
@@ -188,6 +186,72 @@ describe("CanvasActionDispatcher", () => {
     });
   });
 
+  describe("ADD_ITEM", () => {
+    it("should append the cargo, sync dragEngine, and evaluate band validation", () => {
+      const { manager, dispatcher } = createDispatcher([]);
+      dispatcher.dispatch({
+        type: "ADD_ITEM",
+        item: createCargoItem({ id: "added", x: 400, y: 200 }),
+      });
+      const state = manager.getState();
+      expect(state.cargos.map((c) => c.id)).toEqual(["added"]);
+      expect(state.validation.valid).toBe(true);
+      // Engine owns the new item already: rotation works without external syncing.
+      dispatcher.dispatch({ type: "ROTATE", itemId: "added" });
+      expect(manager.getState().cargos[0].rotation).toBe(90);
+    });
+
+    it("flags OUT_OF_BOUNDS when the spawn position lies outside the truck band", () => {
+      const { manager, dispatcher } = createDispatcher([]);
+      dispatcher.dispatch({ type: "ADD_ITEM", item: createCargoItem({ id: "spawned", x: 50, y: 50 }) });
+      const state = manager.getState();
+      expect(state.validation.valid).toBe(false);
+      expect(state.validation.errors).toContain("OUT_OF_BOUNDS");
+    });
+  });
+
+  describe("drag settle validation", () => {
+    it("re-validates against the truck band once the gesture ends", () => {
+      const { manager, dispatcher } = createDispatcher([createCargoItem({ x: 100, y: 100 })]);
+      dispatcher.dispatch({ type: "START_DRAG", activeId: "item1", mouse: { x: 120, y: 120 } });
+      dispatcher.dispatch({ type: "END_DRAG" });
+      expect(manager.getState().validation.errors).toContain("OUT_OF_BOUNDS");
+    });
+  });
+
+  describe("undo/redo engine sync", () => {
+    it("restores dragEngine items so the next gesture operates on reverted cargos", () => {
+      const { manager, dispatcher } = createDispatcher([createCargoItem({ id: "a", x: 340, y: 160 })]);
+      dispatcher.dispatch({
+        type: "SET_ITEMS",
+        items: [createCargoItem({ id: "b", x: 700, y: 180 })],
+      });
+      dispatcher.dispatch({ type: "UNDO" });
+      // After undo the canvas holds "a"; dragging must move "a", not resurrect "b".
+      dispatcher.dispatch({ type: "START_DRAG", activeId: "a", mouse: { x: 360, y: 180 } });
+      dispatcher.dispatch({ type: "DRAG_MOVE", mouse: { x: 600, y: 200 } });
+      dispatcher.dispatch({ type: "END_DRAG" });
+      const ids = manager.getState().cargos.map((c) => c.id);
+      expect(ids).toContain("a");
+      expect(ids).not.toContain("b");
+    });
+  });
+
+  describe("gesture-granularity undo", () => {
+    it("collapses pointer-move frames into one undo step back to pre-gesture positions", () => {
+      const { manager, dispatcher } = createDispatcher([createCargoItem({ id: "m", x: 340, y: 160 })]);
+      dispatcher.dispatch({ type: "START_DRAG", activeId: "m", mouse: { x: 360, y: 180 } });
+      dispatcher.dispatch({ type: "DRAG_MOVE", mouse: { x: 400, y: 200 } });
+      dispatcher.dispatch({ type: "DRAG_MOVE", mouse: { x: 500, y: 220 } });
+      dispatcher.dispatch({ type: "DRAG_MOVE", mouse: { x: 520, y: 240 } });
+      dispatcher.dispatch({ type: "END_DRAG" });
+      dispatcher.dispatch({ type: "UNDO" });
+      const restored = manager.getState().cargos[0];
+      expect(restored.x).toBe(340);
+      expect(restored.y).toBe(160);
+    });
+  });
+
   describe("ROTATE", () => {
     it("should rotate item 90 degrees clockwise", () => {
       const { manager, dispatcher } = createDispatcher([createCargoItem({ rotation: 0 })]);
@@ -212,30 +276,39 @@ describe("CanvasActionDispatcher", () => {
 
     it("should preserve item center during rotation", () => {
       const { manager, dispatcher } = createDispatcher([
-        createCargoItem({ x: 100, y: 100, length: 100, width: 50, rotation: 0 }),
+        createCargoItem({ x: 400, y: 200, length: 100, width: 50, rotation: 0 }),
       ]);
       dispatcher.dispatch({ type: "ROTATE", itemId: "item1" });
       const state = manager.getState();
       const item = state.cargos[0];
-      // Before: center = (100 + 100/2, 100 + 50/2) = (150, 125)
-      // After rotation 90: visual size swaps to (50, 100)
-      // New position: center - newSize/2 = (150 - 25, 125 - 50) = (125, 75)
-      expect(item.x).toBe(125);
-      expect(item.y).toBe(75);
+      // Before: center = (400 + 50, 200 + 25) = (450, 225)
+      // After rotation 90: visual size swaps to (50, 100), legal inside the band
+      // New position: center - newSize/2 = (450 - 25, 225 - 50) = (425, 175)
+      expect(item.x).toBe(425);
+      expect(item.y).toBe(175);
       expect(item.rotation).toBe(90);
     });
 
     it("should preserve center using scale-correct sizes under non-uniform scale", () => {
       const scale = { widthScale: 1453 / 13.6, heightScale: 297 / 2.45 };
+      const baseX = 340;
+      const baseY = 160;
       const { manager, dispatcher } = createDispatcher(
-        [createCargoItem({ x: 10, y: 10, length: 0.3 * scale.widthScale, width: 0.2 * scale.heightScale })],
+        [
+          createCargoItem({
+            x: baseX,
+            y: baseY,
+            length: 0.3 * scale.widthScale,
+            width: 0.2 * scale.heightScale,
+          }),
+        ],
         scale
       );
       dispatcher.dispatch({ type: "ROTATE", itemId: "item1" });
       const item = manager.getState().cargos[0];
       // Center preserved from the base orientation footprint
-      const centerX = 10 + (0.3 * scale.widthScale) / 2;
-      const centerY = 10 + (0.2 * scale.heightScale) / 2;
+      const centerX = baseX + (0.3 * scale.widthScale) / 2;
+      const centerY = baseY + (0.2 * scale.heightScale) / 2;
       // New rotated footprint projected through the matching axis scales
       const nextL = 0.2 * scale.heightScale * (scale.widthScale / scale.heightScale);
       const nextW = 0.3 * scale.widthScale * (scale.heightScale / scale.widthScale);
@@ -262,18 +335,16 @@ describe("CanvasActionDispatcher", () => {
       expect(state.cargos[1].rotation).toBe(0);
     });
 
-    it("should clamp position within canvas bounds after rotation", () => {
+    it("should settle the rotated item inside the truck band", () => {
       const { manager, dispatcher } = createDispatcher([
         createCargoItem({ x: 950, y: 550, length: 100, width: 50, rotation: 0 }),
       ]);
       dispatcher.dispatch({ type: "ROTATE", itemId: "item1" });
       const state = manager.getState();
       const item = state.cargos[0];
-      // After rotation: visual size = (50, 100)
-      // Clamped: x = min(newX, 1000 - 50) = min(975, 950) = 950
-      // y = min(newY, 600 - 100) = min(525, 500) = 500
-      expect(item.x).toBeLessThanOrEqual(canvasWidth - 50);
-      expect(item.y).toBeLessThanOrEqual(canvasHeight - 100);
+      expect(item.rotation).toBe(90);
+      // The previous canvas clamp is replaced by truck-band resolution (BR-22)
+      expect(isInsideBounds(item, getTruckBounds())).toBe(true);
     });
 
     it("should update validation after rotation", () => {
@@ -281,6 +352,41 @@ describe("CanvasActionDispatcher", () => {
       dispatcher.dispatch({ type: "ROTATE", itemId: "item1" });
       const state = manager.getState();
       expect(state.validation).toBeDefined();
+    });
+
+    it("should resolve the rotated item back into the truck band instead of leaving it outside", () => {
+      const { manager, dispatcher } = createDispatcher([
+        createCargoItem({ x: 100, y: 60, length: 100, width: 40, rotation: 0 }),
+      ]);
+      dispatcher.dispatch({ type: "ROTATE", itemId: "item1" });
+      const state = manager.getState();
+      expect(state.cargos[0].rotation).toBe(90);
+      expect(isInsideBounds(state.cargos[0], getTruckBounds())).toBe(true);
+      expect(state.validation.valid).toBe(true);
+    });
+  });
+
+  describe("SET_ITEMS", () => {
+    it("should replace cargos and evaluate validation against the truck band", () => {
+      const { manager, dispatcher } = createDispatcher([]);
+      dispatcher.dispatch({
+        type: "SET_ITEMS",
+        items: [createCargoItem({ id: "a", x: 400, y: 200 })],
+      });
+      const state = manager.getState();
+      expect(state.cargos).toHaveLength(1);
+      expect(state.validation.valid).toBe(true);
+    });
+
+    it("should flag OUT_OF_BOUNDS when a settled item lies outside the truck band", () => {
+      const { manager, dispatcher } = createDispatcher([]);
+      dispatcher.dispatch({
+        type: "SET_ITEMS",
+        items: [createCargoItem({ id: "a", x: 100, y: 100 })],
+      });
+      const state = manager.getState();
+      expect(state.validation.valid).toBe(false);
+      expect(state.validation.errors).toContain("OUT_OF_BOUNDS");
     });
   });
 

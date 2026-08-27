@@ -3,6 +3,8 @@ import { DragEngine } from "../DragEngine";
 import { CollisionEngine } from "../CollisionEngine";
 import { SnapEngine } from "../SnapEngine";
 import type { RectLike, Rotation } from "../../types/geometry";
+import { isInsideBounds, overlaps } from "../../domain/geometryRules";
+import { getTruckBounds } from "../../domain/boundaryRules";
 
 interface TestItem extends RectLike {
   id: string;
@@ -186,6 +188,54 @@ describe("DragEngine", () => {
       const item3 = result.find((i) => i.id === "item3");
       expect(item3).toBeDefined();
       expect(item3!.x).not.toBe(300);
+    });
+  });
+
+  describe("rotateItem", () => {
+    it("should re-anchor the item around its center without engines", () => {
+      const items: TestItem[] = [
+        { id: "item1", x: 100, y: 100, length: 100, width: 50, rotation: 0 },
+        { id: "item2", x: 200, y: 200, length: 50, width: 50, rotation: 0 },
+      ];
+      const engine = new DragEngine(items);
+      const result = engine.rotateItem("item1");
+      const item1 = result.find((i) => i.id === "item1");
+      expect(item1!.rotation).toBe(90);
+      expect(item1!.x).toBe(125);
+      expect(item1!.y).toBe(75);
+      const item2 = result.find((i) => i.id === "item2");
+      expect(item2).toEqual(items[1]);
+    });
+
+    it("should do nothing for an unknown id", () => {
+      const engine = new DragEngine(createItems());
+      const result = engine.rotateItem("nonexistent");
+      expect(result).toEqual(createItems());
+    });
+
+    it("should resolve the rotated position into the given bounds without overlaps", () => {
+      const items: TestItem[] = [
+        { id: "a", x: 340, y: 160, length: 100, width: 40, rotation: 0 },
+        { id: "b", x: 360, y: 170, length: 80, width: 80, rotation: 0 },
+      ];
+      const engine = new DragEngine(items, new CollisionEngine());
+      const result = engine.rotateItem("a", getTruckBounds());
+      const a = result.find((i) => i.id === "a")!;
+      const b = result.find((i) => i.id === "b")!;
+      expect(a.rotation).toBe(90);
+      expect(isInsideBounds(a, getTruckBounds())).toBe(true);
+      expect(overlaps(a, b)).toBe(false);
+    });
+
+    it("should fall back to the starting pose when no valid placement exists", () => {
+      const items: TestItem[] = [{ id: "big", x: 100, y: 100, length: 20, width: 6, rotation: 0 }];
+      const engine = new DragEngine(items, new CollisionEngine());
+      const result = engine.rotateItem("big", { x: 0, y: 0, length: 8, width: 8 });
+      const big = result.find((i) => i.id === "big")!;
+      // Neither orientation fits the tiny bounds -> entire previous pose preserved
+      expect(big.rotation).toBe(0);
+      expect(big.x).toBe(100);
+      expect(big.y).toBe(100);
     });
   });
 });

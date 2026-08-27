@@ -1,7 +1,10 @@
 import type { TruckItem } from "../viewModels/TruckItem";
 import type { Truck } from "../models/Truck";
 import { meterToPixel } from "../domain/coordinateRules";
+import type { AxisScale } from "../domain/rotationRules";
 import { TRUCK_CANVAS_HEIGHT, TRUCK_CANVAS_LEFT, TRUCK_CANVAS_TOP, TRUCK_CANVAS_WIDTH } from "../constants/canvas";
+
+export type ScalePair = AxisScale;
 
 export interface TruckSelectionData {
   id: string;
@@ -15,10 +18,13 @@ export interface TruckSelectionData {
   maxLoadMeters?: number;
 }
 
-export interface ScalePair {
-  widthScale: number;
-  heightScale: number;
-}
+// Shared fallback dimensions (meters) for trucks lacking attribute values;
+// extractTruckData reuses these so every consumer sees identical defaults.
+export const DEFAULT_TRUCK_LENGTH_METER = 13.6;
+export const DEFAULT_TRUCK_WIDTH_METER = 2.45;
+export const DEFAULT_TRUCK_HEIGHT_METER = 2.7;
+export const DEFAULT_TRUCK_MAX_PAYLOAD_KG = 24000;
+export const DEFAULT_TRUCK_AXLE_COUNT = 2;
 
 export const truckSelectionToTruckItem = (
   truck: TruckSelectionData,

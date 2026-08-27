@@ -10,7 +10,6 @@ import {
 } from "../adapters/mendixDataAdapter";
 import type { CargoItem } from "../viewModels/CargoItem";
 import type { TruckItem } from "../viewModels/TruckItem";
-import type { CanvasState } from "../state/CanvasState";
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from "../constants/canvas";
 
 /**
@@ -81,11 +80,15 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
     };
   }, [truckGuidKey, canvasWidth, canvasHeight]);
 
+  // Scale is only non-unit once a TruckSelection loaded successfully, so it
+  // doubles as the readiness signal for every scale-dependent load.
+  const hasTruckDerivedScale = scale.widthScale !== 1 && scale.heightScale !== 1;
+
   // --- Load transport orders (available cargo) ---
   useEffect(() => {
     let cancelled = false;
     const loadOrders = async (): Promise<void> => {
-      if (transportOrderGuids.length === 0 || scale.widthScale === 1) {
+      if (transportOrderGuids.length === 0 || !hasTruckDerivedScale) {
         setAvailableCargo([]);
         return;
       }
@@ -110,7 +113,7 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
   useEffect(() => {
     let cancelled = false;
     const loadPlan = async (): Promise<void> => {
-      if (!truckGuid || scale.widthScale === 1) {
+      if (!truckGuid || !hasTruckDerivedScale) {
         return;
       }
 
@@ -137,16 +140,7 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
         return;
       }
 
-      const state: CanvasState = {
-        truck: truckItem,
-        cargos: items,
-        selectedIds: [],
-        activeItemId: null,
-        validation: { valid: true, errors: [] },
-        scale: currentScale,
-      };
-
-      await savePackingPlan(truckGuid, state, currentScale, onSavePlanCallback);
+      await savePackingPlan(truckGuid, { truck: truckItem, cargos: items }, currentScale, onSavePlanCallback);
       // Items stay in canvas state - no need to reload from DB
     },
     [truckGuid, truckItem, onSavePlanCallback]
@@ -154,7 +148,7 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
 
   // --- Load plan handler ---
   const handleLoadPlan = useCallback(async () => {
-    if (!truckGuid || (scale.widthScale === 1 && scale.heightScale === 1)) {
+    if (!truckGuid || !hasTruckDerivedScale) {
       return;
     }
 

@@ -15,10 +15,24 @@
 import type { CargoItem } from "../viewModels/CargoItem";
 import type { TruckItem } from "../viewModels/TruckItem";
 import { deserializePlan, serializePlan, type PackingPlanData } from "./stateAdapter";
-import { computeScale, truckSelectionToTruckItem, type TruckSelectionData } from "./truckAdapter";
+import {
+  computeScale,
+  truckSelectionToTruckItem,
+  DEFAULT_TRUCK_AXLE_COUNT,
+  DEFAULT_TRUCK_HEIGHT_METER,
+  DEFAULT_TRUCK_LENGTH_METER,
+  DEFAULT_TRUCK_MAX_PAYLOAD_KG,
+  DEFAULT_TRUCK_WIDTH_METER,
+  type TruckSelectionData,
+} from "./truckAdapter";
 import {
   applyPackingUnitData,
+  DEFAULT_HEIGHT_METER,
+  DEFAULT_LENGTH_METER,
+  DEFAULT_WEIGHT_KG,
+  DEFAULT_WIDTH_METER,
   packingTypeFromColor,
+  resolvePackingType,
   transportOrdersToCargoItems,
   type PackingUnitData,
   type TransportOrderData,
@@ -26,6 +40,7 @@ import {
 import type { CanvasState } from "../state/CanvasState";
 import type { MxData, MxObject } from "../types/mx";
 import Big from "big.js";
+import { fromCargoId, toCargoId } from "../domain/cargoIdentity";
 
 /**
  * Check if we're running inside a Mendix runtime with mx.data available.
@@ -284,7 +299,7 @@ export const extractTruckData = (obj: unknown, fallbackGuid?: string): TruckSele
       raw.Length ??
       raw.internalLength ??
       raw.InternalLength ??
-      13.6
+      DEFAULT_TRUCK_LENGTH_METER
   );
 
   const width = Number(
@@ -296,7 +311,7 @@ export const extractTruckData = (obj: unknown, fallbackGuid?: string): TruckSele
       raw.Width ??
       raw.internalWidth ??
       raw.InternalWidth ??
-      2.45
+      DEFAULT_TRUCK_WIDTH_METER
   );
 
   const height = Number(
@@ -308,7 +323,7 @@ export const extractTruckData = (obj: unknown, fallbackGuid?: string): TruckSele
       raw.Height ??
       raw.internalHeight ??
       raw.InternalHeight ??
-      2.7
+      DEFAULT_TRUCK_HEIGHT_METER
   );
 
   const code = String(
@@ -339,25 +354,29 @@ export const extractTruckData = (obj: unknown, fallbackGuid?: string): TruckSele
       raw.PayloadKg ??
       raw.payload ??
       raw.Payload ??
-      24000
+      DEFAULT_TRUCK_MAX_PAYLOAD_KG
   );
 
-  const axleCount = Number(raw.axleCount ?? raw.AxleCount ?? raw.axles ?? raw.Axles ?? 2);
+  const axleCount = Number(raw.axleCount ?? raw.AxleCount ?? raw.axles ?? raw.Axles ?? DEFAULT_TRUCK_AXLE_COUNT);
 
   const rawMaxLoad = raw.maxLoadMeters ?? raw.MaxLoadMeters ?? raw.maxLoadMeter ?? raw.MaxLoadMeter;
   const maxLoadMeters =
-    rawMaxLoad !== undefined && rawMaxLoad !== null ? Number(rawMaxLoad) : length > 0 ? length : 13.6;
+    rawMaxLoad !== undefined && rawMaxLoad !== null
+      ? Number(rawMaxLoad)
+      : length > 0
+        ? length
+        : DEFAULT_TRUCK_LENGTH_METER;
 
   return {
     id,
     code,
     truckType: truckType || "DryVan",
-    maxPayloadKg: isNaN(maxPayloadKg) ? 24000 : maxPayloadKg,
-    axleCount: isNaN(axleCount) ? 2 : axleCount,
-    internalLengthMeter: length > 0 ? length : 13.6,
-    internalWidthMeter: width > 0 ? width : 2.45,
-    internalHeightMeter: height > 0 ? height : 2.7,
-    maxLoadMeters: maxLoadMeters > 0 ? maxLoadMeters : length > 0 ? length : 13.6,
+    maxPayloadKg: isNaN(maxPayloadKg) ? DEFAULT_TRUCK_MAX_PAYLOAD_KG : maxPayloadKg,
+    axleCount: isNaN(axleCount) ? DEFAULT_TRUCK_AXLE_COUNT : axleCount,
+    internalLengthMeter: length > 0 ? length : DEFAULT_TRUCK_LENGTH_METER,
+    internalWidthMeter: width > 0 ? width : DEFAULT_TRUCK_WIDTH_METER,
+    internalHeightMeter: height > 0 ? height : DEFAULT_TRUCK_HEIGHT_METER,
+    maxLoadMeters: maxLoadMeters > 0 ? maxLoadMeters : length > 0 ? length : DEFAULT_TRUCK_LENGTH_METER,
   };
 };
 
@@ -419,20 +438,20 @@ export const extractTransportOrderData = (obj: unknown, fallbackGuid?: string): 
     raw.packingType ?? raw.PackingType ?? raw.type ?? raw.Type ?? raw.packageType ?? raw.PackageType ?? "pallet"
   ).toLowerCase();
 
-  const packingType: "pallet" | "box" = rawType.includes("box") ? "box" : "pallet";
+  const packingType = resolvePackingType(rawType);
 
   const weightKg = Number(
-    raw.weightKg ?? raw.WeightKg ?? raw.weight ?? raw.Weight ?? raw.grossWeight ?? raw.GrossWeight ?? 500
+    raw.weightKg ?? raw.WeightKg ?? raw.weight ?? raw.Weight ?? raw.grossWeight ?? raw.GrossWeight ?? DEFAULT_WEIGHT_KG
   );
 
   const packingUnit: PackingUnitData = {
     id,
     name,
-    lengthMeter: length > 0 ? length : 1.2,
-    widthMeter: width > 0 ? width : 0.8,
-    heightMeter: height > 0 ? height : 1.6,
+    lengthMeter: length > 0 ? length : DEFAULT_LENGTH_METER,
+    widthMeter: width > 0 ? width : DEFAULT_WIDTH_METER,
+    heightMeter: height > 0 ? height : DEFAULT_HEIGHT_METER,
     packingType,
-    weightKg: isNaN(weightKg) ? 500 : weightKg,
+    weightKg: isNaN(weightKg) ? DEFAULT_WEIGHT_KG : weightKg,
   };
 
   return {
@@ -613,10 +632,23 @@ export const loadCargoItems = async (
   try {
     const rawObjs = await loadMendixObjects(ordersGuids);
 
-    // Per docs/PACKING_PLAN_ENTITY.md the display name and real dimensions live on the
-    // PackingUnit linked via TransportOrder_PackingUnit, not on TransportOrder itself.
-    const unitGuidsByOrder = rawObjs.map((raw) => getReferenceGuids(raw, TRANSPORT_ORDER_PACKING_UNIT_ASSOCIATIONS));
-    const missingUnits = unitGuidsByOrder.filter((guids) => guids.length === 0).length;
+    // Batch results are keyed by each object's OWN GUID; mx.data.get({guids}) makes
+    // no ordering/count guarantee across runtime versions, so consuming another
+    // array positionally would risk assigning PackingUnits to the wrong TransportOrder.
+    const unitsByOrderGuid = new Map<string, string[]>();
+    let missingUnits = 0;
+    for (const raw of rawObjs) {
+      const orderGuid = getObjectGuid(raw);
+      if (!orderGuid) {
+        missingUnits += 1;
+        continue;
+      }
+      const unitGuids = getReferenceGuids(raw, TRANSPORT_ORDER_PACKING_UNIT_ASSOCIATIONS);
+      if (unitGuids.length === 0) {
+        missingUnits += 1;
+      }
+      unitsByOrderGuid.set(orderGuid, unitGuids);
+    }
     if (missingUnits > 0 && isMendixRuntime()) {
       console.warn(
         `loadCargoItems: ${missingUnits}/${rawObjs.length} TransportOrders have no PackingUnit linked (tried: ${TRANSPORT_ORDER_PACKING_UNIT_ASSOCIATIONS.join(", ")})`
@@ -625,7 +657,7 @@ export const loadCargoItems = async (
 
     const unitPlainByGuid = new Map<string, Record<string, unknown>>();
     const unitTypeGuidByUnit = new Map<string, string>();
-    const allUnitGuids = [...new Set(unitGuidsByOrder.flat())];
+    const allUnitGuids = [...new Set([...unitsByOrderGuid.values()].flat())];
     if (allUnitGuids.length > 0) {
       const unitObjects = await loadMendixObjects(allUnitGuids);
       for (const unitObj of unitObjects) {
@@ -658,12 +690,15 @@ export const loadCargoItems = async (
     }
 
     const ordersData: TransportOrderData[] = rawObjs
-      .map((raw, idx) => {
-        const order = extractTransportOrderData(raw, ordersGuids[idx]);
+      .map((raw) => {
+        // Keyed by own GUID; extractTransportOrderData also self-resolves id/guid
+        // attributes, so no cross-array positional lookup is involved anywhere.
+        const orderGuid = getObjectGuid(raw);
+        const order = extractTransportOrderData(raw, orderGuid);
         if (!order) {
           return null;
         }
-        const unitGuid = unitGuidsByOrder[idx][0];
+        const unitGuid = (orderGuid ? unitsByOrderGuid.get(orderGuid) : undefined)?.[0];
         const unitPlain = unitGuid ? (unitPlainByGuid.get(unitGuid) ?? null) : null;
         const typeGuid = unitGuid ? unitTypeGuidByUnit.get(unitGuid) : undefined;
         const packingTypeValue = typeGuid ? (typeValueByGuid.get(typeGuid) ?? null) : null;
@@ -719,19 +754,34 @@ export const loadPackingPlan = async (
       items: planItems.map((item) => {
         const raw = toPlainObject(item);
         // Association not in getAttributes(); read by mxObject.get()
-        const transportOrderId = isMxObject(item)
-          ? String(
-              getObjectGuid(
-                item.get("TCSLoadingMeter.PackingPlanItem_TransportOrder") ??
-                  item.get("PackingPlanItem_TransportOrder") ??
-                  ""
-              ) ??
-                raw.id ??
-                raw.guid ??
-                "item"
-            )
-          : String(raw.TransportOrder ?? raw.transportOrder ?? raw.id ?? raw.guid ?? "item");
-        const itemId = transportOrderId.startsWith("cargo-") ? transportOrderId : `cargo-${transportOrderId}`;
+        let transportOrderId: string | null = null;
+        if (isMxObject(item)) {
+          try {
+            transportOrderId =
+              getObjectGuid(item.get("TCSLoadingMeter.PackingPlanItem_TransportOrder")) ??
+              getObjectGuid(item.get("PackingPlanItem_TransportOrder")) ??
+              null;
+          } catch {
+            transportOrderId = null;
+          }
+        }
+        // Plain-object fixtures may carry the association as a field.
+        if (!transportOrderId && raw.TransportOrder != null) {
+          transportOrderId = String(raw.TransportOrder);
+        }
+        if (!transportOrderId && raw.transportOrder != null) {
+          transportOrderId = String(raw.transportOrder);
+        }
+        const rawItemId = String(raw.id ?? raw.guid ?? "item");
+        if (!transportOrderId && isMendixRuntime()) {
+          // Without the association the item key would be a PackingPlanItem GUID,
+          // which silently mismatches TransportOrder-keyed cargo lists.
+          console.warn(
+            `loadPackingPlan: PackingPlanItem ${rawItemId} has no readable TransportOrder association (tried TCSLoadingMeter.PackingPlanItem_TransportOrder); falling back to "${rawItemId}"`
+          );
+        }
+        const resolvedOrderId = transportOrderId ?? rawItemId;
+        const itemId = toCargoId(resolvedOrderId);
         // PackingPlanItem has no Name/Type attributes (docs/PACKING_PLAN_ENTITY.md); type derives from Color.
         const colorValue =
           raw.Color !== undefined || raw.color !== undefined ? String(raw.Color ?? raw.color) : undefined;
@@ -742,8 +792,8 @@ export const loadPackingPlan = async (
           type: itemType,
           x: Number(raw.PositionX ?? raw.positionX ?? raw.x ?? 0),
           y: Number(raw.PositionY ?? raw.positionY ?? raw.y ?? 0),
-          length: Number(raw.Length ?? raw.length ?? 1.2),
-          width: Number(raw.Width ?? raw.width ?? 0.8),
+          length: Number(raw.Length ?? raw.length ?? DEFAULT_LENGTH_METER),
+          width: Number(raw.Width ?? raw.width ?? DEFAULT_WIDTH_METER),
           rotation: Number(raw.Rotation ?? raw.rotation ?? 0) as 0 | 90 | 180 | 270,
           color: colorValue ?? (itemType === "box" ? "blue" : "orange"),
           lengthM:
@@ -772,7 +822,7 @@ export const loadPackingPlan = async (
  */
 export const savePackingPlan = async (
   truckGuid: string | null,
-  state: CanvasState,
+  state: Pick<CanvasState, "truck" | "cargos">,
   scale: { widthScale: number; heightScale: number },
   onSaveMicroflow?: () => void
 ): Promise<PackingPlanData> => {
@@ -849,7 +899,7 @@ export const savePackingPlan = async (
           entity: "TCSLoadingMeter.PackingPlanItem",
           callback: (itemObj: unknown) => {
             try {
-              const orderId = item.id.startsWith("cargo-") ? item.id.replace("cargo-", "") : item.id;
+              const orderId = fromCargoId(item.id);
               setMxAttribute(
                 itemObj,
                 "TCSLoadingMeter.PackingPlanItem_PackingPlan",

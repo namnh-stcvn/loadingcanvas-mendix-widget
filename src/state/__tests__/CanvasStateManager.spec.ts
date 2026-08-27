@@ -85,6 +85,26 @@ describe("CanvasStateManager", () => {
     });
   });
 
+  describe("setStateTransient", () => {
+    it("notifies listeners without recording an undo step", () => {
+      const manager = new CanvasStateManager(createInitialState());
+      let notified = false;
+      manager.subscribe(() => {
+        notified = true;
+      });
+
+      manager.setStateTransient({ ...createInitialState(), selectedIds: ["transient"] });
+      expect(notified).toBe(true);
+      expect(manager.getState().selectedIds).toEqual(["transient"]);
+
+      // The transient value must never appear in history: one committed change
+      // later, a single undo lands on the pristine initial state.
+      manager.setState({ ...createInitialState(), selectedIds: ["committed"] });
+      manager.undo();
+      expect(manager.getState().selectedIds).toEqual([]);
+    });
+  });
+
   describe("updateState", () => {
     it("should apply update function to current state", () => {
       const manager = new CanvasStateManager(createInitialState());

@@ -136,13 +136,13 @@ TCSLoadingMeter.PackingPlan (1 per TruckSelection)
 4. `savePackingPlan`:
    a. Serializes current canvas state to `PackingPlanData` (meters)
    b. Queries for existing `PackingPlan` for this `TruckSelection`
-   c. If plan exists:
-   - Delete all existing `PackingPlanItem` records
-     d. If no plan exists:
-   - Create a new `PackingPlan` record
-     e. Create new `PackingPlanItem` records for each canvas item
-     f. Commit all changes
+   c. If plan exists: delete all existing `PackingPlanItem` records; if not: create a new `PackingPlan`
+   d. Create new `PackingPlanItem` records for each canvas item, setting the `TransportOrder` reference with the **module-prefixed Domain Model association name** (`TCSLoadingMeter.PackingPlanItem_TransportOrder`)
+   e. Map each item's packing-unit payload back using its own GUID key (not array index), so a batch response that is reordered/filtered cannot cross-assign items to the wrong TransportOrder
+   f. Commit all changes
 5. Container calls `onSavePlan` microflow callback (if configured)
+
+> If an association cannot be resolved, the adapter logs a contextual `console.warn` before applying a bounded fallback — it never silently swallows the error.
 
 ## Load Flow (On Page Open)
 
@@ -151,8 +151,9 @@ TCSLoadingMeter.PackingPlan (1 per TruckSelection)
 3. `loadPackingPlan`:
    a. Queries for `PackingPlan` where `TruckSelection = {truckGuid}`
    b. If found, queries for all `PackingPlanItem` records
-   c. Converts items to `PackingPlanData` (meters)
-   d. Deserializes to `CargoItem[]` (pixels) using `deserializePlan()`
+   c. Reads the `TransportOrder` reference via the MxObject API using the module-prefixed association name (associations are **not** in `getAttributes()`; they are read separately with `mxObject.get(...)`)
+   d. Converts items to `PackingPlanData` (meters)
+   e. Deserializes to `CargoItem[]` (pixels) using `deserializePlan()`
 4. Container passes restored items to widget as `initialCanvasItems`
 5. Widget renders canvas with restored items
 
@@ -188,7 +189,7 @@ after the save/load operations complete.
 //TCSLoadingMeter.PackingPlan[TCSLoadingMeter.PackingPlan_TruckSelection = '{truckGuid}']
 ```
 
-_(or `//TCSLoadingMeter.PackingPlan[TCSLoadingMeter.TruckSelection = '{truckGuid}']` depending on association name in Domain Model)_
+> **Association names use the module-prefixed Domain Model name** (e.g., `TCSLoadingMeter.PackingPlanItem_TransportOrder`), never a raw DB table name. Missing the module prefix lets `set()`/`get()` succeed silently but persist `null`.
 
 ### Find PackingPlanItems for a Plan
 

@@ -5,7 +5,6 @@ import { GRID_SIZE, SNAP_THRESHOLD } from "../constants/canvas";
 
 export interface SnapTarget {
   position: Point;
-  rotation?: Rotation;
   type: "edge" | "align" | "boundary" | "grid" | "angle" | "none";
   distance: number;
 }

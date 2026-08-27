@@ -14,13 +14,13 @@ This guide documents the **compatibility matrix** and **4-step upgrade process**
 | Component                           | Current (Tested)            | Next Target | Notes                                                                                         |
 | :---------------------------------- | :-------------------------- | :---------- | :-------------------------------------------------------------------------------------------- |
 | **Node.js**                         | 18 LTS, 20 LTS              | 22 LTS      | Declared as `>=16` in `package.json` `engines`. Recommend Node 18 or 20 LTS.                  |
-| **React**                           | 19 (dev), 18.2.0 (override) | 19          | `package.json` overrides React to 18.2.0 for Mendix runtime compatibility. Dev uses React 19. |
+| **React**                           | 18.2.0                    | 19          | Pinned to 18.2.0 via package.json `overrides`/`resolutions` for Mendix runtime compatibility (automatic JSX runtime). |
 | **TypeScript**                      | 5.9.3                       | 6.x         | `strict: true` enabled. `verbatimModuleSyntax` in node config.                                |
 | **Mendix**                          | 10.x                        | 11.x        | Uses `mx.data` API, Pluggable Widget Spec 1.0.                                                |
-| **@mendix/pluggable-widgets-tools** | ^10.0.2                     | ^11.0.0     | Mendix widget build toolchain.                                                                |
-| **Vite**                            | ^8.2.1                      | —           | Build tool and dev server.                                                                    |
-| **ESLint**                          | 10                          | —           | With `typescript-eslint`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`.         |
-| **Vitest**                          | —                           | —           | Test runner with jsdom environment. 213 tests.                                                |
+| **@mendix/pluggable-widgets-tools** | ^10.0.2                     | ^11.0.0     | Mendix widget build toolchain (bundling, dev server, lint, tests).                                  |
+| **Rollup**                          | via tools                  | —           | Widget bundler under the hood of pluggable-widgets-tools (defaults, no custom config).               |
+| **ESLint**                          | 9 / pluggable-widgets-tools | —           | With `typescript-eslint`, `eslint-plugin-react-hooks`.                                              |
+| **Jest + ts-jest**                  | 29                         | —           | Unit test runner with jsdom environment (via pluggable-widgets-tools). 250 tests.                   |
 
 ### Version Matrix Summary
 
@@ -80,7 +80,7 @@ UI (React) → Hooks → State/Engines → Domain → Adapters → Mendix
 
 **Safe zones (zero changes needed):**
 
-- ✅ All engines (`DragEngine`, `CollisionEngine`, `SnapEngine`, `ValidationEngine`) — pure TypeScript, no React
+- ✅ All engines (`DragEngine`, `CollisionEngine`, `SnapEngine`) — pure TypeScript, no React; validation is done directly from the dispatcher via `domain/validationRules.ts` (no dedicated validation engine)
 - ✅ All domain rules — pure functions, no React
 - ✅ All state management — framework-agnostic
 - ✅ All adapters — no React dependency
@@ -113,7 +113,7 @@ UI (React) → Hooks → State/Engines → Domain → Adapters → Mendix
 2. **Run baseline tests** to capture the current state:
    ```bash
    npm run test
-   # Expected: 186/186 tests PASSED
+   # Expected: 250/250 tests PASSED
    ```
 3. **Run baseline build** to confirm the current state compiles:
    ```bash
@@ -184,7 +184,7 @@ UI (React) → Hooks → State/Engines → Domain → Adapters → Mendix
 
    ```bash
    npm run test
-   # Expected: 204/204 tests PASSED
+   # Expected: 250/250 tests PASSED
    # Coverage targets:
    #   Engines: 97.53%
    #   Adapters: 70.43% (cargo/state/truck adapters at 100%; mendixDataAdapter ~64%)
@@ -248,7 +248,7 @@ UI (React) → Hooks → State/Engines → Domain → Adapters → Mendix
 ## Pre-Upgrade Checklist
 
 - [ ] Compatibility Matrix confirms target version combination is supported
-- [ ] Baseline tests pass (204/204)
+- [ ] Baseline tests pass (250/250)
 - [ ] Baseline build succeeds
 - [ ] Baseline lint passes
 - [ ] Backup branch created
@@ -263,7 +263,7 @@ UI (React) → Hooks → State/Engines → Domain → Adapters → Mendix
 
 | Check                      | Expected Result     | How to Verify             |
 | :------------------------- | :------------------ | :------------------------ |
-| Unit tests                 | 204/204 PASSED      | `npm run test`            |
+| Unit tests                 | 250/250 PASSED      | `npm run test`            |
 | Lint                       | No errors           | `npm run lint`            |
 | Type check                 | No errors           | `npx tsc --noEmit`        |
 | Build                      | Succeeds            | `npm run build`           |

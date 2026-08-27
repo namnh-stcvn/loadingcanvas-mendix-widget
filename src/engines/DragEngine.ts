@@ -3,8 +3,8 @@ import type { DragState } from "../state/DragState";
 import type { CollisionEngine } from "./CollisionEngine";
 import type { SnapEngine } from "./SnapEngine";
 import { calculateDragPosition } from "../domain/dragRules";
-import { DEFAULT_AXIS_SCALE, type AxisScale } from "../domain/rotationRules";
-import { TRUCK_CANVAS_LEFT, TRUCK_CANVAS_TOP, TRUCK_CANVAS_WIDTH, TRUCK_CANVAS_HEIGHT } from "../constants/canvas";
+import { DEFAULT_AXIS_SCALE, rotateKeepingCenter, type AxisScale } from "../domain/rotationRules";
+import { getTruckBounds } from "../domain/boundaryRules";
 
 export class DragEngine<
   T extends RectLike & {
@@ -66,10 +66,18 @@ export class DragEngine<
     };
   }
 
-  move(mouse: Point, canvasWidth: number, canvasHeight: number, scale: AxisScale = DEFAULT_AXIS_SCALE): T[] {
+  move(
+    mouse: Point,
+    canvasWidth: number,
+    canvasHeight: number,
+    scale: AxisScale = DEFAULT_AXIS_SCALE,
+    bounds?: RectLike
+  ): T[] {
     if (!this.state.isDragging) {
       return this.items;
     }
+
+    const dragBounds = bounds ?? getTruckBounds();
 
     const targetItems = this.items.map((item) => {
       const offset = this.state.startOffsets.get(item.id);
@@ -84,12 +92,6 @@ export class DragEngine<
       const basePosition = calculateDragPosition(item, { x: baseX, y: baseY }, 0, 0, canvasWidth, canvasHeight);
 
       const startPos = this.state.startPositions.get(item.id) ?? { x: item.x, y: item.y };
-      const bounds = {
-        x: TRUCK_CANVAS_LEFT,
-        y: TRUCK_CANVAS_TOP,
-        length: TRUCK_CANVAS_WIDTH,
-        width: TRUCK_CANVAS_HEIGHT,
-      };
       const others = this.items.filter((other) => other.id !== item.id);
 
       let targetPos = { x: basePosition.x, y: basePosition.y };
@@ -97,7 +99,7 @@ export class DragEngine<
       // Apply snapping rules if snap engine is active
       if (this.snapEngine) {
         const snapTarget = this.snapEngine.calculateSnapTarget(item, others, targetPos, {
-          bounds,
+          bounds: dragBounds,
           scale,
         });
         targetPos = snapTarget.position;
@@ -110,7 +112,7 @@ export class DragEngine<
           targetPos,
           startPos,
           others,
-          bounds,
+          dragBounds,
           scale
         );
       }
@@ -120,6 +122,40 @@ export class DragEngine<
 
     this.items = targetItems;
     return this.items;
+  }
+
+  rotateItem(itemId: string, bounds?: RectLike, scale: AxisScale = DEFAULT_AXIS_SCALE): T[] {
+    const target = this.items.find((item) => item.id === itemId);
+    if (!target) {
+      return this.items;
+    }
+
+    const rotated = rotateKeepingCenter(target, scale);
+    const startPos = { x: target.x, y: target.y };
+    let position = { x: rotated.x, y: rotated.y };
+    let finalRotation = rotated.rotation;
+
+    if (this.collisionEngine) {
+      const resolved = this.collisionEngine.resolveNonOverlappingPosition(
+        { ...target, rotation: rotated.rotation },
+        position,
+        startPos,
+        this.items.filter((other) => other.id !== itemId),
+        bounds ?? getTruckBounds(),
+        scale
+      );
+      if (resolved !== startPos) {
+        position = resolved;
+      } else {
+        // No collision-free placement found: keep the entire previous pose.
+        position = startPos;
+        finalRotation = target.rotation;
+      }
+    }
+
+    return this.items.map((item) =>
+      item.id === itemId ? ({ ...item, x: position.x, y: position.y, rotation: finalRotation } as T) : item
+    );
   }
 
   endDrag(): void {

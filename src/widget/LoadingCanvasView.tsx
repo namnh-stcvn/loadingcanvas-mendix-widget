@@ -5,8 +5,6 @@ import { GridOverlay } from "../components/GridOverlay";
 import { packCargoIntoBounds } from "../domain/packingRules";
 import { useTruckCanvas } from "../hooks/useTruckCanvas";
 import {
-  DEFAULT_CANVAS_WIDTH,
-  DEFAULT_CANVAS_HEIGHT,
   CANVAS_BORDER,
   DEFAULT_MARGIN,
   INFO_PANEL_TOP,
@@ -18,6 +16,7 @@ import {
   GRID_SIZE,
 } from "../constants/canvas";
 import { CANVAS_BACKGROUND_COLOR } from "../constants/theme";
+import { fromCargoId } from "../domain/cargoIdentity";
 import truckBackground from "../assets/Truck_horizontal.png";
 import type { CargoItem } from "../viewModels/CargoItem";
 import type { LoadingCanvasViewProps } from "./LoadingCanvas.properties";
@@ -39,16 +38,8 @@ import type { LoadingCanvasViewProps } from "./LoadingCanvas.properties";
  */
 export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement => {
   const { viewModel, isLoading } = props;
-  const {
-    truck,
-    availableCargo,
-    initialCanvasItems,
-    scale,
-    canvasWidth = DEFAULT_CANVAS_WIDTH,
-    canvasHeight = DEFAULT_CANVAS_HEIGHT,
-    onSavePlan,
-    onLoadPlan,
-  } = viewModel;
+  const { truck, availableCargo, initialCanvasItems, scale, canvasWidth, canvasHeight, onSavePlan, onLoadPlan } =
+    viewModel;
 
   const canvasRef = useRef<HTMLDivElement | null>(null);
 
@@ -75,19 +66,7 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
   // Available cargo = availableCargo minus those already on the canvas.
   // Derived from canvas items (single source of truth), so the list always
   // reflects reality after drag-in, plan load, or canvas reset.
-  // Normalize IDs by removing "cargo-" prefix for comparison.
-  const normalizeId = (id: string) => (id.startsWith("cargo-") ? id.replace("cargo-", "") : id);
-  const availableCargoItems = availableCargo.filter((p) => !items.some((i) => normalizeId(i.id) === normalizeId(p.id)));
-
-  // --- Restore items when loaded from plan ---
-  // The useTruckCanvas hook already handles initialItems changes via its
-  // own useEffect, but we also set items directly when a plan is loaded
-  // after the initial render to ensure the canvas reflects the saved state.
-  useEffect(() => {
-    if (initialCanvasItems.length > 0) {
-      setItems(initialCanvasItems);
-    }
-  }, [initialCanvasItems, setItems]);
+  const availableCargoItems = availableCargo.filter((p) => !items.some((i) => fromCargoId(i.id) === fromCargoId(p.id)));
 
   // --- Save plan handler ---
   const handleSavePlan = (): void => {
@@ -172,7 +151,7 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
           fontSize: 16,
           color: "#666",
         }}>
-        Loading packing plan...
+        Loading...
       </div>
     );
   }

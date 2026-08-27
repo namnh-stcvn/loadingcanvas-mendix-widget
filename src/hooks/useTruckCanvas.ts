@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent, type RefObject } from "react";
+import { useMemo, useState, type MouseEvent as ReactMouseEvent, type RefObject } from "react";
 import type { CargoItem } from "../viewModels/CargoItem";
 import type { TruckItem } from "../viewModels/TruckItem";
 import { DragEngine } from "../engines/DragEngine";
 import { CollisionEngine } from "../engines/CollisionEngine";
 import { SnapEngine } from "../engines/SnapEngine";
-import { ValidationEngine } from "../engines/ValidationEngine";
 import { useMouseEvents } from "./useMouseEvents";
 import { CanvasStateManager } from "../state/CanvasStateManager";
 import { CanvasActionDispatcher } from "../state/CanvasActionDispatcher";
@@ -64,7 +63,6 @@ export const useTruckCanvas = ({
     () => new DragEngine<CargoItem>(initialItems, collisionEngine, snapEngine),
     [initialItems, collisionEngine, snapEngine]
   );
-  const validationEngine = useMemo(() => new ValidationEngine(), []);
   const stateManager = useMemo(
     () => new CanvasStateManager(createInitialCanvasState(initialItems, scale, truck)),
     [initialItems, scale, truck]
@@ -75,9 +73,8 @@ export const useTruckCanvas = ({
         canvasWidth,
         canvasHeight,
         dragEngine,
-        validationEngine,
       }),
-    [canvasWidth, canvasHeight, stateManager, dragEngine, validationEngine]
+    [canvasWidth, canvasHeight, stateManager, dragEngine]
   );
 
   const state = useCanvasState(stateManager);
@@ -118,21 +115,10 @@ export const useTruckCanvas = ({
     handleCancel,
   });
 
-  useEffect(() => {
-    dragEngine.updateItems(state.cargos);
-  }, [state.cargos, dragEngine]);
-
-  useEffect(() => {
-    const currentIds = stateManager
-      .getState()
-      .cargos.map((item) => item.id)
-      .join("|");
-    const initialIds = initialItems.map((item) => item.id).join("|");
-    if (currentIds !== initialIds) {
-      stateManager.setState(createInitialCanvasState(initialItems, scale, truck));
-    }
-  }, [initialItems, stateManager, scale, truck]);
-
+  // Manager/dispatcher recreation on [initialItems, scale, truck] is the single
+  // restore mechanism: a new dataset identity produces a fresh CanvasStateManager.
+  // The dispatcher is also the single owner of dragEngine item-sync; no
+  // state-watching effect is needed here.
   return {
     items: state.cargos,
     activeItemId: state.activeItemId,

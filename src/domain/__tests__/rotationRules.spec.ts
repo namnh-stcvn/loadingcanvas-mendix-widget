@@ -1,5 +1,6 @@
 import { describe, it, expect } from "@jest/globals";
-import { rotate90, isVerticalRotation, getRotatedScreenSize } from "../rotationRules";
+import { rotate90, isVerticalRotation, getRotatedScreenSize, rotateKeepingCenter } from "../rotationRules";
+import type { Positionable, Rotation, Size } from "../../types/geometry";
 
 describe("rotationRules", () => {
   describe("rotate90", () => {
@@ -90,6 +91,57 @@ describe("rotationRules", () => {
         length: 50,
         width: 100,
       });
+    });
+  });
+
+  describe("rotateKeepingCenter", () => {
+    it("should re-anchor a uniform-scaled rectangle around its shared center", () => {
+      const result = rotateKeepingCenter({ x: 100, y: 100, length: 100, width: 50, rotation: 0 });
+      expect(result.rotation).toBe(90);
+      expect(result.x).toBe(125);
+      expect(result.y).toBe(75);
+    });
+
+    it("should preserve the visual center under the default scale", () => {
+      const item: Size & Positionable & { rotation: Rotation } = {
+        x: 400,
+        y: 200,
+        length: 300,
+        width: 120,
+        rotation: 0,
+      };
+      const result = rotateKeepingCenter(item);
+      const before = getRotatedScreenSize(item, item.rotation);
+      const after = getRotatedScreenSize(item, result.rotation);
+      expect(result.x + after.length / 2).toBeCloseTo(item.x + before.length / 2);
+      expect(result.y + after.width / 2).toBeCloseTo(item.y + before.width / 2);
+    });
+
+    it("should project through axis scales for a real-world non-uniform mapping", () => {
+      const scale = { widthScale: 1453 / 13.6, heightScale: 297 / 2.45 };
+      const item: Size & Positionable & { rotation: Rotation } = {
+        x: 10,
+        y: 10,
+        length: 0.3 * scale.widthScale,
+        width: 0.2 * scale.heightScale,
+        rotation: 0,
+      };
+      const result = rotateKeepingCenter(item, scale);
+      const centerX = item.x + item.length / 2;
+      const centerY = item.y + item.width / 2;
+      const nextL = item.width * (scale.widthScale / scale.heightScale);
+      const nextW = item.length * (scale.heightScale / scale.widthScale);
+      expect(result.rotation).toBe(90);
+      expect(result.x).toBeCloseTo(centerX - nextL / 2);
+      expect(result.y).toBeCloseTo(centerY - nextW / 2);
+    });
+
+    it("should keep a square uniformly scaled item in place and wrap its rotation", () => {
+      const item: Size & Positionable & { rotation: Rotation } = { x: 40, y: 60, length: 50, width: 50, rotation: 270 };
+      const result = rotateKeepingCenter(item);
+      expect(result.rotation).toBe(0);
+      expect(result.x).toBe(40);
+      expect(result.y).toBe(60);
     });
   });
 });

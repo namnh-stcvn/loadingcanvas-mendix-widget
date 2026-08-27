@@ -1,7 +1,7 @@
 import type { CargoItem } from "../viewModels/CargoItem";
 import { meterToPixel } from "../domain/coordinateRules";
 import { DEFAULT_AXIS_SCALE, getRotatedScreenSize, type AxisScale } from "../domain/rotationRules";
-
+import { fromCargoId, toCargoId } from "../domain/cargoIdentity";
 /**
  * Shape of a PackingUnit as it arrives from Mendix.
  * PackingUnit has: Length, Width, Height (in meters).
@@ -15,6 +15,13 @@ export interface PackingUnitData {
   packingType: "pallet" | "box";
   weightKg?: number;
 }
+
+// Shared fallback dimensions (meters) used when no PackingUnit data resolves;
+// every adapter mapping must reuse these instead of repeating literals.
+export const DEFAULT_LENGTH_METER = 1.2;
+export const DEFAULT_WIDTH_METER = 0.8;
+export const DEFAULT_HEIGHT_METER = 1.6;
+export const DEFAULT_WEIGHT_KG = 500;
 
 /**
  * Shape of a TransportOrder as it arrives from Mendix.
@@ -43,7 +50,7 @@ export const packingUnitToCargoItem = (
   const name = packingUnit.name ?? `Cargo ${packingUnit.id}`;
 
   return {
-    id: `cargo-${packingUnit.id}`,
+    id: toCargoId(packingUnit.id),
     name,
     x: position.x,
     y: position.y,
@@ -75,7 +82,7 @@ export const transportOrdersToCargoItems = (
  */
 export const cargoItemToPackingUnitData = (item: CargoItem, scale: number): PackingUnitData => {
   return {
-    id: item.id.replace("cargo-", ""),
+    id: fromCargoId(item.id),
     name: item.name,
     lengthMeter: item.lengthM ?? pixelToMeter(item.length, scale),
     widthMeter: item.widthM ?? pixelToMeter(item.width, scale),
@@ -142,9 +149,9 @@ export const applyPackingUnitData = (
     packingUnit: {
       id: current?.id ?? order.id,
       name: unitName ?? current?.name,
-      lengthMeter: readPositiveNumber(unitPlain, ["Length", "length"]) ?? current?.lengthMeter ?? 1.2,
-      widthMeter: readPositiveNumber(unitPlain, ["Width", "width"]) ?? current?.widthMeter ?? 0.8,
-      heightMeter: readPositiveNumber(unitPlain, ["Height", "height"]) ?? current?.heightMeter ?? 1.6,
+      lengthMeter: readPositiveNumber(unitPlain, ["Length", "length"]) ?? current?.lengthMeter ?? DEFAULT_LENGTH_METER,
+      widthMeter: readPositiveNumber(unitPlain, ["Width", "width"]) ?? current?.widthMeter ?? DEFAULT_WIDTH_METER,
+      heightMeter: readPositiveNumber(unitPlain, ["Height", "height"]) ?? current?.heightMeter ?? DEFAULT_HEIGHT_METER,
       packingType: resolvePackingType(packingTypeValue),
       weightKg:
         readPositiveNumber(unitPlain, ["WeightKg", "weightKg", "GrossWeight", "grossWeight"]) ?? current?.weightKg,

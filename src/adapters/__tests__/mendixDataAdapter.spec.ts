@@ -5,6 +5,7 @@ import {
   filterByAssociationGuid,
   getReferenceGuids,
   loadCargoItems,
+  loadPackingPlan,
   savePackingPlan,
   toBig,
 } from "../mendixDataAdapter";
@@ -132,6 +133,110 @@ describe("loadCargoItems PackingUnit enrichment", () => {
     expect(items[0].width).toBe(40); // 0.8 * 50
     expect(items[0].type).toBe("box");
     expect(items[0].color).toBe("blue");
+  });
+
+  it("pairs each order with its own PackingUnit even when the batch responds out of order", async () => {
+    const makeType = (guid: string, enumValue: string) => ({
+      get: (name: string): unknown => (name === "E_PackingType" ? enumValue : null),
+      set: (): void => undefined,
+      getAttributes: (): string[] => ["E_PackingType"],
+      getGuid: (): string => guid,
+    });
+    const unitA = {
+      get: (name: string): unknown =>
+        name === "DataModelModule.PackingUnit_DataModelModule.PackingType"
+          ? "pt-guid-A"
+          : (({ Name: "Pallet A", Length: { toNumber: () => 1.2 }, Width: { toNumber: () => 0.8 } } as never)[name] ??
+            null),
+      set: (): void => undefined,
+      getAttributes: (): string[] => ["Name", "Length", "Width"],
+      getGuid: (): string => "pu-guid-A",
+    };
+    const unitB = {
+      get: (name: string): unknown =>
+        name === "DataModelModule.PackingUnit_DataModelModule.PackingType"
+          ? "pt-guid-B"
+          : (({ Name: "Box B", Length: { toNumber: () => 0.6 }, Width: { toNumber: () => 0.4 } } as never)[name] ??
+            null),
+      set: (): void => undefined,
+      getAttributes: (): string[] => ["Name", "Length", "Width"],
+      getGuid: (): string => "pu-guid-B",
+    };
+    const order = (guid: string, unitGuid: string) => ({
+      get: (name: string): unknown => (name === "TCSTransportModule.TransportOrder_PackingUnit" ? [unitGuid] : null),
+      set: (): void => undefined,
+      getAttributes: (): string[] => [],
+      getGuid: (): string => guid,
+    });
+    const registry: Record<string, unknown> = {
+      "order-guid-1": order("order-guid-1", "pu-guid-A"),
+      "order-guid-2": order("order-guid-2", "pu-guid-B"),
+      "pu-guid-A": unitA,
+      "pu-guid-B": unitB,
+      "pt-guid-A": makeType("pt-guid-A", "Pallet"),
+      "pt-guid-B": makeType("pt-guid-B", "Box"),
+    };
+
+    (globalThis as { mx?: unknown }).mx = {
+      data: {
+        // Deliberately reverse every response to prove no positional assumptions remain.
+        get: jest.fn((options: { guids?: string[]; callback: (result: unknown) => void }) => {
+          const requested = [...(options.guids ?? [])].reverse();
+          options.callback(requested.map((guid) => registry[guid]).filter(Boolean));
+        }),
+      },
+    };
+
+    const items = await loadCargoItems(["order-guid-1", "order-guid-2"], { widthScale: 50, heightScale: 50 });
+
+    expect(items).toHaveLength(2);
+    const pallet = items.find((i) => i.id === "cargo-order-guid-1");
+    const box = items.find((i) => i.id === "cargo-order-guid-2");
+    expect(pallet).toMatchObject({ length: 60, width: 40, type: "pallet", color: "orange" });
+    expect(box).toMatchObject({ length: 30, width: 20, type: "box", color: "blue" });
+  });
+
+  it("warns contextually before falling back to the item key when the TransportOrder association is unreadable", async () => {
+    const originalConsoleWarn = console.warn;
+    console.warn = jest.fn();
+    try {
+      const makeObj = (attrs: Record<string, unknown>, assoc: Record<string, unknown>) => ({
+        get: (name: string): unknown => (name in assoc ? assoc[name] : (attrs[name] ?? null)),
+        set: (): void => undefined,
+        getAttributes: (): string[] => Object.keys(attrs),
+      });
+      const planObj = makeObj({ id: "plan-guid-1" }, { "TCSLoadingMeter.PackingPlan_TruckSelection": "truck-guid-1" });
+      // Association read returns null -> resolution must degrade loudly, not silently.
+      const itemObj = makeObj(
+        { id: "item-key-7", PositionX: { toNumber: () => 1 }, PositionY: { toNumber: () => 1 } },
+        { "TCSLoadingMeter.PackingPlanItem_PackingPlan": "plan-guid-1" }
+      );
+
+      (globalThis as { mx?: unknown }).mx = {
+        data: {
+          get: jest.fn((options: { guids?: string[]; xpath?: string; callback: (result: unknown) => void }) => {
+            if (options.guids) {
+              options.callback([]);
+              return;
+            }
+            if (options.xpath?.includes("PackingPlanItem")) {
+              options.callback([itemObj]);
+              return;
+            }
+            options.callback([planObj]);
+          }),
+        },
+      };
+
+      const items = await loadPackingPlan("truck-guid-1", { widthScale: 50, heightScale: 50 });
+
+      expect(items).toHaveLength(1);
+      expect(items[0].id).toBe("cargo-item-key-7");
+      expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("item-key-7"));
+      expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("no readable TransportOrder association"));
+    } finally {
+      console.warn = originalConsoleWarn;
+    }
   });
 });
 

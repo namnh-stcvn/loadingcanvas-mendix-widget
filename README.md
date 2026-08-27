@@ -4,7 +4,7 @@
 
 **LoadingCanvas** is a Mendix pluggable widget for interactive truck loading and packing planning. It provides an interactive canvas where users can drag, rotate, and validate cargo items (pallet/box) within a truck boundary. The widget supports grid snapping, real-time collision detection, and integration with Mendix Data API for saving/loading packing plans.
 
-Built with **React 19**, **TypeScript**, and **Vite**, the widget follows a strict layered architecture with clear separation of concerns between UI, state management, business logic, and domain rules.
+Built with **React 18.2** (pinned via package.json `overrides`/`resolutions`, automatic JSX runtime), **TypeScript**, and the **Mendix pluggable-widgets-tools** toolchain, the widget follows a strict layered architecture with clear separation of concerns between UI, state management, business logic, and domain rules.
 
 ---
 
@@ -18,11 +18,11 @@ Built with **React 19**, **TypeScript**, and **Vite**, the widget follows a stri
 - **Boundary validation** to keep items within truck limits
 - **Load/save packing plans** via Mendix Data API
 - **Auto Load** button that repacks all cargo tightly into the truck (First-Fit Decreasing with optional 90° rotation)
-- **Undo/redo history** for drag operations
+- **Undo/redo history** for committed state transitions (per-gesture granularity for drags; one undo step covers a full drag operation)
 - **Info panel** displaying validation status and item details
 - **Grid overlay** for visual guidance
 - **Responsive design** with dark mode support
-- **Framework-agnostic engines** (drag, collision, snap, validation)
+- **Framework-agnostic engines** (drag, collision, snap) plus pure domain validation rules
 - **Mendix 10 integration** via `mx.data` API
 - **Metric/imperial unit support** (meters/pixels conversion)
 
@@ -48,7 +48,7 @@ The widget follows a **strict layered architecture**:
 - **DragEngine**: Manages drag state and position calculations
 - **CollisionEngine**: Detects overlaps and resolves conflicts
 - **SnapEngine**: Handles grid/edge/alignment snapping
-- **ValidationEngine**: Validates item positions and dimensions
+- *(validation no longer has a dedicated engine — the dispatcher validates directly via `domain/validationRules.ts`)*
 
 ### 4. Domain Rule Layer
 
@@ -98,12 +98,12 @@ src/
 │   ├── packingRules.ts        # Auto-packing (First-Fit Decreasing) for the Auto Load button
 │   ├── rotationRules.ts       # 90° rotation logic
 │   ├── snapRules.ts           # Snapping logic
+│   ├── cargoIdentity.ts       # cargo- ID prefix helpers (toCargoId/fromCargoId)
 │   └── validationRules.ts     # Validation rules
 ├── engines/                   # Core business logic engines
 │   ├── DragEngine.ts          # Drag state management
 │   ├── CollisionEngine.ts     # Collision detection
-│   ├── SnapEngine.ts          # Snapping calculations
-│   └── ValidationEngine.ts    # Validation engine
+│   └── SnapEngine.ts          # Snapping calculations
 ├── hooks/                     # React hooks
 │   ├── useTruckCanvas.ts      # Main hook: wires engines & state
 │   ├── useCanvasState.ts      # Subscribes to state manager
@@ -183,7 +183,7 @@ npm dev
 | Script          | Description                              |
 | --------------- | ---------------------------------------- |
 | `npm start`     | Start pluggable-widgets-tools dev server |
-| `npm dev`       | Start Vite web development server        |
+| `npm dev`       | Start pluggable-widgets-tools web dev server |
 | `npm run build` | Build the widget for production          |
 | `npm run lint`  | Lint the codebase                        |
 | `npm run test`  | Run unit tests                           |
@@ -192,13 +192,13 @@ npm dev
 
 ## Technology Stack
 
-- **React 19** with `@vitejs/plugin-react` (Oxc-based Fast Refresh)
-- **TypeScript 6** with strict mode
-- **Vite** — build tool and dev server with HMR
-- **ESLint 10** with `typescript-eslint`, `eslint-plugin-react-hooks`
-- **Vitest** — test runner with jsdom environment
+- **React 18.2** (pinned via package.json `overrides`/`resolutions`, automatic JSX runtime)
+- **TypeScript 5.9** with strict mode (`erasableSyntaxOnly`, bundler module resolution)
+- **@mendix/pluggable-widgets-tools v10** — build pipelines: bundle, dev server with HMR, lint, and unit tests
+- **ESLint 9** (flat config) with `typescript-eslint` and `eslint-plugin-react-hooks`
+- **Jest + ts-jest** — unit test runner (jsdom environment)
 - **Prettier** — code formatting (120 print width, 2-space indent)
-- **Rollup** — Mendix widget build configuration
+- **Rollup** — Mendix widget build configuration (via pluggable-widgets-tools defaults)
 
 ---
 
@@ -219,8 +219,8 @@ npm dev
 
 - **PackingPlan** (1 per TruckSelection) — stores the plan header
 - **PackingPlanItem** (1-* per plan) — stores individual item positions
-- Save flow: Delete existing items → Create new items → Commit
-- Load flow: Query PackingPlan → Query PackingPlanItems → Deserialize to CargoItems
+- Save flow: Find-or-create plan → Delete existing items → Create new items (association-first, GUID-keyed pairing) → Commit; logs contextual warnings if associations cannot be resolved
+- Load flow: Query PackingPlan → Query PackingPlanItems → Resolve TransportOrder associations via MxObject API → Deserialize to CargoItems
 
 ---
 

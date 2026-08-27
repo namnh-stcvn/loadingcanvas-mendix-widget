@@ -74,7 +74,7 @@ export const CargoList: FC<CargoListProps> = ({ availableItems, onAddCargo }) =>
               color: "#fff",
               fontWeight: "bold",
             }}>
-            {cargo.type === "pallet" ? "📦" : "📦"}
+            {cargo.type === "pallet" ? "📦" : "🟦"}
           </div>
           <span style={{ fontSize: 10, marginTop: 2, color: "#333" }}>{cargo.name}</span>
           {/* <span style={{ fontSize: 8, color: "#666" }}>

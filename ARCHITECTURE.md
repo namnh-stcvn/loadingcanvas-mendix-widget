@@ -8,7 +8,7 @@ The architecture follows a strict **layered separation of concerns**:
 
 - **UI layer** — React components and hooks (`LoadingCanvas`, `LoadingCanvasContainer`, `CargoCard`, `RotationHandle`, `GridOverlay`, `CargoList`, `useTruckCanvas`, `useCanvasState`, `useCanvasActions`, `useMouseEvents`)
 - **State management layer** — `CanvasStateManager` (single source of truth) and `CanvasActionDispatcher` (action routing)
-- **Engine layer** — `DragEngine`, `CollisionEngine`, `SnapEngine`, `ValidationEngine` (pure business logic)
+- **Engine layer** — `DragEngine`, `CollisionEngine`, `SnapEngine` (pure business logic; validation executes directly from the dispatcher via `domain/validationRules`)
 - **Domain rule layer** — geometry, snap, validation, coordinate, rotation, drag, boundary, and packing helpers
 - **Adapter layer** — `cargoAdapter`, `truckAdapter`, `stateAdapter`, `mendixDataAdapter` (Mendix data integration)
 - **Data model layer** — business models (`Truck`), view models (`CargoItem`, `TruckItem`), and shared types (`Point`, `RectLike`, `Rotation`, etc.)
@@ -45,7 +45,7 @@ src/
 │   └── theme.ts                    # Canvas background color
 │
 ├── domain/
-│   ├── boundaryRules.ts            # clamp() — keeps values within a range
+│   ├── boundaryRules.ts            # clamp() — keeps values within a range; plus getCanvasBounds()/getTruckBounds() — single authority shared by both the dispatcher's OUT_OF_BOUNDS validation and DragEngine's collision clamping (kept identical by construction)
 │   ├── coordinateRules.ts          # getCanvasPoint(), meterToPixel(), pixelToMeter()
 │   ├── dragRules.ts                # calculateDragPosition() — grid-snapped, clamped drag position
 │   ├── geometryRules.ts            # getRectangle(), isIntersecting(), overlaps(), isInsideBounds(), findCollisions()
@@ -59,7 +59,6 @@ src/
 │   ├── DragEngine.ts               # Manages drag state, computes new positions with snap + collision resolution
 │   ├── CollisionEngine.ts          # Detects overlaps, finds valid non-overlapping positions
 │   ├── SnapEngine.ts               # Calculates best snap target (boundary, edge, align, grid)
-│   ├── ValidationEngine.ts         # Validates all items against bounds and each other
 │   └── __tests__/                  # Engine unit tests
 │
 ├── hooks/
@@ -137,11 +136,11 @@ src/
   - History is capped at the current index — new states after an undo discard the redo branch.
 
 - **`CanvasActionDispatcher`** (`src/state/CanvasActionDispatcher.ts`) applies actions against the manager.
-  - Receives a `CanvasStateManager` and an options object (`canvasWidth`, `canvasHeight`, `dragEngine`, `validationEngine`).
+  - Receives a `CanvasStateManager` and an options object (`canvasWidth`, `canvasHeight`, `dragEngine`).
   - `dispatch(action)` reads the current state from the manager, then routes to a switch case per action type.
   - Action types: `SELECT`, `DESELECT`, `SET_ACTIVE_ITEM`, `START_DRAG`, `DRAG_MOVE`, `END_DRAG`, `ROTATE`, `ADD_ITEM`, `SET_ITEMS`, `UNDO`, `REDO`.
-  - During `DRAG_MOVE`, the dispatcher calls `dragEngine.move()`, updates the drag engine's internal items, validates the result with `validationEngine.validateItems()`, and writes both `cargos` and `validation` to state.
-  - During `ROTATE`, the dispatcher computes the new rotation (90° clockwise), preserves the item's center using `getRotatedScreenSize`, clamps to canvas bounds, re-validates, and updates state.
+  - During `DRAG_MOVE`, the dispatcher calls `dragEngine.move()`, updates the drag engine's internal items, validates with `validateAll()`, and writes both `cargos` and `validation` to state.
+  - During `ROTATE`, the dispatcher delegates to `dragEngine.rotateItem()` which preserves the item's center and resolves a collision-free placement inside the truck band (reverting to the previous pose when impossible), re-validates against band bounds, and updates state.
 
 - **`CanvasState`** (`src/state/CanvasState.ts`) defines the shape of the entire canvas:
   - `truck: TruckItem | null` — the truck boundary
@@ -179,22 +178,17 @@ src/
   - Uses `getRotatedScreenSize()` to account for rotated items when computing snap positions.
   - Returns a `SnapTarget` with position, type, and distance.
 
-- **`ValidationEngine`** (`src/engines/ValidationEngine.ts`)
-  - `validateItems(items, bounds, options)` — delegates to `validateAll()` in `validationRules.ts`.
-  - Checks: `OUT_OF_BOUNDS`, `OVERLAP`, `LM_EXCEEDED`.
-  - Returns `ValidationResult` with `valid`, `errors`, and `itemErrors` (per-item error mapping for UI highlighting).
-
 ### Adapters
 
 - **`cargoAdapter.ts`** — Converts between PackingUnit/TransportOrder data (meters) and CargoItem view models (pixels).
   - `packingUnitToCargoItem()` — single PackingUnit → CargoItem
   - `transportOrdersToCargoItems()` — list of TransportOrders → CargoItem[]
-  - `cargoItemToPackingUnitData()` — CargoItem → PackingUnitData (for persistence)
-  - `getCargoItemRect()` — gets the visual rectangle of a CargoItem (accounting for rotation)
+  - `cargoItemToPackingUnitData()` — CargoItem → PackingUnitData (for persistence). Currently unused in production code (covered by unit tests only); the save path uses `stateAdapter.serializePlan()` — kept as a documented utility until a removal decision
+  - `getCargoItemRect()` — gets the visual rectangle of a CargoItem (accounting for rotation). Currently unused in production code (unit tests only) — kept as a documented utility until a removal decision
 
 - **`truckAdapter.ts`** — Converts between TruckSelection data (meters) and TruckItem view model (pixels).
   - `truckSelectionToTruckItem()` — TruckSelectionData → TruckItem; the frame is pinned to the reserved canvas band (TRUCK_CANVAS_WIDTH x TRUCK_CANVAS_HEIGHT) so it aligns with drag bounds and the background image
-  - `truckToTruckItem()` — Truck business model → TruckItem (same frame pinning)
+  - `truckToTruckItem()` — Truck business model → TruckItem (same frame pinning). Currently unused in production code (unit tests only) — kept as a documented utility until a removal decision
 - `computeScale()` — computes one uniform pixel-per-meter scale fitting the truck into TRUCK_CANVAS (1453x297) with padding=0; returns `{ widthScale, heightScale }` with equal values so rotation preserves rendered proportions
 
 - **`stateAdapter.ts`** — Serializes/deserializes packing plans for persistence.
@@ -214,7 +208,7 @@ src/
 ### React Hooks
 
 - **`useTruckCanvas`** (`src/hooks/useTruckCanvas.ts`) — the main entry point.
-  - Memoizes engine instances (`CollisionEngine`, `SnapEngine`, `DragEngine`, `ValidationEngine`) and the `CanvasStateManager` + `CanvasActionDispatcher`.
+  - Memoizes engine instances (`CollisionEngine`, `SnapEngine`, `DragEngine`) and the `CanvasStateManager` + `CanvasActionDispatcher`.
   - Wires `useCanvasState()` and `useCanvasActions()` to the manager and dispatcher.
   - Provides `handleMouseDown`, `handleCanvasMouseDown`, and `handleRotate` callbacks.
   - Uses `useMouseEvents()` to attach global mousemove/mouseup/blur listeners during drag.
@@ -274,7 +268,7 @@ src/
 6. **User interaction** (mousedown on a cargo card) triggers `handleMouseDown`, which converts the browser coordinate to a canvas coordinate via `getCanvasPoint()` and dispatches `START_DRAG` through `useCanvasActions()`.
 7. **`CanvasActionDispatcher.dispatch()`** routes the action: `START_DRAG` calls `dragEngine.startDrag()` and updates `selectedIds` / `activeItemId` in the state manager.
 8. **Mouse move** (captured by `useMouseEvents`) calls `dragMove`, which dispatches `DRAG_MOVE`.
-9. **`DRAG_MOVE`** calls `dragEngine.move()` (which applies snap + collision resolution), then `validationEngine.validateItems()`, and writes the new `cargos` and `validation` to the state manager.
+9. **`DRAG_MOVE`** calls `dragEngine.move()` (which applies snap + collision resolution), then `validateAll()`, and writes the new `cargos` and `validation` to the state manager.
 10. **`CanvasStateManager`** notifies subscribers; `useCanvasState` triggers a re-render with the updated state.
 11. **React re-renders** the cargo cards at their new positions.
 12. **Mouse up** dispatches `END_DRAG`, which calls `dragEngine.endDrag()` and clears `activeItemId`.
@@ -388,8 +382,8 @@ See `docs/PACKING_PLAN_ENTITY.md` for the full entity design.
 
 - **PackingPlan** (1 per TruckSelection) — stores the plan header.
 - **PackingPlanItem** (1-\* per plan) — stores individual item positions.
-- **Save flow**: Delete existing items → Create new items → Commit.
-- **Load flow**: Query PackingPlan → Query PackingPlanItems → Deserialize to CargoItems.
+- **Save flow**: Find-or-create plan → Delete existing items → Create new items (association-first, GUID-keyed pairing) → Commit; logs contextual warnings if associations cannot be resolved
+- **Load flow**: Query PackingPlan → Query PackingPlanItems → Resolve TransportOrder associations via MxObject API → Deserialize to CargoItems
 
 ## Notes
 

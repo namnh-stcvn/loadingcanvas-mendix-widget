@@ -1,5 +1,6 @@
 import { describe, it, expect } from "@jest/globals";
-import { validateItem } from "../validationRules";
+import { validateItem, validateLoadMeters, validateAll } from "../validationRules";
+import type { CargoItem } from "../../viewModels/CargoItem";
 
 describe("validationRules", () => {
   const bounds = { x: 0, y: 0, length: 1000, width: 600 };
@@ -109,6 +110,92 @@ describe("validationRules", () => {
       const result = validateItem(item, bounds, others, scale);
       expect(result.valid).toBe(false);
       expect(result.errors).toContain("OVERLAP");
+    });
+  });
+
+  const makeCargo = (id: string, x: number, y: number, length: number, width: number): CargoItem => ({
+    id,
+    name: id,
+    type: "pallet",
+    color: "#888888",
+    isLocked: false,
+    x,
+    y,
+    length,
+    width,
+    rotation: 0,
+  });
+
+  describe("validateLoadMeters", () => {
+    const scale = { widthScale: 100, heightScale: 50 };
+
+    it("should return valid when total load meters are within the limit", () => {
+      const items = [makeCargo("a", 0, 0, 1200, 50), makeCargo("b", 500, 0, 800, 50)];
+      expect(validateLoadMeters(items, 20, scale)).toEqual({ valid: true, errors: [] });
+    });
+
+    it("should return LM_EXCEEDED when total load meters exceed the limit", () => {
+      const items = [makeCargo("a", 0, 0, 1300, 50), makeCargo("b", 500, 0, 900, 50)];
+      const result = validateLoadMeters(items, 20, scale);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toEqual(["LM_EXCEEDED"]);
+    });
+
+    it("should treat hitting the limit exactly as valid", () => {
+      const items = [makeCargo("a", 0, 0, 2000, 50)];
+      expect(validateLoadMeters(items, 20, scale)).toEqual({ valid: true, errors: [] });
+    });
+
+    it("should return valid for an empty item list", () => {
+      expect(validateLoadMeters([], 10, scale)).toEqual({ valid: true, errors: [] });
+    });
+  });
+
+  describe("validateAll", () => {
+    const fullScale = { widthScale: 100, heightScale: 50 };
+    const wideBounds = { x: 0, y: 0, length: 200, width: 200 };
+
+    it("should aggregate geometric errors and per-item error mapping", () => {
+      const items = [makeCargo("a", -5, 120, 40, 40), makeCargo("b", 10, 10, 40, 40), makeCargo("c", 30, 30, 40, 40)];
+      const result = validateAll(items, wideBounds);
+      expect(result.valid).toBe(false);
+      expect(result.itemErrors?.a).toContain("OUT_OF_BOUNDS");
+      expect(result.itemErrors?.b).toContain("OVERLAP");
+      expect(result.itemErrors?.c).toContain("OVERLAP");
+      expect(result.errors).toContain("OUT_OF_BOUNDS");
+      expect(result.errors.filter((e) => e === "OVERLAP")).toHaveLength(2);
+    });
+
+    it("should be valid for a clean configuration within bounds, no overlaps, LM ok", () => {
+      const items = [makeCargo("a", 0, 0, 60, 40), makeCargo("b", 120, 0, 60, 40)];
+      const result = validateAll(items, wideBounds, {
+        maxLoadMeters: 20,
+        scale: fullScale,
+      });
+      expect(result).toEqual({ valid: true, errors: [], itemErrors: {} });
+    });
+
+    it("should skip the LM check when maxLoadMeters is not provided", () => {
+      const items = [makeCargo("a", 0, 0, 150, 40)];
+      const result = validateAll(items, wideBounds, { scale: fullScale });
+      expect(result).toEqual({ valid: true, errors: [], itemErrors: {} });
+    });
+
+    it("should skip the LM check when scale is not provided", () => {
+      const items = [makeCargo("a", 0, 0, 150, 40)];
+      const result = validateAll(items, wideBounds, { maxLoadMeters: 10 });
+      expect(result).toEqual({ valid: true, errors: [], itemErrors: {} });
+    });
+
+    it("should report LM_EXCEEDED once for otherwise-clean items over the limit", () => {
+      const items = [makeCargo("a", 0, 0, 130, 40), makeCargo("b", 0, 80, 90, 40)];
+      const result = validateAll(items, wideBounds, {
+        maxLoadMeters: 1,
+        scale: fullScale,
+      });
+      expect(result.valid).toBe(false);
+      expect(result.errors).toEqual(["LM_EXCEEDED"]);
+      expect(result.itemErrors).toEqual({});
     });
   });
 });
