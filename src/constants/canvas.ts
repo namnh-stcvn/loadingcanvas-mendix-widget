@@ -27,6 +27,19 @@ export const INFO_PANEL_BORDER = "1px solid #ddd";
 
 export const GRID_SIZE = 20;
 
+export const GRID_LINE_COLOR = "rgba(0, 0, 0, 0.05)";
+export const GRID_LINE_WIDTH = 1;
+export const GRID_OVERLAY_Z_INDEX = 1;
+
+// truck frame
+
+export const TRUCK_FRAME_BORDER = "2px dashed #888";
+
+// placement
+
+export const DEFAULT_ADD_POSITION_X = 50;
+export const DEFAULT_ADD_POSITION_Y = 50;
+
 // rotation
 
 export const ROTATION_STEP = 90;

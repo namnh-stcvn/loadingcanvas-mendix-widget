@@ -1,4 +1,4 @@
-import type { FC } from "react";
+﻿import type { FC } from "react";
 import type { CargoItem } from "../viewModels/CargoItem";
 
 import {
@@ -27,24 +27,25 @@ import {
 } from "../constants/cargoList";
 
 interface CargoListProps {
-  availableItems: CargoItem[];
-  onAddCargo: (cargo: CargoItem) => void;
+  availableItems: CargoItem[]; // Cargo items available to drag onto canvas
+  onAddCargo: (cargo: CargoItem) => void; // Called when cargo is dragged onto canvas
 }
 
+// CargoList â€” debug view showing available cargo items draggable onto canvas
 export const CargoList: FC<CargoListProps> = ({ availableItems, onAddCargo }) => {
   if (availableItems.length === 0) {
     return (
       <div
         style={{
           position: "absolute",
-          bottom: CARGO_LIST_PANEL_BOTTOM,
-          left: CARGO_LIST_PANEL_LEFT,
-          padding: CARGO_LIST_PANEL_PADDING,
-          background: CARGO_LIST_PANEL_BG_EMPTY,
-          border: CARGO_LIST_PANEL_BORDER,
-          borderRadius: CARGO_LIST_PANEL_BORDER_RADIUS,
-          fontSize: CARGO_LIST_PANEL_FONT_SIZE,
-          color: CARGO_LIST_PANEL_COLOR,
+          bottom: 10,
+          left: 10,
+          padding: "4px 8px",
+          background: "rgba(255, 255, 255, 0.8)",
+          border: "1px solid #ddd",
+          borderRadius: 4,
+          fontSize: 12,
+          color: "#666",
         }}>
         No cargo items available
       </div>
@@ -55,21 +56,22 @@ export const CargoList: FC<CargoListProps> = ({ availableItems, onAddCargo }) =>
     <div
       style={{
         position: "absolute",
-        bottom: CARGO_LIST_PANEL_BOTTOM,
-        left: CARGO_LIST_PANEL_LEFT,
+        bottom: 10,
+        left: 10,
         display: "flex",
-        gap: CARGO_LIST_PANEL_GAP,
-        padding: CARGO_LIST_PANEL_PADDING_LIST,
-        background: CARGO_LIST_PANEL_BG_LIST,
-        border: CARGO_LIST_PANEL_BORDER,
-        borderRadius: CARGO_LIST_PANEL_BORDER_RADIUS,
-        zIndex: CARGO_LIST_Z_INDEX,
+        gap: 8,
+        padding: "8px 12px",
+        background: "rgba(255, 255, 255, 0.9)",
+        border: "1px solid #ddd",
+        borderRadius: 4,
+        zIndex: 1000,
       }}>
       {availableItems.map((cargo) => (
         <div
           key={cargo.id}
           draggable
           onDragStart={(e) => {
+            // Set the cargo ID as drag data
             e.dataTransfer.setData("text/plain", cargo.id);
             e.dataTransfer.effectAllowed = "move";
           }}
@@ -81,34 +83,31 @@ export const CargoList: FC<CargoListProps> = ({ availableItems, onAddCargo }) =>
             cursor: "grab",
             userSelect: "none",
           }}
-          title={"Drag " + cargo.name + " onto canvas"}>
+          title={`Drag ${cargo.name} onto canvas`}>
           <div
             style={{
-              width: CARGO_LIST_CHIP_WIDTH,
-              height: CARGO_LIST_CHIP_HEIGHT,
+              width: 40,
+              height: 40,
               backgroundColor: cargo.color,
-              border: CARGO_LIST_CHIP_BORDER,
-              borderRadius: CARGO_LIST_CHIP_BORDER_RADIUS,
+              border: "2px solid #333",
+              borderRadius: 4,
               boxSizing: "border-box",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: CARGO_LIST_CHIP_FONT_SIZE,
-              color: CARGO_LIST_CHIP_COLOR,
-              fontWeight: CARGO_LIST_CHIP_FONT_WEIGHT,
+              fontSize: 8,
+              color: "#fff",
+              fontWeight: "bold",
             }}>
-            {cargo.type === "pallet" ? "📦" : "🟦"}
+            {cargo.type === "pallet" ? "ðŸ“¦" : "ðŸŸ¦"}
           </div>
-          <span
-            style={{
-              fontSize: CARGO_LIST_NAME_FONT_SIZE,
-              marginTop: CARGO_LIST_NAME_MARGIN_TOP,
-              color: CARGO_LIST_NAME_COLOR,
-            }}>
-            {cargo.name}
-          </span>
+          <span style={{ fontSize: 10, marginTop: 2, color: "#333" }}>{cargo.name}</span>
+          {/* <span style={{ fontSize: 8, color: "#666" }}>
+            {cargo.length.toFixed(2)}Ã—{cargo.width.toFixed(2)}
+          </span> */}
         </div>
       ))}
     </div>
   );
 };
+

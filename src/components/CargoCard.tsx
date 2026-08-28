@@ -13,6 +13,7 @@ import {
   CARD_BORDER_COLOR,
   CARD_ACTIVE_BORDER_COLOR,
   CARD_SELECTED_BORDER_COLOR,
+  CARD_ERROR_BORDER_COLOR,
 } from "../constants/card";
 
 interface CargoCardProps {
@@ -51,7 +52,7 @@ export const CargoCard: React.FC<CargoCardProps> = ({
 
   const isSelected = selectedIds.includes(item.id);
 
-  const borderColor = hasError ? "#ff4444" : CARD_BORDER_COLOR;
+  const borderColor = hasError ? CARD_ERROR_BORDER_COLOR : CARD_BORDER_COLOR;
 
   const border = isActive
     ? `${CARD_ACTIVE_BORDER_WIDTH}px solid ${CARD_ACTIVE_BORDER_COLOR}`

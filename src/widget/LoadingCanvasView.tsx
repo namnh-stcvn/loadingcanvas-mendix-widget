@@ -14,8 +14,17 @@ import {
   INFO_PANEL_BACKGROUND,
   INFO_PANEL_BORDER,
   GRID_SIZE,
+  TRUCK_FRAME_BORDER,
+  DEFAULT_ADD_POSITION_X,
+  DEFAULT_ADD_POSITION_Y,
 } from "../constants/canvas";
-import { CANVAS_BACKGROUND_COLOR } from "../constants/theme";
+import {
+  CANVAS_BACKGROUND_COLOR,
+  ERROR_TEXT_COLOR,
+  SAVE_ERROR_COLOR,
+  EMPTY_STATE_COLOR,
+  EMPTY_STATE_FONT_SIZE,
+} from "../constants/theme";
 import { fromCargoId } from "../domain/cargoIdentity";
 import truckBackground from "../assets/Truck_horizontal.png";
 import type { CargoItem } from "../viewModels/CargoItem";
@@ -157,8 +166,8 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 16,
-          color: "#666",
+          fontSize: EMPTY_STATE_FONT_SIZE,
+          color: EMPTY_STATE_COLOR,
         }}>
         Loading...
       </div>
@@ -197,7 +206,7 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
             top: truck.y,
             width: truck.length,
             height: truck.width,
-            border: "2px dashed #888",
+            border: TRUCK_FRAME_BORDER,
             boxSizing: "border-box",
             pointerEvents: "none",
           }}
@@ -225,7 +234,7 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
         {validation?.errors.length > 0 && (
           <ul style={{ margin: 0, paddingLeft: 16 }}>
             {validation.errors.map((error) => (
-              <li key={error} style={{ color: "red", fontSize: 12 }}>
+              <li key={error} style={{ color: ERROR_TEXT_COLOR, fontSize: 12 }}>
                 {error}
               </li>
             ))}
@@ -238,10 +247,7 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
           <button onClick={handleLoadPlan} style={{ marginRight: 8 }}>
             Load Plan
           </button>
-          {/* Hidden debug controls – re-enable by removing this wrapper.
-              Requires noUnusedLocals/noUnusedParameters = false in tsconfig.json,
-              otherwise @rollup/plugin-typescript fails the build on TS6133. */}
-          {/* <button
+          <button
             onClick={handleAutoLoad}
             style={{ marginRight: 8 }}
             disabled={items.length === 0 && availableCargoItems.length === 0}>
@@ -259,13 +265,13 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
                 : undefined
             }>
             Verify
-          </button> */}
+          </button>
         </div>
         {autoLoadUnplaced > 0 && (
-          <div style={{ color: "red", fontSize: 12 }}>{autoLoadUnplaced} item(s) did not fit</div>
+          <div style={{ color: ERROR_TEXT_COLOR, fontSize: 12 }}>{autoLoadUnplaced} item(s) did not fit</div>
         )}
         {saveError && (
-          <div style={{ color: "#b00020", fontSize: 12, maxWidth: 260 }} title={saveError}>
+          <div style={{ color: SAVE_ERROR_COLOR, fontSize: 12, maxWidth: 260 }} title={saveError}>
             Save failed: {saveError}
           </div>
         )}
@@ -276,7 +282,7 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
         availableItems={availableCargoItems}
         onAddCargo={(cargo: CargoItem) => {
           // Add cargo to canvas at a default position
-          const newItem = { ...cargo, x: 50, y: 50 };
+          const newItem = { ...cargo, x: DEFAULT_ADD_POSITION_X, y: DEFAULT_ADD_POSITION_Y };
           addItem(newItem);
         }}
       />
