@@ -1,5 +1,7 @@
 # LoadingCanvas Widget Architecture
 
+ARCHITECTURE.md
+
 ## Overview
 
 This repository implements a modular **LoadingCanvas** widget for drag-and-drop truck loading planning. Built with React 18 and TypeScript on the Mendix pluggable-widget toolchain, the widget provides an interactive canvas where users can place, drag, rotate, and validate cargo items within a truck boundary.
@@ -7,7 +9,7 @@ This repository implements a modular **LoadingCanvas** widget for drag-and-drop 
 The architecture follows a strict **layered separation of concerns**:
 
 - **UI layer** — React components and hooks (`LoadingCanvas`, `LoadingCanvasContainer`, `CargoCard`, `RotationHandle`, `GridOverlay`, `CargoList`, `useTruckCanvas`, `useCanvasState`, `useCanvasActions`, `useMouseEvents`)
-- **State management layer** — `CanvasStateManager` (single source of truth) and `CanvasActionDispatcher` (action routing: `SET_ITEMS`, `ADD_ITEM`, `REMOVE_ITEM`, `START_DRAG`, `DRAG_MOVE`, `END_DRAG`, `ROTATE`, `SELECT`, `DESELECT`, `SET_ACTIVE_ITEM`, `UNDO`, `REDO`)
+- **State management layer** — `CanvasStateManager` (single source of truth) and `CanvasActionDispatcher` (action routing)
 - **Engine layer** — `DragEngine`, `CollisionEngine`, `SnapEngine` (pure business logic; validation executes directly from the dispatcher via `domain/validationRules`)
 - **Domain rule layer** — geometry, snap, validation, coordinate, rotation, drag, boundary, and packing helpers
 - **Adapter layer** — `cargoAdapter`, `truckAdapter`, `stateAdapter`, `mendixDataAdapter` (Mendix data integration)
