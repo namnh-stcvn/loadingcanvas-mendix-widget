@@ -4,6 +4,7 @@ import type { CanvasStateManager } from "./CanvasStateManager";
 import { getCanvasBounds, getTruckBounds } from "../domain/boundaryRules";
 import { validateAll } from "../domain/validationRules";
 import { DragEngine } from "../engines/DragEngine";
+import { fromCargoId } from "../domain/cargoIdentity";
 
 export type CanvasAction =
   | { type: "SELECT"; ids: string[] }
@@ -15,6 +16,7 @@ export type CanvasAction =
   | { type: "ROTATE"; itemId: string }
   | { type: "ADD_ITEM"; item: CargoItem }
   | { type: "SET_ITEMS"; items: CargoItem[] }
+  | { type: "REMOVE_ITEM"; baseId: string }
   | { type: "UNDO" }
   | { type: "REDO" };
 
@@ -164,6 +166,21 @@ export class CanvasActionDispatcher {
         this.manager.updateState((current) => ({
           ...current,
           cargos: action.items,
+          validation,
+        }));
+        break;
+      }
+
+      case "REMOVE_ITEM": {
+        // Remove ALL items that belong to the same transport order (same baseId)
+        // Items on canvas have IDs like "cargo-<transportOrderGuid>"
+        // We use fromCargoId to extract the base transport order GUID
+        const remainingCargos = state.cargos.filter((item) => fromCargoId(item.id) !== action.baseId);
+        this.dragEngine.updateItems(remainingCargos);
+        const validation = validateAll(remainingCargos, getTruckBounds(), buildValidationOptions(state));
+        this.manager.updateState((current) => ({
+          ...current,
+          cargos: remainingCargos,
           validation,
         }));
         break;

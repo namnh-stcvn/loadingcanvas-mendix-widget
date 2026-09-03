@@ -12,6 +12,7 @@ export const useCanvasActions = (
   rotateItem: (itemId: string) => void;
   addItem: (item: CargoItem) => void;
   setItems: (items: CargoItem[]) => void;
+  removeItem: (baseId: string) => void;
   deselect: () => void;
 } => {
   return {
@@ -45,6 +46,12 @@ export const useCanvasActions = (
     setItems: useCallback(
       (items: CargoItem[]) => {
         dispatcher.dispatch({ type: "SET_ITEMS", items });
+      },
+      [dispatcher]
+    ),
+    removeItem: useCallback(
+      (baseId: string) => {
+        dispatcher.dispatch({ type: "REMOVE_ITEM", baseId });
       },
       [dispatcher]
     ),

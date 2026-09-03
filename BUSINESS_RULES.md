@@ -1,6 +1,6 @@
 # Business Rules — LoadingCanvas Widget
 
-This document describes the **business rules** of the LoadingCanvas widget: the behavioral contract that governs truck loading and packing planning. It states *what* the system enforces, not *how* it is implemented. Technical design lives in `ARCHITECTURE.md`; the persistence entity design lives in `docs/PACKING_PLAN_ENTITY.md`.
+This document describes the **business rules** of the LoadingCanvas widget: the behavioral contract that governs truck loading and packing planning. It states _what_ the system enforces, not _how_ it is implemented. Technical design lives in `ARCHITECTURE.md`; the persistence entity design lives in `docs/PACKING_PLAN_ENTITY.md`.
 
 All measurements use metric units: meters for length/width/height, kilograms for weight.
 
@@ -16,16 +16,16 @@ These rules cover: trucks, cargo, placement, capacity, positioning, collision ha
 
 ## 2. Glossary
 
-| Term | Meaning |
-| --- | --- |
-| **Truck (TruckSelection)** | The vehicle being loaded; defines the usable interior space and limits. |
-| **Transport Order** | A shipping order that supplies cargo to the planner. |
-| **Packing Unit** | The physical unit (pallet or box) belonging to a transport order; defines footprint, height, and weight. |
-| **Cargo Item** | A packing unit as represented on the planning canvas. |
-| **Packing Plan** | The single saved arrangement of cargo for one truck selection. |
-| **Plan Item** | One stored cargo placement inside a packing plan. |
-| **Load Meter (LM)** | Linear meters of truck length occupied by cargo. |
-| **Canvas** | The interactive 2-D top-view surface on which cargo is arranged. |
+| Term                       | Meaning                                                                                                  |
+| -------------------------- | -------------------------------------------------------------------------------------------------------- |
+| **Truck (TruckSelection)** | The vehicle being loaded; defines the usable interior space and limits.                                  |
+| **Transport Order**        | A shipping order that supplies cargo to the planner.                                                     |
+| **Packing Unit**           | The physical unit (pallet or box) belonging to a transport order; defines footprint, height, and weight. |
+| **Cargo Item**             | A packing unit as represented on the planning canvas.                                                    |
+| **Packing Plan**           | The single saved arrangement of cargo for one truck selection.                                           |
+| **Plan Item**              | One stored cargo placement inside a packing plan.                                                        |
+| **Load Meter (LM)**        | Linear meters of truck length occupied by cargo.                                                         |
+| **Canvas**                 | The interactive 2-D top-view surface on which cargo is arranged.                                         |
 
 ---
 
@@ -46,6 +46,7 @@ These rules cover: trucks, cargo, placement, capacity, positioning, collision ha
 - **BR-08** — Cargo is color-coded on screen: orange = pallet, blue = box.
 - **BR-09** — When cargo dimensions are missing or invalid, defaults apply: 1.2 m length × 0.8 m width footprint, 1.6 m height, 500 kg weight.
 - **BR-10** — The available-cargo list shows only cargo that is **not** currently placed on the canvas. Placing cargo removes it from the list; removing it from the canvas returns it to the list.
+- **BR-10a** — A transport order's cargo can be removed from the canvas by the user; all cargo items belonging to that transport order are removed simultaneously and returned to the available-cargo list.
 
 ---
 
@@ -136,13 +137,12 @@ These rules cover: trucks, cargo, placement, capacity, positioning, collision ha
 
 - **BR-42** — Card borders communicate state:
 
-  | State | Border |
-  | --- | --- |
-  | Normal | gray |
-  | Selected | blue |
-  | Being dragged (active) | red |
+  | State                                       | Border              |
+  | ------------------------------------------- | ------------------- |
+  | Normal                                      | gray                |
+  | Selected                                    | blue                |
+  | Being dragged (active)                      | red                 |
   | Invalid placement (overlap / out of bounds) | red error highlight |
 
 - **BR-43** — After Auto Load, the planner reports how many items did not fit, if any.
 - **BR-44** — A grid overlay is drawn on the canvas as visual guidance matching the snap grid.
-

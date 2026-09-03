@@ -92,6 +92,30 @@ describe("cargoAdapter", () => {
       const result = packingUnitToCargoItem(packingUnit, scale);
       expect(result.name).toBe("Cargo pu-1");
     });
+
+    it("should default quantity to 1 when not provided", () => {
+      const packingUnit = {
+        id: "pu-1",
+        lengthMeter: 1.2,
+        widthMeter: 0.8,
+        heightMeter: 1.6,
+        packingType: "pallet" as const,
+      };
+      const result = packingUnitToCargoItem(packingUnit, scale);
+      expect(result.quantity).toBe(1);
+    });
+
+    it("should use provided quantity", () => {
+      const packingUnit = {
+        id: "pu-1",
+        lengthMeter: 1.2,
+        widthMeter: 0.8,
+        heightMeter: 1.6,
+        packingType: "pallet" as const,
+      };
+      const result = packingUnitToCargoItem(packingUnit, scale, { x: 0, y: 0 }, 5);
+      expect(result.quantity).toBe(5);
+    });
   });
 
   describe("transportOrdersToCargoItems", () => {

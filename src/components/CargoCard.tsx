@@ -3,6 +3,7 @@ import React from "react";
 import type { CargoItem } from "../viewModels/CargoItem";
 
 import { DEFAULT_AXIS_SCALE, getRotatedScreenSize, type AxisScale } from "../domain/rotationRules";
+import { fromCargoId } from "../domain/cargoIdentity";
 
 import { RotationHandle } from "./RotationHandle";
 
@@ -72,6 +73,11 @@ export const CargoCard: React.FC<CargoCardProps> = ({
       <div
         data-id={item.id}
         onMouseDown={onMouseDown}
+        draggable={!item.isLocked}
+        onDragStart={(e) => {
+          e.dataTransfer.setData("text/plain", fromCargoId(item.id));
+          e.dataTransfer.effectAllowed = "move";
+        }}
         style={{
           width: size.length,
 

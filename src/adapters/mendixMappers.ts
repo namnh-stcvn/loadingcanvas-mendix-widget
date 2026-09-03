@@ -238,6 +238,8 @@ export const extractTransportOrderData = (obj: unknown, fallbackGuid?: string): 
     readRawValue(raw, ["weightKg", "WeightKg", "weight", "Weight", "grossWeight", "GrossWeight"], DEFAULT_WEIGHT_KG)
   );
 
+  const quantity = Number(readRawValue(raw, ["Quantity", "quantity", "Qty", "qty"], 1));
+
   const packingUnit: PackingUnitData = {
     id,
     name,
@@ -252,5 +254,6 @@ export const extractTransportOrderData = (obj: unknown, fallbackGuid?: string): 
     id,
     name,
     packingUnit,
+    quantity: isNaN(quantity) ? 1 : quantity,
   };
 };

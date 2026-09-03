@@ -6,8 +6,7 @@ const tsParser = require("@typescript-eslint/parser");
 const tsPlugin = require("@typescript-eslint/eslint-plugin");
 const reactHooks = require("eslint-plugin-react-hooks");
 
-const reactHooksConfig =
-  reactHooks.configs?.flat?.recommended ?? reactHooks.configs?.["flat/recommended"];
+const reactHooksConfig = reactHooks.configs?.flat?.recommended ?? reactHooks.configs?.["flat/recommended"];
 
 module.exports = [
   {

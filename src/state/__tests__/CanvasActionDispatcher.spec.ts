@@ -390,6 +390,52 @@ describe("CanvasActionDispatcher", () => {
     });
   });
 
+  describe("REMOVE_ITEM", () => {
+    it("should remove all items with the same baseId", () => {
+      const { manager, dispatcher } = createDispatcher([
+        createCargoItem({ id: "cargo-order1", x: 100, y: 100 }),
+        createCargoItem({ id: "cargo-order1", x: 150, y: 100 }), // Same baseId - simulating multiple items from same order
+        createCargoItem({ id: "cargo-order2", x: 200, y: 100 }),
+      ]);
+      dispatcher.dispatch({ type: "REMOVE_ITEM", baseId: "order1" });
+      const state = manager.getState();
+      expect(state.cargos).toHaveLength(1);
+      expect(state.cargos[0].id).toBe("cargo-order2");
+    });
+
+    it("should not affect items with different baseId", () => {
+      const { manager, dispatcher } = createDispatcher([
+        createCargoItem({ id: "cargo-order1", x: 100, y: 100 }),
+        createCargoItem({ id: "cargo-order2", x: 200, y: 100 }),
+      ]);
+      dispatcher.dispatch({ type: "REMOVE_ITEM", baseId: "order1" });
+      const state = manager.getState();
+      expect(state.cargos).toHaveLength(1);
+      expect(state.cargos[0].id).toBe("cargo-order2");
+    });
+
+    it("should update validation after removal", () => {
+      const { manager, dispatcher } = createDispatcher([createCargoItem({ id: "cargo-order1", x: 100, y: 100 })]);
+      dispatcher.dispatch({ type: "REMOVE_ITEM", baseId: "order1" });
+      const state = manager.getState();
+      expect(state.cargos).toHaveLength(0);
+      expect(state.validation.valid).toBe(true);
+    });
+
+    it("should update dragEngine with remaining items", () => {
+      const { manager, dispatcher, dragEngine } = createDispatcher([
+        createCargoItem({ id: "cargo-order1", x: 100, y: 100 }),
+        createCargoItem({ id: "cargo-order2", x: 200, y: 100 }),
+      ]);
+      const updateItemsSpy = jest.spyOn(dragEngine, "updateItems");
+      dispatcher.dispatch({ type: "REMOVE_ITEM", baseId: "order1" });
+      expect(updateItemsSpy).toHaveBeenCalled();
+      const updatedItems = updateItemsSpy.mock.calls[0][0];
+      expect(updatedItems).toHaveLength(1);
+      expect(updatedItems[0].id).toBe("cargo-order2");
+    });
+  });
+
   describe("UNDO", () => {
     it("should call manager.undo", () => {
       const { manager, dispatcher } = createDispatcher([createCargoItem()]);

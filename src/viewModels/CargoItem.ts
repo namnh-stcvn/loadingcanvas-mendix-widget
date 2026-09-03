@@ -10,4 +10,5 @@ export interface CargoItem extends GeometryItem {
   lengthM?: number; // Footprint length in meters
   widthM?: number; // Footprint width in meters
   weightKg?: number; // Weight in kg for payload validation
+  quantity?: number;
 }

@@ -11,16 +11,16 @@ This guide documents the **compatibility matrix** and **4-step upgrade process**
 
 ## Compatibility Matrix
 
-| Component                           | Current (Tested)            | Next Target | Notes                                                                                         |
-| :---------------------------------- | :-------------------------- | :---------- | :-------------------------------------------------------------------------------------------- |
-| **Node.js**                         | 18 LTS, 20 LTS              | 22 LTS      | Declared as `>=16` in `package.json` `engines`. Recommend Node 18 or 20 LTS.                  |
-| **React**                           | 18.2.0                    | 19          | Pinned to 18.2.0 via package.json `overrides`/`resolutions` for Mendix runtime compatibility (automatic JSX runtime). |
-| **TypeScript**                      | 5.9.3                       | 6.x         | `strict: true` enabled. `verbatimModuleSyntax` in node config.                                |
-| **Mendix**                          | 10.x                        | 11.x        | Uses `mx.data` API, Pluggable Widget Spec 1.0.                                                |
-| **@mendix/pluggable-widgets-tools** | ^10.0.2                     | ^11.0.0     | Mendix widget build toolchain (bundling, dev server, lint, tests).                                  |
-| **Rollup**                          | via tools                  | —           | Widget bundler under the hood of pluggable-widgets-tools (defaults, no custom config).               |
-| **ESLint**                          | 9 / pluggable-widgets-tools | —           | With `typescript-eslint`, `eslint-plugin-react-hooks`.                                              |
-| **Jest + ts-jest**                  | 29                         | —           | Unit test runner with jsdom environment (via pluggable-widgets-tools). 253 tests.                   |
+| Component                           | Current (Tested)            | Next Target | Notes                                                                                                                 |
+| :---------------------------------- | :-------------------------- | :---------- | :-------------------------------------------------------------------------------------------------------------------- |
+| **Node.js**                         | 18 LTS, 20 LTS              | 22 LTS      | Declared as `>=16` in `package.json` `engines`. Recommend Node 18 or 20 LTS.                                          |
+| **React**                           | 18.2.0                      | 19          | Pinned to 18.2.0 via package.json `overrides`/`resolutions` for Mendix runtime compatibility (automatic JSX runtime). |
+| **TypeScript**                      | 5.9.3                       | 6.x         | `strict: true` enabled. `verbatimModuleSyntax` in node config.                                                        |
+| **Mendix**                          | 10.x                        | 11.x        | Uses `mx.data` API, Pluggable Widget Spec 1.0.                                                                        |
+| **@mendix/pluggable-widgets-tools** | ^10.0.2                     | ^11.0.0     | Mendix widget build toolchain (bundling, dev server, lint, tests).                                                    |
+| **Rollup**                          | via tools                   | —           | Widget bundler under the hood of pluggable-widgets-tools (defaults, no custom config).                                |
+| **ESLint**                          | 9 / pluggable-widgets-tools | —           | With `typescript-eslint`, `eslint-plugin-react-hooks`.                                                                |
+| **Jest + ts-jest**                  | 29                          | —           | Unit test runner with jsdom environment (via pluggable-widgets-tools). 253 tests.                                     |
 
 ### Version Matrix Summary
 

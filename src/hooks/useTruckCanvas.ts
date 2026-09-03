@@ -31,6 +31,7 @@ interface UseTruckCanvasResult {
   handleRotate: (itemId: string) => void;
   addItem: (item: CargoItem) => void;
   setItems: (items: CargoItem[]) => void;
+  removeItem: (baseId: string) => void;
 }
 
 const createInitialCanvasState = (
@@ -84,7 +85,16 @@ export const useTruckCanvas = ({
 
   // Destructure so the useCallback dependencies below reference the stable
   // per-action callbacks rather than the recreated `actions` object identity.
-  const { startDrag, dragMove: dispatchDragMove, endDrag, deselect, rotateItem, addItem, setItems } = actions;
+  const {
+    startDrag,
+    dragMove: dispatchDragMove,
+    endDrag,
+    deselect,
+    rotateItem,
+    addItem,
+    setItems,
+    removeItem,
+  } = actions;
 
   const handleMouseDown = useCallback(
     (e: ReactMouseEvent, itemId: string): void => {
@@ -145,5 +155,6 @@ export const useTruckCanvas = ({
     handleRotate: rotateItem,
     addItem,
     setItems,
+    removeItem,
   };
 };

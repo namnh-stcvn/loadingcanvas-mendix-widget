@@ -1,5 +1,6 @@
-import type { FC } from "react";
+import React, { type FC, type DragEvent } from "react";
 import type { CargoItem } from "../viewModels/CargoItem";
+import { fromCargoId } from "../domain/cargoIdentity";
 
 import {
   CARGO_LIST_PANEL_BOTTOM,
@@ -29,9 +30,23 @@ import {
 interface CargoListProps {
   availableItems: CargoItem[];
   onAddCargo: (cargo: CargoItem) => void;
+  onRemoveCargo?: (baseId: string) => void;
 }
 
-export const CargoList: FC<CargoListProps> = ({ availableItems, onAddCargo }) => {
+export const CargoList: FC<CargoListProps> = ({ availableItems, onAddCargo, onRemoveCargo }) => {
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const baseId = e.dataTransfer.getData("text/plain");
+    if (baseId && onRemoveCargo) {
+      onRemoveCargo(fromCargoId(baseId));
+    }
+  };
+
   if (availableItems.length === 0) {
     return (
       <div
@@ -64,7 +79,9 @@ export const CargoList: FC<CargoListProps> = ({ availableItems, onAddCargo }) =>
         border: CARGO_LIST_PANEL_BORDER,
         borderRadius: CARGO_LIST_PANEL_BORDER_RADIUS,
         zIndex: CARGO_LIST_Z_INDEX,
-      }}>
+      }}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}>
       {availableItems.map((cargo) => (
         <div
           key={cargo.id}
@@ -97,7 +114,7 @@ export const CargoList: FC<CargoListProps> = ({ availableItems, onAddCargo }) =>
               color: CARGO_LIST_CHIP_COLOR,
               fontWeight: CARGO_LIST_CHIP_FONT_WEIGHT,
             }}>
-            {cargo.type === "pallet" ? "📦" : "🟦"}
+            {cargo.quantity ?? 1 /*  + "x " + (cargo.type === "pallet" ? "📦" : "🟦") */}
           </div>
           <span
             style={{

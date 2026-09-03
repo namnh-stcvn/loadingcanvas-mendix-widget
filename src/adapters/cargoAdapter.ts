@@ -31,6 +31,7 @@ export interface TransportOrderData {
   id: string;
   name?: string;
   packingUnit?: PackingUnitData;
+  quantity?: number;
 }
 
 /**
@@ -39,12 +40,14 @@ export interface TransportOrderData {
  * @param packingUnit - The PackingUnit data from Mendix
  * @param scale - Pixel-to-meter scale factor
  * @param position - Initial canvas position (pixels)
+ * @param quantity - Quantity of items this transport order represents (default 1)
  * @returns A CargoItem view model ready for the canvas
  */
 export const packingUnitToCargoItem = (
   packingUnit: PackingUnitData,
   scale: { widthScale: number; heightScale: number },
-  position: { x: number; y: number } = { x: 0, y: 0 }
+  position: { x: number; y: number } = { x: 0, y: 0 },
+  quantity: number = 1
 ): CargoItem => {
   const color = packingUnit.packingType === "pallet" ? "orange" : "blue";
   const name = packingUnit.name ?? `Cargo ${packingUnit.id}`;
@@ -63,6 +66,7 @@ export const packingUnitToCargoItem = (
     lengthM: packingUnit.lengthMeter,
     widthM: packingUnit.widthMeter,
     weightKg: packingUnit.weightKg,
+    quantity,
   };
 };
 
@@ -74,7 +78,9 @@ export const transportOrdersToCargoItems = (
   orders: TransportOrderData[],
   scale: { widthScale: number; heightScale: number }
 ): CargoItem[] => {
-  return orders.filter((order) => order.packingUnit).map((order) => packingUnitToCargoItem(order.packingUnit!, scale));
+  return orders
+    .filter((order) => order.packingUnit)
+    .map((order) => packingUnitToCargoItem(order.packingUnit!, scale, { x: 0, y: 0 }, order.quantity ?? 1));
 };
 
 /**

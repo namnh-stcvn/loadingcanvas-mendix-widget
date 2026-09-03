@@ -19,6 +19,7 @@ Built with **React 18.2** (pinned via package.json `overrides`/`resolutions`, au
 - **Rotation-aware load-meter (LM) validation** — counts a 90°/270° rotated cargo by the length it actually occupies along the truck
 - **Load/save packing plans** via Mendix Data API, with save failures surfaced in the info panel instead of failing silently
 - **Auto Load** button that repacks all cargo tightly into the truck (First-Fit Decreasing with optional 90° rotation)
+- **Remove cargo items** — remove a transport order's cargo from the canvas, returning it to the available cargo list
 - **Undo/redo history** for committed state transitions (per-gesture granularity for drags; one undo step covers a full drag operation)
 - **Info panel** displaying validation status and item details
 - **Grid overlay** for visual guidance
@@ -49,7 +50,7 @@ The widget follows a **strict layered architecture**:
 - **DragEngine**: Manages drag state and position calculations
 - **CollisionEngine**: Detects overlaps and resolves conflicts
 - **SnapEngine**: Handles grid/edge/alignment snapping
-- *(validation no longer has a dedicated engine — the dispatcher validates directly via `domain/validationRules.ts`)*
+- _(validation no longer has a dedicated engine — the dispatcher validates directly via `domain/validationRules.ts`)_
 
 ### 4. Domain Rule Layer
 
@@ -182,13 +183,13 @@ npm dev
 
 ## Available Scripts
 
-| Script          | Description                              |
-| --------------- | ---------------------------------------- |
-| `npm start`     | Start pluggable-widgets-tools dev server |
+| Script          | Description                                  |
+| --------------- | -------------------------------------------- |
+| `npm start`     | Start pluggable-widgets-tools dev server     |
 | `npm dev`       | Start pluggable-widgets-tools web dev server |
-| `npm run build` | Build the widget for production          |
-| `npm run lint`  | Lint the codebase                        |
-| `npm run test`  | Run unit tests                           |
+| `npm run build` | Build the widget for production              |
+| `npm run lint`  | Lint the codebase                            |
+| `npm run test`  | Run unit tests                               |
 
 ---
 

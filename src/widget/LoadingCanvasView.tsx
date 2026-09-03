@@ -72,6 +72,7 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
     handleRotate,
     addItem,
     setItems,
+    removeItem,
   } = useTruckCanvas({
     initialItems: initialCanvasItems,
     canvasWidth,
@@ -100,7 +101,26 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
   const [autoLoadUnplaced, setAutoLoadUnplaced] = useState(0);
   const handleAutoLoad = (): void => {
     const bounds = truck ?? { x: 0, y: 0, length: canvasWidth, width: canvasHeight };
-    const { placed, unplaced } = packCargoIntoBounds([...items, ...availableCargoItems], bounds, scale);
+
+    // Expand cargo items by quantity (each transport order contributes N cargo items)
+    const expandByQuantity = (cargo: CargoItem[]): CargoItem[] => {
+      const expanded: CargoItem[] = [];
+      for (const item of cargo) {
+        const quantity = item.quantity ?? 1;
+        for (let i = 0; i < quantity; i++) {
+          expanded.push({
+            ...item,
+            // Generate unique IDs for each instance but keep same baseId for grouping
+            id: `${item.id}-${i}`,
+          });
+        }
+      }
+      return expanded;
+    };
+
+    const allItems = [...items, ...availableCargoItems];
+    const expandedItems = expandByQuantity(allItems);
+    const { placed, unplaced } = packCargoIntoBounds(expandedItems, bounds, scale);
     setItems(placed);
     setAutoLoadUnplaced(unplaced.length);
   };
@@ -137,9 +157,19 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // Add the pallet to the canvas at the drop position
-    const newItem = { ...pallet, x, y };
-    addItem(newItem);
+    // Add cargo to canvas at drop position, creating multiple items based on quantity
+    const quantity = pallet.quantity ?? 1;
+    for (let i = 0; i < quantity; i++) {
+      // Offset each item slightly so they don't overlap exactly
+      const newItem = {
+        ...pallet,
+        x: x + i * 20,
+        y: y + i * 20,
+        // Generate unique IDs for each item but keep same baseId for grouping
+        id: `${pallet.id}-${i}`,
+      };
+      addItem(newItem);
+    }
   };
 
   const handlePalletDragOver = (e: DragEvent<HTMLDivElement>): void => {
@@ -281,9 +311,22 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
       <CargoList
         availableItems={availableCargoItems}
         onAddCargo={(cargo: CargoItem) => {
-          // Add cargo to canvas at a default position
-          const newItem = { ...cargo, x: DEFAULT_ADD_POSITION_X, y: DEFAULT_ADD_POSITION_Y };
-          addItem(newItem);
+          // Add cargo to canvas at a default position, creating multiple items based on quantity
+          const quantity = cargo.quantity ?? 1;
+          for (let i = 0; i < quantity; i++) {
+            // Offset each item slightly so they don't overlap exactly
+            const newItem = {
+              ...cargo,
+              x: DEFAULT_ADD_POSITION_X + i * 20,
+              y: DEFAULT_ADD_POSITION_Y + i * 20,
+              // Generate unique IDs for each item but keep same baseId for grouping
+              id: `${cargo.id}-${i}`,
+            };
+            addItem(newItem);
+          }
+        }}
+        onRemoveCargo={(baseId: string) => {
+          removeItem(baseId);
         }}
       />
 

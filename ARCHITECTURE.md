@@ -7,7 +7,7 @@ This repository implements a modular **LoadingCanvas** widget for drag-and-drop 
 The architecture follows a strict **layered separation of concerns**:
 
 - **UI layer** — React components and hooks (`LoadingCanvas`, `LoadingCanvasContainer`, `CargoCard`, `RotationHandle`, `GridOverlay`, `CargoList`, `useTruckCanvas`, `useCanvasState`, `useCanvasActions`, `useMouseEvents`)
-- **State management layer** — `CanvasStateManager` (single source of truth) and `CanvasActionDispatcher` (action routing)
+- **State management layer** — `CanvasStateManager` (single source of truth) and `CanvasActionDispatcher` (action routing: `SET_ITEMS`, `ADD_ITEM`, `REMOVE_ITEM`, `START_DRAG`, `DRAG_MOVE`, `END_DRAG`, `ROTATE`, `SELECT`, `DESELECT`, `SET_ACTIVE_ITEM`, `UNDO`, `REDO`)
 - **Engine layer** — `DragEngine`, `CollisionEngine`, `SnapEngine` (pure business logic; validation executes directly from the dispatcher via `domain/validationRules`)
 - **Domain rule layer** — geometry, snap, validation, coordinate, rotation, drag, boundary, and packing helpers
 - **Adapter layer** — `cargoAdapter`, `truckAdapter`, `stateAdapter`, `mendixDataAdapter` (Mendix data integration)
@@ -207,7 +207,7 @@ src/
   - `loadPackingPlan()` — loads saved PackingPlan from Mendix entities
   - `savePackingPlan()` — saves canvas state as PackingPlan (delete + recreate items)
 
-> **Adapters & dependency direction.** The declared chain is `UI → Hooks → State → Engine → Domain → Adapters → Mendix Runtime`. Adapters are the mappers that *produce* the domain/view models and translate between Mendix meter data and pixel/view coordinates, so they intentionally import down into `domain/*` (`coordinateRules`, `cargoIdentity`, `rotationRules`) and reference the `viewModels/*` they construct, plus `state/CanvasState` when serializing a plan. These are **deliberate, documented** boundary crossings in the mapper role — there is no upward import out of domain/engines/state into adapters, and only adapters ever touch the Mendix runtime.
+> **Adapters & dependency direction.** The declared chain is `UI → Hooks → State → Engine → Domain → Adapters → Mendix Runtime`. Adapters are the mappers that _produce_ the domain/view models and translate between Mendix meter data and pixel/view coordinates, so they intentionally import down into `domain/*` (`coordinateRules`, `cargoIdentity`, `rotationRules`) and reference the `viewModels/*` they construct, plus `state/CanvasState` when serializing a plan. These are **deliberate, documented** boundary crossings in the mapper role — there is no upward import out of domain/engines/state into adapters, and only adapters ever touch the Mendix runtime.
 
 ### React Hooks
 
