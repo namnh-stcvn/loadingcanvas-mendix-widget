@@ -1,9 +1,10 @@
 import type { Point } from "../types/geometry";
 import type { CargoItem } from "../viewModels/CargoItem";
 import type { CanvasStateManager } from "./CanvasStateManager";
-import { rotate90, getRotatedSize } from "../domain/rotationRules";
+import { getCanvasBounds, getTruckBounds } from "../domain/boundaryRules";
+import { validateAll } from "../domain/validationRules";
 import { DragEngine } from "../engines/DragEngine";
-import { ValidationEngine } from "../engines/ValidationEngine";
+import { fromCargoId } from "../domain/cargoIdentity";
 
 export type CanvasAction =
   | { type: "SELECT"; ids: string[] }
@@ -15,6 +16,7 @@ export type CanvasAction =
   | { type: "ROTATE"; itemId: string }
   | { type: "ADD_ITEM"; item: CargoItem }
   | { type: "SET_ITEMS"; items: CargoItem[] }
+  | { type: "REMOVE_ITEM"; baseId: string }
   | { type: "UNDO" }
   | { type: "REDO" };
 
@@ -22,20 +24,18 @@ interface CanvasActionDispatcherOptions {
   canvasWidth: number;
   canvasHeight: number;
   dragEngine: DragEngine<CargoItem>;
-  validationEngine: ValidationEngine;
 }
 
 /**
  * Helper: build validation options from the current canvas state.
- * Passes trailer-specific constraints (max load meters, internal height, scale)
- * to the validation engine for LM and height checks.
+ * Passes truck-specific constraints (max load meters, scale)
+ * to the validation engine for LM checks.
  */
 const buildValidationOptions = (state: {
-  trailer?: { maxLoadMeters?: number; internalHeightMeter?: number } | null;
-  scale: number;
-}): { maxLoadMeters?: number; internalHeightMeter?: number; scale: number } => ({
-  maxLoadMeters: state.trailer?.maxLoadMeters,
-  internalHeightMeter: state.trailer?.internalHeightMeter,
+  truck?: { maxLoadMeters?: number } | null;
+  scale: { widthScale: number; heightScale: number };
+}): { maxLoadMeters?: number; scale: { widthScale: number; heightScale: number } } => ({
+  maxLoadMeters: state.truck?.maxLoadMeters,
   scale: state.scale,
 });
 
@@ -44,14 +44,12 @@ export class CanvasActionDispatcher {
   private canvasWidth: number;
   private canvasHeight: number;
   private dragEngine: DragEngine<CargoItem>;
-  private validationEngine: ValidationEngine;
 
   constructor(manager: CanvasStateManager, options: CanvasActionDispatcherOptions) {
     this.manager = manager;
     this.canvasWidth = options.canvasWidth;
     this.canvasHeight = options.canvasHeight;
     this.dragEngine = options.dragEngine;
-    this.validationEngine = options.validationEngine;
   }
 
   dispatch(action: CanvasAction): void {
@@ -94,15 +92,18 @@ export class CanvasActionDispatcher {
       }
 
       case "DRAG_MOVE": {
-        const items = this.dragEngine.move(action.mouse, this.canvasWidth, this.canvasHeight);
+        const items = this.dragEngine.move(action.mouse, this.canvasWidth, this.canvasHeight, state.scale);
         this.dragEngine.updateItems(items);
-        const validation = this.validationEngine.validateItems(
+        // Transient gesture feedback stays relative to the whole canvas;
+        // settled layouts (ROTATE/SET_ITEMS/END_DRAG) are held to the truck band.
+        const validation = validateAll(
           items,
-          { x: 0, y: 0, width: this.canvasWidth, height: this.canvasHeight },
+          getCanvasBounds(this.canvasWidth, this.canvasHeight),
           buildValidationOptions(state)
         );
 
-        this.manager.updateState((current) => ({
+        // Per-frame movement skips undo history; granularity is per gesture.
+        this.manager.updateStateTransient((current) => ({
           ...current,
           cargos: items,
           validation,
@@ -112,49 +113,28 @@ export class CanvasActionDispatcher {
 
       case "END_DRAG": {
         this.dragEngine.endDrag();
-        const stateAfterDrag = this.manager.getState();
+        // Settled layouts are held to the truck band (BR-22): the gesture-time
+        // canvas-relative feedback must not hide out-of-band results after release.
+        const settled = this.manager.getState();
+        const validation = validateAll(settled.cargos, getTruckBounds(), buildValidationOptions(settled));
         this.manager.updateState((current) => ({
           ...current,
           activeItemId: null,
-          selectedIds: stateAfterDrag.selectedIds,
+          validation,
         }));
         break;
       }
 
       case "ROTATE": {
-        const nextCargos = state.cargos.map((item) => {
-          if (item.id !== action.itemId || item.isLocked) {
-            return item;
-          }
+        // Locked items keep their pose; others resolve collision-free inside the truck band (BR-22).
+        const target = state.cargos.find((item) => item.id === action.itemId);
+        if (!target || target.isLocked) {
+          break;
+        }
 
-          const newRotation = rotate90(item.rotation);
-
-          // compute previous visual size and new visual size (without changing model w/h)
-          const prevVis = getRotatedSize({ width: item.width, height: item.height }, item.rotation);
-          const nextVis = getRotatedSize({ width: item.width, height: item.height }, newRotation);
-
-          // keep center invariant based on visual sizes
-          const centerX = item.x + prevVis.width / 2;
-          const centerY = item.y + prevVis.height / 2;
-
-          const newX = centerX - nextVis.width / 2;
-          const newY = centerY - nextVis.height / 2;
-
-          return {
-            ...item,
-            rotation: newRotation,
-            // keep model width/height unchanged; renderer uses getRotatedSize
-            x: Math.max(0, Math.min(newX, this.canvasWidth - nextVis.width)),
-            y: Math.max(0, Math.min(newY, this.canvasHeight - nextVis.height)),
-          };
-        });
-
+        const nextCargos = this.dragEngine.rotateItem(action.itemId, getTruckBounds(), state.scale);
         this.dragEngine.updateItems(nextCargos);
-        const validation = this.validationEngine.validateItems(
-          nextCargos,
-          { x: 0, y: 0, width: this.canvasWidth, height: this.canvasHeight },
-          buildValidationOptions(state)
-        );
+        const validation = validateAll(nextCargos, getTruckBounds(), buildValidationOptions(state));
 
         this.manager.updateState((current) => ({
           ...current,
@@ -165,21 +145,24 @@ export class CanvasActionDispatcher {
       }
 
       case "ADD_ITEM": {
+        // Single sync owner: the dispatcher keeps dragEngine items in step here,
+        // so no external compensating effect is needed. New placements are
+        // validated like any other settled layout (band-relative, BR-22-visible).
         const newItem = { ...action.item };
+        const updatedCargos = [...state.cargos, newItem];
+        this.dragEngine.updateItems(updatedCargos);
+        const validation = validateAll(updatedCargos, getTruckBounds(), buildValidationOptions(state));
         this.manager.updateState((current) => ({
           ...current,
-          cargos: [...current.cargos, newItem],
+          cargos: updatedCargos,
+          validation,
         }));
         break;
       }
 
       case "SET_ITEMS": {
         this.dragEngine.updateItems(action.items);
-        const validation = this.validationEngine.validateItems(
-          action.items,
-          { x: 0, y: 0, width: this.canvasWidth, height: this.canvasHeight },
-          buildValidationOptions(state)
-        );
+        const validation = validateAll(action.items, getTruckBounds(), buildValidationOptions(state));
         this.manager.updateState((current) => ({
           ...current,
           cargos: action.items,
@@ -188,13 +171,30 @@ export class CanvasActionDispatcher {
         break;
       }
 
+      case "REMOVE_ITEM": {
+        // Remove ALL items that belong to the same transport order (same baseId)
+        // Items on canvas have IDs like "cargo-<transportOrderGuid>"
+        // We use fromCargoId to extract the base transport order GUID
+        const remainingCargos = state.cargos.filter((item) => fromCargoId(item.id) !== action.baseId);
+        this.dragEngine.updateItems(remainingCargos);
+        const validation = validateAll(remainingCargos, getTruckBounds(), buildValidationOptions(state));
+        this.manager.updateState((current) => ({
+          ...current,
+          cargos: remainingCargos,
+          validation,
+        }));
+        break;
+      }
+
       case "UNDO": {
         this.manager.undo();
+        this.dragEngine.updateItems(this.manager.getState().cargos);
         break;
       }
 
       case "REDO": {
         this.manager.redo();
+        this.dragEngine.updateItems(this.manager.getState().cargos);
         break;
       }
 

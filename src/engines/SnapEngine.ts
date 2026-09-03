@@ -1,11 +1,10 @@
 import type { Point, Rotation, RectLike } from "../types/geometry";
 import { snapToGrid } from "../domain/snapRules";
-import { getRotatedSize } from "../domain/rotationRules";
+import { DEFAULT_AXIS_SCALE, getRotatedScreenSize, type AxisScale } from "../domain/rotationRules";
 import { GRID_SIZE, SNAP_THRESHOLD } from "../constants/canvas";
 
 export interface SnapTarget {
   position: Point;
-  rotation?: Rotation;
   type: "edge" | "align" | "boundary" | "grid" | "angle" | "none";
   distance: number;
 }
@@ -15,6 +14,7 @@ export interface SnapConfig {
   bounds?: RectLike; // Bounding rectangle for boundary snapping
   gridSize: number; // Grid size for grid snapping (0 disables)
   threshold: number; // Maximum distance to snap (pixels)
+  scale?: AxisScale; // Axis scales for rotation-aware footprints
 }
 
 // Internal representation of a snap candidate along a single axis
@@ -52,7 +52,7 @@ function calculateBoundaryCandidates(
   axis: "x" | "y"
 ): SnapCandidate[] {
   const boundsStart = axis === "x" ? bounds.x : bounds.y;
-  const boundsEnd = axis === "x" ? bounds.x + bounds.width : bounds.y + bounds.height;
+  const boundsEnd = axis === "x" ? bounds.x + bounds.length : bounds.y + bounds.width;
 
   return [
     createCandidate(boundsStart, "boundary", targetPos),
@@ -115,23 +115,28 @@ export class SnapEngine {
     targetPos: Point,
     config: Partial<SnapConfig> = {}
   ): SnapTarget {
-    const { bounds, gridSize = DEFAULT_SNAP_CONFIG.gridSize, threshold = DEFAULT_SNAP_CONFIG.threshold } = config;
+    const {
+      bounds,
+      gridSize = DEFAULT_SNAP_CONFIG.gridSize,
+      threshold = DEFAULT_SNAP_CONFIG.threshold,
+      scale = DEFAULT_AXIS_SCALE,
+    } = config;
 
-    const itemVis = getRotatedSize({ width: item.width, height: item.height }, item.rotation ?? 0);
+    const itemVis = getRotatedScreenSize({ length: item.length, width: item.width }, item.rotation ?? 0, scale);
 
     // Collect all X-axis candidates
     const xCandidates: SnapCandidate[] = [];
 
     // 1. Boundary snap candidates
     if (bounds) {
-      xCandidates.push(...calculateBoundaryCandidates(targetPos.x, itemVis.width, bounds, "x"));
+      xCandidates.push(...calculateBoundaryCandidates(targetPos.x, itemVis.length, bounds, "x"));
     }
 
     // 2. Edge contact & alignment candidates against other items
     for (const other of others) {
-      const otherVis = getRotatedSize({ width: other.width, height: other.height }, other.rotation ?? 0);
+      const otherVis = getRotatedScreenSize({ length: other.length, width: other.width }, other.rotation ?? 0, scale);
 
-      xCandidates.push(...calculateItemSnapCandidates(targetPos.x, itemVis.width, other, otherVis.width, "x"));
+      xCandidates.push(...calculateItemSnapCandidates(targetPos.x, itemVis.length, other, otherVis.length, "x"));
     }
 
     // 3. Grid snap fallback (only if no better candidate found)
@@ -148,14 +153,14 @@ export class SnapEngine {
 
     // 1. Boundary snap candidates
     if (bounds) {
-      yCandidates.push(...calculateBoundaryCandidates(targetPos.y, itemVis.height, bounds, "y"));
+      yCandidates.push(...calculateBoundaryCandidates(targetPos.y, itemVis.width, bounds, "y"));
     }
 
     // 2. Edge contact & alignment candidates against other items
     for (const other of others) {
-      const otherVis = getRotatedSize({ width: other.width, height: other.height }, other.rotation ?? 0);
+      const otherVis = getRotatedScreenSize({ length: other.length, width: other.width }, other.rotation ?? 0, scale);
 
-      yCandidates.push(...calculateItemSnapCandidates(targetPos.y, itemVis.height, other, otherVis.height, "y"));
+      yCandidates.push(...calculateItemSnapCandidates(targetPos.y, itemVis.width, other, otherVis.width, "y"));
     }
 
     // 3. Grid snap fallback

@@ -4,12 +4,12 @@ import type { CanvasState } from "../CanvasState";
 
 describe("CanvasStateManager", () => {
   const createInitialState = (): CanvasState => ({
-    trailer: null,
+    truck: null,
     cargos: [],
     selectedIds: [],
     activeItemId: null,
     validation: { valid: true, errors: [] },
-    scale: 1,
+    scale: { widthScale: 1, heightScale: 1 },
   });
 
   describe("constructor & getState", () => {
@@ -27,8 +27,8 @@ describe("CanvasStateManager", () => {
         id: "test",
         x: 0,
         y: 0,
+        length: 10,
         width: 10,
-        height: 10,
         rotation: 0,
         name: "test",
         type: "pallet",
@@ -82,6 +82,26 @@ describe("CanvasStateManager", () => {
       // Redo should NOT go back to "b"
       manager.redo();
       expect(manager.getState().activeItemId).toBe("c");
+    });
+  });
+
+  describe("setStateTransient", () => {
+    it("notifies listeners without recording an undo step", () => {
+      const manager = new CanvasStateManager(createInitialState());
+      let notified = false;
+      manager.subscribe(() => {
+        notified = true;
+      });
+
+      manager.setStateTransient({ ...createInitialState(), selectedIds: ["transient"] });
+      expect(notified).toBe(true);
+      expect(manager.getState().selectedIds).toEqual(["transient"]);
+
+      // The transient value must never appear in history: one committed change
+      // later, a single undo lands on the pristine initial state.
+      manager.setState({ ...createInitialState(), selectedIds: ["committed"] });
+      manager.undo();
+      expect(manager.getState().selectedIds).toEqual([]);
     });
   });
 
@@ -232,8 +252,8 @@ describe("CanvasStateManager", () => {
         id: "x",
         x: 0,
         y: 0,
+        length: 10,
         width: 10,
-        height: 10,
         rotation: 0,
         name: "x",
         type: "box",

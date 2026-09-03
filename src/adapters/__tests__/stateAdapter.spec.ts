@@ -5,43 +5,44 @@ import type { CanvasState } from "../../state/CanvasState";
 
 describe("stateAdapter", () => {
   const scale = 50;
+  const canvasScale = { widthScale: 50, heightScale: 50 };
 
   const createCargoItem = (overrides: Partial<CargoItem> = {}): CargoItem => ({
     id: "cargo-1",
     name: "Pallet A",
     x: 100,
     y: 200,
-    width: 60,
-    height: 40,
+    length: 60,
+    width: 40,
     rotation: 0,
     color: "orange",
     type: "pallet",
     isLocked: false,
-    heightM: 1.6,
+    lengthM: 1.2,
+    widthM: 0.9,
     weightKg: 500,
     ...overrides,
   });
 
   const createCanvasState = (cargos: CargoItem[]): CanvasState => ({
-    trailer: {
+    truck: {
       id: "truck-1",
       code: "TRUCK-001",
-      trailerType: "DryVan",
+      truckType: "DryVan",
       maxPayloadKg: 20000,
       axleCount: 2,
       maxLoadMeters: 12,
-      internalHeightMeter: 2.5,
       x: 20,
       y: 20,
-      width: 600,
-      height: 125,
+      length: 600,
+      width: 125,
       rotation: 0,
     },
     cargos,
     selectedIds: [],
     activeItemId: null,
     validation: { valid: true, errors: [] },
-    scale,
+    scale: canvasScale,
   });
 
   describe("serializePlan", () => {
@@ -56,11 +57,11 @@ describe("stateAdapter", () => {
       expect(plan.items[0].type).toBe("pallet");
       expect(plan.items[0].x).toBe(2); // 100 / 50
       expect(plan.items[0].y).toBe(4); // 200 / 50
-      expect(plan.items[0].width).toBe(1.2); // 60 / 50
-      expect(plan.items[0].height).toBe(0.8); // 40 / 50
+      expect(plan.items[0].length).toBe(1.2); // 60 / 50
+      expect(plan.items[0].width).toBe(0.8); // 40 / 50
       expect(plan.items[0].rotation).toBe(0);
       expect(plan.items[0].color).toBe("orange");
-      expect(plan.items[0].heightM).toBe(1.6);
+      expect(plan.items[0].lengthM).toBe(1.2);
       expect(plan.items[0].weightKg).toBe(500);
     });
 
@@ -75,9 +76,9 @@ describe("stateAdapter", () => {
       expect(plan.items[1].id).toBe("cargo-2");
     });
 
-    it("should handle null trailer", () => {
+    it("should handle null truck", () => {
       const state = createCanvasState([createCargoItem()]);
-      state.trailer = null;
+      state.truck = null;
       const plan = serializePlan(state, scale);
       expect(plan.truckId).toBeNull();
     });
@@ -100,11 +101,12 @@ describe("stateAdapter", () => {
             type: "pallet" as const,
             x: 2,
             y: 4,
-            width: 1.2,
-            height: 0.8,
+            length: 1.2,
+            width: 0.8,
             rotation: 0 as const,
             color: "orange",
-            heightM: 1.6,
+            lengthM: 1.2,
+            widthM: 0.9,
             weightKg: 500,
           },
         ],
@@ -114,12 +116,13 @@ describe("stateAdapter", () => {
       expect(items[0].id).toBe("cargo-1");
       expect(items[0].x).toBe(100); // 2 * 50
       expect(items[0].y).toBe(200); // 4 * 50
-      expect(items[0].width).toBe(60); // 1.2 * 50
-      expect(items[0].height).toBe(40); // 0.8 * 50
+      expect(items[0].length).toBe(60); // 1.2 * 50
+      expect(items[0].width).toBe(40); // 0.8 * 50
       expect(items[0].rotation).toBe(0);
       expect(items[0].color).toBe("orange");
       expect(items[0].isLocked).toBe(false);
-      expect(items[0].heightM).toBe(1.6);
+      expect(items[0].lengthM).toBe(1.2);
+      expect(items[0].widthM).toBe(0.9);
       expect(items[0].weightKg).toBe(500);
     });
 
@@ -133,8 +136,8 @@ describe("stateAdapter", () => {
             type: "pallet" as const,
             x: 2,
             y: 4,
-            width: 1.2,
-            height: 0.8,
+            length: 1.2,
+            width: 0.8,
             rotation: 0 as const,
             color: "orange",
           },
@@ -144,8 +147,8 @@ describe("stateAdapter", () => {
             type: "box" as const,
             x: 4,
             y: 6,
+            length: 1.0,
             width: 1.0,
-            height: 1.0,
             rotation: 90 as const,
             color: "blue",
           },
@@ -174,15 +177,16 @@ describe("stateAdapter", () => {
             type: "pallet" as const,
             x: 2,
             y: 4,
-            width: 1.2,
-            height: 0.8,
+            length: 1.2,
+            width: 0.8,
             rotation: 0 as const,
             color: "orange",
           },
         ],
       };
       const items = deserializePlan(plan, scale);
-      expect(items[0].heightM).toBeUndefined();
+      expect(items[0].lengthM).toBeUndefined();
+      expect(items[0].widthM).toBeUndefined();
       expect(items[0].weightKg).toBeUndefined();
     });
   });

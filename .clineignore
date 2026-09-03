@@ -6,8 +6,6 @@ build/
 # Logs
 *.log
 npm-debug.log*
-dev_error.txt
-dev_output.txt
 
 # IDE
 .vscode/

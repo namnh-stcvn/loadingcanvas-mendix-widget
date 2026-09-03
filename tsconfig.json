@@ -8,7 +8,7 @@
     "module": "esnext",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "types": ["vite/client", "node"],
+    "types": ["node"],
     "allowArbitraryExtensions": true,
     "skipLibCheck": true,
     "moduleResolution": "bundler",
@@ -16,8 +16,11 @@
     "jsx": "react-jsx",
 
     /* Linting */
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    // Unused-local checks stay off: hidden debug controls are kept as commented JSX
+    // (see LoadingCanvas.tsx) and @rollup/plugin-typescript fails the build on TS6133.
+    // Dead code is still reported as warnings by @typescript-eslint/no-unused-vars.
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },

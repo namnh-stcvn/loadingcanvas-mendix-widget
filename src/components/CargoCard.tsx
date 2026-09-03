@@ -2,7 +2,8 @@ import React from "react";
 
 import type { CargoItem } from "../viewModels/CargoItem";
 
-import { getRotatedSize } from "../domain/rotationRules";
+import { DEFAULT_AXIS_SCALE, getRotatedScreenSize, type AxisScale } from "../domain/rotationRules";
+import { fromCargoId } from "../domain/cargoIdentity";
 
 import { RotationHandle } from "./RotationHandle";
 
@@ -13,6 +14,7 @@ import {
   CARD_BORDER_COLOR,
   CARD_ACTIVE_BORDER_COLOR,
   CARD_SELECTED_BORDER_COLOR,
+  CARD_ERROR_BORDER_COLOR,
 } from "../constants/card";
 
 interface CargoCardProps {
@@ -27,6 +29,8 @@ interface CargoCardProps {
   onRotate: (itemId: string) => void;
 
   hasError: boolean;
+
+  scale?: AxisScale;
 }
 
 export const CargoCard: React.FC<CargoCardProps> = ({
@@ -36,18 +40,20 @@ export const CargoCard: React.FC<CargoCardProps> = ({
   onMouseDown,
   onRotate,
   hasError,
+  scale = DEFAULT_AXIS_SCALE,
 }) => {
-  const size = getRotatedSize(
+  const size = getRotatedScreenSize(
     {
+      length: item.length,
       width: item.width,
-      height: item.height,
     },
-    item.rotation
+    item.rotation,
+    scale
   );
 
   const isSelected = selectedIds.includes(item.id);
 
-  const borderColor = hasError ? "#ff4444" : CARD_BORDER_COLOR;
+  const borderColor = hasError ? CARD_ERROR_BORDER_COLOR : CARD_BORDER_COLOR;
 
   const border = isActive
     ? `${CARD_ACTIVE_BORDER_WIDTH}px solid ${CARD_ACTIVE_BORDER_COLOR}`
@@ -67,10 +73,15 @@ export const CargoCard: React.FC<CargoCardProps> = ({
       <div
         data-id={item.id}
         onMouseDown={onMouseDown}
+        draggable={!item.isLocked}
+        onDragStart={(e) => {
+          e.dataTransfer.setData("text/plain", fromCargoId(item.id));
+          e.dataTransfer.effectAllowed = "move";
+        }}
         style={{
-          width: size.width,
+          width: size.length,
 
-          height: size.height,
+          height: size.width,
 
           backgroundColor: item.color,
 
@@ -88,7 +99,7 @@ export const CargoCard: React.FC<CargoCardProps> = ({
         style={{
           position: "absolute",
 
-          top: size.height + 4,
+          top: size.width + 4,
 
           left: 0,
 
@@ -104,14 +115,14 @@ export const CargoCard: React.FC<CargoCardProps> = ({
         <br />
         pos: ({item.x}, {item.y})
         <br />
-        size: {item.width} × {item.height}
+        size: {item.length.toFixed(2)} × {item.width.toFixed(2)}
         <br />
-        rotation: {item.rotation}°{item.heightM && <br />}
-        {item.heightM && `height: ${item.heightM}m`}
-        {item.weightKg && <br />}
-        {item.weightKg && `weight: ${item.weightKg}kg`}
-      </div> */}
-
+        rotation: {item.rotation}°{item.lengthM && <br />}
+        {item.lengthM && `length: ${item.lengthM}m`}
+        {item.widthM && <br />}
+        {item.widthM && `width: ${item.widthM}m`}
+      </div>
+ */}
       <RotationHandle
         onMouseDown={(e) => {
           e.stopPropagation();

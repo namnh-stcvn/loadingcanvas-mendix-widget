@@ -1,5 +1,5 @@
 import { useMemo, type FC } from "react";
-import { GRID_SIZE } from "../constants/canvas";
+import { GRID_SIZE, GRID_LINE_COLOR, GRID_LINE_WIDTH, GRID_OVERLAY_Z_INDEX } from "../constants/canvas";
 
 interface GridOverlayProps {
   width: number;
@@ -23,8 +23,8 @@ export const GridOverlay: FC<GridOverlayProps> = ({ width, height, gridSize = GR
       return "";
     }
 
-    ctx.strokeStyle = "rgba(0, 0, 0, 0.05)";
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = GRID_LINE_COLOR;
+    ctx.lineWidth = GRID_LINE_WIDTH;
     ctx.beginPath();
     ctx.moveTo(0, 0);
     ctx.lineTo(gridSize, gridSize);
@@ -46,7 +46,7 @@ export const GridOverlay: FC<GridOverlayProps> = ({ width, height, gridSize = GR
         backgroundImage: `url("${gridImageUrl}")`,
         backgroundSize: `${gridSize}px ${gridSize}px`,
         pointerEvents: "none",
-        zIndex: 1,
+        zIndex: GRID_OVERLAY_Z_INDEX,
       }}
     />
   );

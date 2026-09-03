@@ -15,5 +15,5 @@ export { LoadingCanvasContainer } from "./LoadingCanvas.container";
 export type {
   LoadingCanvasProps,
   LoadingCanvasViewModelProps,
-  LoadingCanvasWidgetProps,
+  LoadingCanvasViewProps,
 } from "./LoadingCanvas.properties";

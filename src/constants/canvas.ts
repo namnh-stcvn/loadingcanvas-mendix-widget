@@ -5,10 +5,10 @@ export const DEFAULT_CANVAS_WIDTH = 1800;
 export const DEFAULT_CANVAS_HEIGHT = 600;
 export const CANVAS_BORDER = "1px solid black";
 
-export const TRAILER_CANVAS_WIDTH = 1453;
-export const TRAILER_CANVAS_HEIGHT = 297;
-export const TRAILER_CANVAS_LEFT = 333;
-export const TRAILER_CANVAS_TOP = 152;
+export const TRUCK_CANVAS_WIDTH = 1453;
+export const TRUCK_CANVAS_HEIGHT = 297;
+export const TRUCK_CANVAS_LEFT = 333;
+export const TRUCK_CANVAS_TOP = 152;
 
 // layout
 
@@ -26,6 +26,19 @@ export const INFO_PANEL_BORDER = "1px solid #ddd";
 // grid
 
 export const GRID_SIZE = 20;
+
+export const GRID_LINE_COLOR = "rgba(0, 0, 0, 0.05)";
+export const GRID_LINE_WIDTH = 1;
+export const GRID_OVERLAY_Z_INDEX = 1;
+
+// truck frame
+
+export const TRUCK_FRAME_BORDER = "2px dashed #888";
+
+// placement
+
+export const DEFAULT_ADD_POSITION_X = 50;
+export const DEFAULT_ADD_POSITION_Y = 50;
 
 // rotation
 

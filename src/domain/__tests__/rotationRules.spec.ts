@@ -1,5 +1,6 @@
 import { describe, it, expect } from "@jest/globals";
-import { rotate90, isVerticalRotation, getRotatedSize } from "../rotationRules";
+import { rotate90, isVerticalRotation, getRotatedScreenSize, rotateKeepingCenter } from "../rotationRules";
+import type { Positionable, Rotation, Size } from "../../types/geometry";
 
 describe("rotationRules", () => {
   describe("rotate90", () => {
@@ -38,34 +39,109 @@ describe("rotationRules", () => {
     });
   });
 
-  describe("getRotatedSize", () => {
-    const size = { width: 100, height: 50 };
+  describe("getRotatedScreenSize", () => {
+    const size = { length: 100, width: 50 };
 
     it("should return original size for 0 degrees", () => {
-      expect(getRotatedSize(size, 0)).toEqual({ width: 100, height: 50 });
+      expect(getRotatedScreenSize(size, 0)).toEqual({ length: 100, width: 50 });
     });
 
-    it("should swap width and height for 90 degrees", () => {
-      expect(getRotatedSize(size, 90)).toEqual({ width: 50, height: 100 });
+    it("should swap length and width for 90 degrees with uniform scale", () => {
+      expect(getRotatedScreenSize(size, 90)).toEqual({ length: 50, width: 100 });
     });
 
-    it("should return original size for 180 degrees", () => {
-      expect(getRotatedSize(size, 180)).toEqual({ width: 100, height: 50 });
+    it("should return original size for 180 degrees even with non-uniform scale", () => {
+      expect(getRotatedScreenSize(size, 180, { widthScale: 2, heightScale: 1 })).toEqual({
+        length: 100,
+        width: 50,
+      });
     });
 
-    it("should swap width and height for 270 degrees", () => {
-      expect(getRotatedSize(size, 270)).toEqual({ width: 50, height: 100 });
+    it("should swap length and width for 270 degrees with uniform scale", () => {
+      expect(getRotatedScreenSize(size, 270)).toEqual({ length: 50, width: 100 });
     });
 
     it("should not mutate the original size object", () => {
-      const original = { width: 100, height: 50 };
-      getRotatedSize(original, 90);
-      expect(original).toEqual({ width: 100, height: 50 });
+      const original = { length: 100, width: 50 };
+      getRotatedScreenSize(original, 90);
+      expect(original).toEqual({ length: 100, width: 50 });
     });
 
     it("should handle square items (swap has no visible effect)", () => {
-      const square = { width: 50, height: 50 };
-      expect(getRotatedSize(square, 90)).toEqual({ width: 50, height: 50 });
+      const square = { length: 50, width: 50 };
+      expect(getRotatedScreenSize(square, 90)).toEqual({ length: 50, width: 50 });
+    });
+
+    it("should project extents through the matching axis scale for 90 degrees", () => {
+      // Real case: box 0.3m x 0.2m in a truck 13.6m x 2.45m mapped to 1453x297 px
+      const scale = { widthScale: 1453 / 13.6, heightScale: 297 / 2.45 };
+      const box = { length: 0.3 * scale.widthScale, width: 0.2 * scale.heightScale };
+
+      const rotated = getRotatedScreenSize(box, 90, scale);
+
+      expect(rotated.length).toBeCloseTo(21.367647058823533);
+      expect(rotated.width).toBeCloseTo(36.36734693877551);
+      // Footprint converts back to the physically rotated meters
+      expect(rotated.length / scale.widthScale).toBeCloseTo(0.2);
+      expect(rotated.width / scale.heightScale).toBeCloseTo(0.3);
+    });
+
+    it("should reduce to a plain swap when both scales are equal but not 1", () => {
+      expect(getRotatedScreenSize(size, 90, { widthScale: 20, heightScale: 20 })).toEqual({
+        length: 50,
+        width: 100,
+      });
+    });
+  });
+
+  describe("rotateKeepingCenter", () => {
+    it("should re-anchor a uniform-scaled rectangle around its shared center", () => {
+      const result = rotateKeepingCenter({ x: 100, y: 100, length: 100, width: 50, rotation: 0 });
+      expect(result.rotation).toBe(90);
+      expect(result.x).toBe(125);
+      expect(result.y).toBe(75);
+    });
+
+    it("should preserve the visual center under the default scale", () => {
+      const item: Size & Positionable & { rotation: Rotation } = {
+        x: 400,
+        y: 200,
+        length: 300,
+        width: 120,
+        rotation: 0,
+      };
+      const result = rotateKeepingCenter(item);
+      const before = getRotatedScreenSize(item, item.rotation);
+      const after = getRotatedScreenSize(item, result.rotation);
+      expect(result.x + after.length / 2).toBeCloseTo(item.x + before.length / 2);
+      expect(result.y + after.width / 2).toBeCloseTo(item.y + before.width / 2);
+    });
+
+    it("should project through axis scales for a real-world non-uniform mapping", () => {
+      const scale = { widthScale: 1453 / 13.6, heightScale: 297 / 2.45 };
+      const item: Size & Positionable & { rotation: Rotation } = {
+        x: 10,
+        y: 10,
+        length: 0.3 * scale.widthScale,
+        width: 0.2 * scale.heightScale,
+        rotation: 0,
+      };
+      const result = rotateKeepingCenter(item, scale);
+      const centerX = item.x + item.length / 2;
+      const centerY = item.y + item.width / 2;
+      const nextL = item.width * (scale.widthScale / scale.heightScale);
+      const nextW = item.length * (scale.heightScale / scale.widthScale);
+      expect(result.rotation).toBe(90);
+      expect(result.x).toBeCloseTo(centerX - nextL / 2);
+      expect(result.y).toBeCloseTo(centerY - nextW / 2);
+    });
+
+    it("should keep a square uniformly scaled item in place and wrap its rotation", () => {
+      const item: Size & Positionable & { rotation: Rotation } = { x: 40, y: 60, length: 50, width: 50, rotation: 270 };
+      const result = rotateKeepingCenter(item);
+      expect(result.rotation).toBe(0);
+      expect(result.x).toBe(40);
+      expect(result.y).toBe(60);
     });
   });
 });

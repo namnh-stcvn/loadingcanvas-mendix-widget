@@ -33,13 +33,15 @@ store the saved packing arrangement for each truck (TruckSelection).
 | ---------------- | --------------------------------------------- | -------- | ------------------------------------------------- |
 | `PackingPlan`    | Reference (TCSLoadingMeter.PackingPlan)       | Yes      | Parent plan (many-to-1)                           |
 | `TransportOrder` | Reference (TCSTransportModule.TransportOrder) | Yes      | Which transport order this item represents        |
-| `PositionX`      | Decimal                                       | Yes      | X position in meters (relative to trailer origin) |
-| `PositionY`      | Decimal                                       | Yes      | Y position in meters (relative to trailer origin) |
-| `Width`          | Decimal                                       | Yes      | Item width in meters                              |
-| `Height`         | Decimal                                       | Yes      | Item height in meters                             |
+| `PositionX`      | Decimal                                       | Yes      | X position in meters (relative to truck origin)   |
+| `PositionY`      | Decimal                                       | Yes      | Y position in meters (relative to truck origin)   |
+| `Length`         | Decimal                                       | Yes      | Item length in meters (extent along X)            |
+| `Width`          | Decimal                                       | Yes      | Item width in meters (footprint extent along Y)   |
+| `Height`         | Decimal                                       | Yes      | Item height in meters (2D canvas: 0, no Z axis)   |
 | `Rotation`       | Integer                                       | Yes      | Rotation: 0, 90, 180, or 270                      |
 | `Color`          | String                                        | No       | Display color (e.g., "orange", "blue")            |
-| `HeightMeters`   | Decimal                                       | No       | Item height in meters (for height validation)     |
+| `LengthMeters`   | Decimal                                       | No       | Item length in meters (for load-meter validation) |
+| `WidthMeters`    | Decimal                                       | No       | Item width in meters (for load-meter validation)  |
 | `WeightKg`       | Decimal                                       | No       | Item weight in kg (for payload validation)        |
 
 **Note:** Mendix automatically creates a hidden `id` attribute for every entity. This serves as the primary key and is used internally for object identification and relationships. No manual ID attribute is needed.
@@ -62,11 +64,13 @@ TCSLoadingMeter Module (NEW entities):
   ├─ TransportOrder → TCSTransportModule.TransportOrder (*-1)
   ├─ PositionX (Decimal, meters)
   ├─ PositionY (Decimal, meters)
+  ├─ Length (Decimal, meters)
   ├─ Width (Decimal, meters)
   ├─ Height (Decimal, meters)
   ├─ Rotation (Integer: 0/90/180/270)
   ├─ Color (String)
-  ├─ HeightMeters (Decimal, optional)
+  ├─ LengthMeters (Decimal, optional)
+  ├─ WidthMeters (Decimal, optional)
   └─ WeightKg (Decimal, optional)
 ```
 
@@ -84,6 +88,40 @@ TransportOrderSequence_TransportOrder (1-*)
 TCSTransportModule.TransportOrder_PackingUnit (1-*)
 DataModelModule.PackingUnit_DataModelModule.PackingType (1-*)
 
+List off entity with attributes:
+
+TrucSelection:
+- TruckIndex (interger)
+
+ResourceInstance:
+- Name (String)
+- LicensePlate (String)
+...
+
+Resource:
+- Name (String)
+...
+
+TechnicalDetails:
+- NameResource (String)
+- HangerLength (Decimal, meters)
+- HangerWidth (Decimal, meters)
+...
+
+TransportOrder:
+- TransportOrderNo (String)
+- Quantity (interger)
+...
+
+PackingUnit:
+- Name (String)
+- Length (Decimal, meters)
+- Width (Decimal, meters)
+...
+
+PackingType:
+- E_PackingType (Enum, "Pallet", "Box")
+
 NEW:
 TCSLoadingMeter.PackingPlan (1 per TruckSelection)
   └─ PackingPlanItem (1-* per plan)
@@ -98,13 +136,13 @@ TCSLoadingMeter.PackingPlan (1 per TruckSelection)
 4. `savePackingPlan`:
    a. Serializes current canvas state to `PackingPlanData` (meters)
    b. Queries for existing `PackingPlan` for this `TruckSelection`
-   c. If plan exists:
-   - Delete all existing `PackingPlanItem` records
-     d. If no plan exists:
-   - Create a new `PackingPlan` record
-     e. Create new `PackingPlanItem` records for each canvas item
-     f. Commit all changes
+   c. If plan exists: delete all existing `PackingPlanItem` records; if not: create a new `PackingPlan`
+   d. Create new `PackingPlanItem` records for each canvas item, setting the `TransportOrder` reference with the **module-prefixed Domain Model association name** (`TCSLoadingMeter.PackingPlanItem_TransportOrder`)
+   e. Map each item's packing-unit payload back using its own GUID key (not array index), so a batch response that is reordered/filtered cannot cross-assign items to the wrong TransportOrder
+   f. Commit all changes
 5. Container calls `onSavePlan` microflow callback (if configured)
+
+> If an association cannot be resolved, the adapter logs a contextual `console.warn` before applying a bounded fallback — it never silently swallows the error.
 
 ## Load Flow (On Page Open)
 
@@ -113,8 +151,9 @@ TCSLoadingMeter.PackingPlan (1 per TruckSelection)
 3. `loadPackingPlan`:
    a. Queries for `PackingPlan` where `TruckSelection = {truckGuid}`
    b. If found, queries for all `PackingPlanItem` records
-   c. Converts items to `PackingPlanData` (meters)
-   d. Deserializes to `CargoItem[]` (pixels) using `deserializePlan()`
+   c. Reads the `TransportOrder` reference via the MxObject API using the module-prefixed association name (associations are **not** in `getAttributes()`; they are read separately with `mxObject.get(...)`)
+   d. Converts items to `PackingPlanData` (meters)
+   e. Deserializes to `CargoItem[]` (pixels) using `deserializePlan()`
 4. Container passes restored items to widget as `initialCanvasItems`
 5. Widget renders canvas with restored items
 
@@ -149,23 +188,26 @@ after the save/load operations complete.
 ```
 //TCSLoadingMeter.PackingPlan[TCSLoadingMeter.PackingPlan_TruckSelection = '{truckGuid}']
 ```
-*(or `//TCSLoadingMeter.PackingPlan[TCSLoadingMeter.TruckSelection = '{truckGuid}']` depending on association name in Domain Model)*
+
+> **Association names use the module-prefixed Domain Model name** (e.g., `TCSLoadingMeter.PackingPlanItem_TransportOrder`), never a raw DB table name. Missing the module prefix lets `set()`/`get()` succeed silently but persist `null`.
 
 ### Find PackingPlanItems for a Plan
 
 ```
 //TCSLoadingMeter.PackingPlanItem[TCSLoadingMeter.PackingPlanItem_PackingPlan = '{planGuid}']
 ```
-*(or `//TCSLoadingMeter.PackingPlanItem[TCSLoadingMeter.PackingPlan = '{planGuid}']` depending on association name in Domain Model)*
+
+_(or `//TCSLoadingMeter.PackingPlanItem[TCSLoadingMeter.PackingPlan = '{planGuid}']` depending on association name in Domain Model)_
 
 ## Notes
 
-- The `PositionX` and `PositionY` are relative to the trailer's internal origin
-  (top-left corner of the trailer interior), not the canvas origin.
-- The `Width` and `Height` are the item's dimensions in meters (before rotation).
+- The `PositionX` and `PositionY` are relative to the truck's internal origin
+  (top-left corner of the truck interior), not the canvas origin.
+- The `Length` and `Width` are the item's footprint dimensions in meters (before rotation).
+  `Height` is stored as 0 because the canvas is 2D (no Z axis).
 - The `Rotation` is stored as an integer (0, 90, 180, 270) representing
   clockwise rotation in degrees.
 - The `Color` is stored as a string for display purposes (e.g., "orange" for
   pallets, "blue" for boxes).
-- `HeightMeters` and `WeightKg` are optional and used for validation
-  (height check, payload check).
+- `LengthMeters`, `WidthMeters`, and `WeightKg` are optional and used for
+  validation (load-meter and payload checks).

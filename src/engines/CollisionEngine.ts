@@ -1,58 +1,62 @@
 import type { Point, RectLike, Rotation } from "../types/geometry";
 import { findCollisions, isInsideBounds } from "../domain/geometryRules";
-import { getRotatedSize } from "../domain/rotationRules";
+import { DEFAULT_AXIS_SCALE, getRotatedScreenSize, type AxisScale } from "../domain/rotationRules";
 
 export interface ValidPosition {
   position: Point;
-  type: "snap_left" | "snap_right" | "snap_top" | "snap_bottom" | "grid";
   distance: number;
 }
 
 export class CollisionEngine {
-  detectCollisions<T extends RectLike>(item: T, others: T[]): T[] {
-    return findCollisions(item, others);
+  detectCollisions<T extends RectLike & Partial<{ rotation: Rotation }>>(
+    item: T,
+    others: T[],
+    scale: AxisScale = DEFAULT_AXIS_SCALE
+  ): T[] {
+    return findCollisions(item, others, scale);
   }
 
   findValidPositions<T extends RectLike & { rotation?: Rotation }>(
     item: T,
     others: T[],
     bounds: RectLike,
-    snapDistance: number = 0
+    snapDistance: number = 0,
+    scale: AxisScale = DEFAULT_AXIS_SCALE
   ): ValidPosition[] {
-    const itemVis = getRotatedSize({ width: item.width, height: item.height }, item.rotation ?? 0);
+    const itemVis = getRotatedScreenSize({ length: item.length, width: item.width }, item.rotation ?? 0, scale);
+    const itemLen = itemVis.length;
     const itemW = itemVis.width;
-    const itemH = itemVis.height;
 
     const xCandidates = new Set<number>();
     xCandidates.add(item.x);
     if (bounds) {
       xCandidates.add(bounds.x);
-      xCandidates.add(bounds.x + bounds.width - itemW);
+      xCandidates.add(bounds.x + bounds.length - itemLen);
     }
 
     const yCandidates = new Set<number>();
     yCandidates.add(item.y);
     if (bounds) {
       yCandidates.add(bounds.y);
-      yCandidates.add(bounds.y + bounds.height - itemH);
+      yCandidates.add(bounds.y + bounds.width - itemW);
     }
 
     for (const other of others) {
-      const otherVis = getRotatedSize({ width: other.width, height: other.height }, other.rotation ?? 0);
+      const otherVis = getRotatedScreenSize({ length: other.length, width: other.width }, other.rotation ?? 0, scale);
+      const otherLen = otherVis.length;
       const otherW = otherVis.width;
-      const otherH = otherVis.height;
 
       // X-axis candidates for item
-      xCandidates.add(other.x + otherW + snapDistance);
-      xCandidates.add(other.x - itemW - snapDistance);
+      xCandidates.add(other.x + otherLen + snapDistance);
+      xCandidates.add(other.x - itemLen - snapDistance);
       xCandidates.add(other.x);
-      xCandidates.add(other.x + otherW - itemW);
+      xCandidates.add(other.x + otherLen - itemLen);
 
       // Y-axis candidates for item
-      yCandidates.add(other.y + otherH + snapDistance);
-      yCandidates.add(other.y - itemH - snapDistance);
+      yCandidates.add(other.y + otherW + snapDistance);
+      yCandidates.add(other.y - itemW - snapDistance);
       yCandidates.add(other.y);
-      yCandidates.add(other.y + otherH - itemH);
+      yCandidates.add(other.y + otherW - itemW);
     }
 
     const validPositions: ValidPosition[] = [];
@@ -67,10 +71,9 @@ export class CollisionEngine {
         visited.add(key);
 
         const candidatePos = { x, y };
-        if (this.isValidPosition(item, candidatePos, others, bounds)) {
+        if (this.isValidPosition(item, candidatePos, others, bounds, scale)) {
           validPositions.push({
             position: candidatePos,
-            type: "grid",
             distance: Math.hypot(x - item.x, y - item.y),
           });
         }
@@ -85,30 +88,31 @@ export class CollisionEngine {
     desiredPos: Point,
     startPos: Point,
     others: T[],
-    bounds: RectLike
+    bounds: RectLike,
+    scale: AxisScale = DEFAULT_AXIS_SCALE
   ): Point {
     const desiredItem = { ...item, x: desiredPos.x, y: desiredPos.y };
 
     // 1. If desired position does not collide and is inside bounds, return desiredPos
-    if (isInsideBounds(desiredItem, bounds) && this.detectCollisions(desiredItem, others).length === 0) {
+    if (isInsideBounds(desiredItem, bounds, scale) && this.detectCollisions(desiredItem, others, scale).length === 0) {
       return desiredPos;
     }
 
     // 2. Find valid corner/edge candidate position closest to desiredPos
-    const validPositions = this.findValidPositions(desiredItem, others, bounds, 0);
+    const validPositions = this.findValidPositions(desiredItem, others, bounds, 0, scale);
     if (validPositions.length > 0) {
       return validPositions[0].position;
     }
 
     // 3. Try moving along X axis only
     const xOnlyItem = { ...item, x: desiredPos.x, y: startPos.y };
-    if (isInsideBounds(xOnlyItem, bounds) && this.detectCollisions(xOnlyItem, others).length === 0) {
+    if (isInsideBounds(xOnlyItem, bounds, scale) && this.detectCollisions(xOnlyItem, others, scale).length === 0) {
       return { x: desiredPos.x, y: startPos.y };
     }
 
     // 4. Try moving along Y axis only
     const yOnlyItem = { ...item, x: startPos.x, y: desiredPos.y };
-    if (isInsideBounds(yOnlyItem, bounds) && this.detectCollisions(yOnlyItem, others).length === 0) {
+    if (isInsideBounds(yOnlyItem, bounds, scale) && this.detectCollisions(yOnlyItem, others, scale).length === 0) {
       return { x: startPos.x, y: desiredPos.y };
     }
 
@@ -116,13 +120,19 @@ export class CollisionEngine {
     return startPos;
   }
 
-  private isValidPosition<T extends RectLike>(item: T, position: Point, others: T[], bounds: RectLike): boolean {
+  private isValidPosition<T extends RectLike & Partial<{ rotation: Rotation }>>(
+    item: T,
+    position: Point,
+    others: T[],
+    bounds: RectLike,
+    scale: AxisScale
+  ): boolean {
     const movedItem = { ...item, x: position.x, y: position.y };
 
-    if (!isInsideBounds(movedItem, bounds)) {
+    if (!isInsideBounds(movedItem, bounds, scale)) {
       return false;
     }
 
-    return this.detectCollisions(movedItem, others).length === 0;
+    return this.detectCollisions(movedItem, others, scale).length === 0;
   }
 }

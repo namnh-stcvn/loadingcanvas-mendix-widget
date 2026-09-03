@@ -1,5 +1,5 @@
 import { describe, it, expect } from "@jest/globals";
-import { clamp } from "../boundaryRules";
+import { clamp, getCanvasBounds, getTruckBounds } from "../boundaryRules";
 
 describe("boundaryRules", () => {
   describe("clamp", () => {
@@ -33,6 +33,18 @@ describe("boundaryRules", () => {
       expect(clamp(3.14, 0, 10)).toBe(3.14);
       expect(clamp(-1.5, 0, 10)).toBe(0);
       expect(clamp(10.01, 0, 10)).toBe(10);
+    });
+  });
+
+  describe("getCanvasBounds", () => {
+    it("should build a zero-origin rect from canvas dimensions", () => {
+      expect(getCanvasBounds(1800, 600)).toEqual({ x: 0, y: 0, length: 1800, width: 600 });
+    });
+  });
+
+  describe("getTruckBounds", () => {
+    it("should match the truck collision band used by DragEngine", () => {
+      expect(getTruckBounds()).toEqual({ x: 333, y: 152, length: 1453, width: 297 });
     });
   });
 });

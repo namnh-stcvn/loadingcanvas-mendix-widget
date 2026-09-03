@@ -2,7 +2,7 @@
 
 ## Architecture Rules
 
-- Preserve dependency direction: UI → Hooks → Services → Adapters → Mendix Runtime.
+- Preserve dependency direction: UI → Hooks → State → Engine → Domain → Adapters → Mendix Runtime.
 - UI must never depend directly on Mendix runtime APIs.
 - Domain modules must not import React, Mendix APIs, browser globals, or widget framework APIs.
 - Adapters are the only layer allowed to interact directly with Mendix runtime objects.
@@ -107,6 +107,18 @@ Every state value must have a clear owner:
 - Do not silently change requirements or expand task scope without a technical reason.
 - Preserve existing conventions unless they conflict with an explicit rule.
 - When uncertain about a runtime-specific contract, inspect the existing adapter, types, tests, or project documentation before implementing.
+- Prepare all context need and details steps in plan mode so that can act mode in 200k AI model: resolve correctness-critical context, dependencies, rules, invariants, contracts, tests, and risks before implementation. Use repository evidence, not assumptions.
+
+## Core Philosophy (Smart Zone & Vertical Slices)
+
+- NEVER attempt to build a large feature all at once. Create plan consist of many small tasks
+- Work in **Micro Vertical Slices**: each task must be small, self-contained, and for only a tiny piece of functionality.
+- Keep modifications scoped to a minimum number of files per task (ideally 2-5 files max). Do not touch unrelated files.
+- Auto continue to next slice after verification is done
+
+## Strict Prohibitions
+
+- DO NOT mix multiple features or multiple vertical slices into a single execution step. Finish one atomic slice completely and make sure it builds successfully before moving on.
 
 ## Final Diff Review
 
