@@ -50,13 +50,14 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
   // --- Load truck data and compute scale ---
   useEffect(() => {
     let cancelled = false;
-    const loadTruck = async (): Promise<void> => {
+    const loadAll = async () => {
       if (!truckGuidKey) {
-        if (cancelled) return;
-        setTruckItem(null);
-        setTruckGuid(null);
-        setScale({ widthScale: 1, heightScale: 1 });
-        setIsLoading(false);
+        if (!cancelled) {
+          setTruckItem(null);
+          setTruckGuid(null);
+          setScale({ widthScale: 1, heightScale: 1 });
+          setIsLoading(false);
+        }
         return;
       }
 
@@ -66,72 +67,31 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
         setTruckItem(result.truck);
         setTruckGuid(result.truckGuid);
         setScale(result.scale);
-      } catch (err) {
+
+        // PARALLEL: cargo + plan both depend only on truck/scale
+        const [cargo, plan] = await Promise.all([
+          transportOrderGuids.length > 0 ? loadCargoItems(transportOrderGuids, result.scale) : Promise.resolve([]),
+          result.truckGuid ? loadPackingPlan(result.truckGuid, result.scale) : Promise.resolve([])
+        ]);
         if (cancelled) return;
-        console.error("Failed to load truck data:", err);
+        setAvailableCargo(cargo);
+        setInitialCanvasItems(plan);
+      } catch (err) {
+        if (!cancelled) console.error("Failed to load data:", err);
       } finally {
         if (!cancelled) setIsLoading(false);
       }
     };
 
-    loadTruck();
+    loadAll();
     return () => {
       cancelled = true;
     };
-  }, [truckGuidKey, canvasWidth, canvasHeight]);
+  }, [truckGuidKey, transportOrdersKey]);
 
   // Scale is only non-unit once a TruckSelection loaded successfully, so it
   // doubles as the readiness signal for every scale-dependent load.
   const hasTruckDerivedScale = scale.widthScale !== 1 && scale.heightScale !== 1;
-
-  // --- Load transport orders (available cargo) ---
-  useEffect(() => {
-    let cancelled = false;
-    const loadOrders = async (): Promise<void> => {
-      if (transportOrderGuids.length === 0 || !hasTruckDerivedScale) {
-        setAvailableCargo([]);
-        return;
-      }
-
-      try {
-        const items = await loadCargoItems(transportOrderGuids, scale);
-        if (cancelled) return;
-        setAvailableCargo(items);
-      } catch (err) {
-        if (cancelled) return;
-        console.error("Failed to load transport orders:", err);
-      }
-    };
-
-    loadOrders();
-    return () => {
-      cancelled = true;
-    };
-  }, [transportOrdersKey, scale]);
-
-  // --- Load saved packing plan ---
-  useEffect(() => {
-    let cancelled = false;
-    const loadPlan = async (): Promise<void> => {
-      if (!truckGuid || !hasTruckDerivedScale) {
-        return;
-      }
-
-      try {
-        const savedItems = await loadPackingPlan(truckGuid, scale);
-        if (cancelled) return;
-        setInitialCanvasItems(savedItems);
-      } catch (err) {
-        if (cancelled) return;
-        console.error("Failed to load packing plan:", err);
-      }
-    };
-
-    loadPlan();
-    return () => {
-      cancelled = true;
-    };
-  }, [truckGuid, scale]);
 
   // --- Save plan handler ---
   const [saveError, setSaveError] = useState<string | null>(null);

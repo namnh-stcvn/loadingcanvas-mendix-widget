@@ -1,6 +1,6 @@
-import { getMx } from "./mendixRuntime";
+import { getMx, createMockMxObject } from "./mendixRuntime";
 
-export const loadMendixObject = async (guid: string): Promise<unknown> => {
+export const loadMendixObject = async <T = unknown>(guid: string): Promise<T | null> => {
   const mxData = getMx();
   if (mxData) {
     return new Promise((resolve, reject) => {
@@ -10,20 +10,16 @@ export const loadMendixObject = async (guid: string): Promise<unknown> => {
       }
       mxData.get({
         guid,
-        callback: (obj: unknown) => resolve(obj),
+        callback: (obj: unknown) => resolve(obj as T),
         error: (err: Error) => reject(err),
       });
     });
   }
-  // Dev fallback: assume the guid is actually a JSON string or mock
-  try {
-    return JSON.parse(guid);
-  } catch {
-    return { id: guid, guid };
-  }
+  // Dev fallback: use mock factory
+  return createMockMxObject('TransportOrder', { id: guid }) as T;
 };
 
-export const loadMendixObjects = async (guids: string[]): Promise<unknown[]> => {
+export const loadMendixObjects = async <T = unknown>(guids: string[]): Promise<T[]> => {
   if (!guids || guids.length === 0) {
     return [];
   }
@@ -34,25 +30,17 @@ export const loadMendixObjects = async (guids: string[]): Promise<unknown[]> => 
         guids,
         callback: (objs: unknown) => {
           const list = Array.isArray(objs) ? objs : objs ? [objs] : [];
-          resolve(list);
+          resolve(list as T[]);
         },
         error: (err: Error) => reject(err),
       });
     });
   }
-  // Dev fallback
-  return guids
-    .map((g) => {
-      try {
-        return JSON.parse(g);
-      } catch {
-        return { id: g, guid: g };
-      }
-    })
-    .filter(Boolean);
+  // Dev fallback: use mock factory
+  return guids.map((g) => createMockMxObject('TransportOrder', { id: g }) as T);
 };
 
-export const loadMendixList = async (xpath: string): Promise<unknown[]> => {
+export const loadMendixList = async <T = unknown>(xpath: string): Promise<T[]> => {
   const mxData = getMx();
   if (mxData) {
     return new Promise((resolve, reject) => {
@@ -60,7 +48,7 @@ export const loadMendixList = async (xpath: string): Promise<unknown[]> => {
         xpath,
         callback: (items: unknown) => {
           const list = Array.isArray(items) ? items : items ? [items] : [];
-          resolve(list);
+          resolve(list as T[]);
         },
         error: (err: Error) => reject(err),
       });
@@ -69,7 +57,7 @@ export const loadMendixList = async (xpath: string): Promise<unknown[]> => {
   // Dev fallback: assume xpath is actually a JSON string
   try {
     const parsed = JSON.parse(xpath);
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? (parsed as T[]) : [];
   } catch {
     return [];
   }

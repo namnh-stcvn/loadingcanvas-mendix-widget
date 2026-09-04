@@ -80,39 +80,40 @@ export const buildTransportOrderMeta = async (rawOrders: unknown[]): Promise<Map
 
   const productNamesByGuid = new Map<string, string>();
   const allProductGuids = [...new Set([...guidsByOrderGuid.values()].flatMap((g) => g.productGuids))];
-  if (allProductGuids.length > 0) {
-    const productObjects = await loadMendixObjects(allProductGuids);
-    for (const productObj of productObjects) {
-      const productGuid = getObjectGuid(productObj);
-      if (!productGuid) {
-        continue;
-      }
-      const name = readName(toPlainObject(productObj));
-      if (name) {
-        productNamesByGuid.set(productGuid, name);
-      } else if (isMendixRuntime()) {
-        console.warn(`buildTransportOrderMeta: Product ${productGuid} loaded but has no readable Name attribute`);
-      }
+  const allCompanyGuids = [
+    ...new Set([...guidsByOrderGuid.values()].flatMap((g) => [...g.producerGuids, ...g.fromGuids, ...g.toGuids])),
+  ];
+
+  // PARALLEL: load products and companies simultaneously
+  const [productObjects, companyObjects] = await Promise.all([
+    allProductGuids.length > 0 ? loadMendixObjects(allProductGuids) : Promise.resolve([]),
+    allCompanyGuids.length > 0 ? loadMendixObjects(allCompanyGuids) : Promise.resolve([])
+  ]);
+
+  for (const productObj of productObjects) {
+    const productGuid = getObjectGuid(productObj);
+    if (!productGuid) {
+      continue;
+    }
+    const name = readName(toPlainObject(productObj));
+    if (name) {
+      productNamesByGuid.set(productGuid, name);
+    } else if (isMendixRuntime()) {
+      console.warn(`buildTransportOrderMeta: Product ${productGuid} loaded but has no readable Name attribute`);
     }
   }
 
   const companyNamesByGuid = new Map<string, string>();
-  const allCompanyGuids = [
-    ...new Set([...guidsByOrderGuid.values()].flatMap((g) => [...g.producerGuids, ...g.fromGuids, ...g.toGuids])),
-  ];
-  if (allCompanyGuids.length > 0) {
-    const companyObjects = await loadMendixObjects(allCompanyGuids);
-    for (const companyObj of companyObjects) {
-      const companyGuid = getObjectGuid(companyObj);
-      if (!companyGuid) {
-        continue;
-      }
-      const name = readName(toPlainObject(companyObj));
-      if (name) {
-        companyNamesByGuid.set(companyGuid, name);
-      } else if (isMendixRuntime()) {
-        console.warn(`buildTransportOrderMeta: Company ${companyGuid} loaded but has no readable Name attribute`);
-      }
+  for (const companyObj of companyObjects) {
+    const companyGuid = getObjectGuid(companyObj);
+    if (!companyGuid) {
+      continue;
+    }
+    const name = readName(toPlainObject(companyObj));
+    if (name) {
+      companyNamesByGuid.set(companyGuid, name);
+    } else if (isMendixRuntime()) {
+      console.warn(`buildTransportOrderMeta: Company ${companyGuid} loaded but has no readable Name attribute`);
     }
   }
 

@@ -93,7 +93,8 @@ export class CanvasActionDispatcher {
 
       case "DRAG_MOVE": {
         const items = this.dragEngine.move(action.mouse, this.canvasWidth, this.canvasHeight, state.scale);
-        this.dragEngine.updateItems(items);
+        // Note: dragEngine.move() already mutates this.items internally,
+        // so no additional updateItems() call is needed here.
         // Transient gesture feedback stays relative to the whole canvas;
         // settled layouts (ROTATE/SET_ITEMS/END_DRAG) are held to the truck band.
         const validation = validateAll(

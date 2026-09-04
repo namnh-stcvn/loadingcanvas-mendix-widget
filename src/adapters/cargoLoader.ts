@@ -48,6 +48,8 @@ export const loadCargoItems = async (
     const unitPlainByGuid = new Map<string, Record<string, unknown>>();
     const unitTypeGuidByUnit = new Map<string, string>();
     const allUnitGuids = [...new Set([...unitsByOrderGuid.values()].flat())];
+
+    // First load units (needed to discover type GUIDs)
     if (allUnitGuids.length > 0) {
       const unitObjects = await loadMendixObjects(allUnitGuids);
       for (const unitObj of unitObjects) {
@@ -63,6 +65,7 @@ export const loadCargoItems = async (
       }
     }
 
+    // Then load types (depends on unit type GUIDs)
     const typeValueByGuid = new Map<string, string>();
     const allTypeGuids = [...new Set(unitTypeGuidByUnit.values())];
     if (allTypeGuids.length > 0) {

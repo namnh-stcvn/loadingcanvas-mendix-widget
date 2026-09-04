@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type DragEvent, type ReactElement, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState, type DragEvent, type ReactElement, type RefObject } from "react";
 import { CargoCard } from "../components/CargoCard";
 import { CargoList } from "../components/CargoList";
 import { GridOverlay } from "../components/GridOverlay";
@@ -85,7 +85,10 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
   // Available cargo = availableCargo minus those already on the canvas.
   // Derived from canvas items (single source of truth), so the list always
   // reflects reality after drag-in, plan load, or canvas reset.
-  const availableCargoItems = availableCargo.filter((p) => !items.some((i) => fromCargoId(i.id) === fromCargoId(p.id)));
+  const availableCargoItems = useMemo(() => {
+    const canvasIds = new Set(items.map((i) => fromCargoId(i.id)));
+    return availableCargo.filter((p) => !canvasIds.has(fromCargoId(p.id)));
+  }, [availableCargo, items]);
 
   // --- Save plan handler ---
   const handleSavePlan = (): void => {

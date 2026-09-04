@@ -1,4 +1,4 @@
-import React, { type FC, type DragEvent } from "react";
+import React, { useCallback, type DragEvent } from "react";
 import type { CargoItem } from "../viewModels/CargoItem";
 import { fromCargoId } from "../domain/cargoIdentity";
 
@@ -33,19 +33,22 @@ interface CargoListProps {
   onRemoveCargo?: (baseId: string) => void;
 }
 
-export const CargoList: FC<CargoListProps> = ({ availableItems, onAddCargo, onRemoveCargo }) => {
-  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+export const CargoList = React.memo<CargoListProps>(({ availableItems, onAddCargo, onRemoveCargo }) => {
+  const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
-  };
+  }, []);
 
-  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const baseId = e.dataTransfer.getData("text/plain");
-    if (baseId && onRemoveCargo) {
-      onRemoveCargo(fromCargoId(baseId));
-    }
-  };
+  const handleDrop = useCallback(
+    (e: DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      const baseId = e.dataTransfer.getData("text/plain");
+      if (baseId && onRemoveCargo) {
+        onRemoveCargo(fromCargoId(baseId));
+      }
+    },
+    [onRemoveCargo]
+  );
 
   if (availableItems.length === 0) {
     return (
@@ -128,4 +131,4 @@ export const CargoList: FC<CargoListProps> = ({ availableItems, onAddCargo, onRe
       ))}
     </div>
   );
-};
+});

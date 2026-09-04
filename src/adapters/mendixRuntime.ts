@@ -106,3 +106,33 @@ export const setMxDecimalAttribute = (obj: unknown, attribute: string, value: nu
   const normalizedValue = new Big(value).round(MENDIX_DECIMAL_SCALE, Big.roundHalfUp).toFixed(MENDIX_DECIMAL_SCALE);
   setMxAttribute(obj, attribute, new Decimal(normalizedValue), context);
 };
+
+/**
+ * Creates a mock MxObject for development/testing when Mendix runtime is not available.
+ * Provides default values for common entity types.
+ */
+export const createMockMxObject = <T extends Record<string, unknown>>(
+  entity: 'TruckSelection' | 'TransportOrder' | 'PackingUnit' | 'PackingType' | 'PackingPlan' | 'LoadingPlanItem',
+  overrides: Partial<T> = {}
+): MxObject & T => {
+  const defaults: Record<string, Record<string, unknown>> = {
+    TruckSelection: { internalLengthMeter: 13.6, internalWidthMeter: 2.45, internalHeightMeter: 2.7, maxLoadMeters: 13.6 },
+    TransportOrder: { Name: 'Test Order', TransportOrderID: 'TO-001' },
+    PackingUnit: { Length: 1.2, Width: 0.8, Height: 1.0, WeightKg: 500 },
+    PackingType: { Name: 'EUR Pallet', Length: 1.2, Width: 0.8, Height: 1.0 },
+    PackingPlan: { PlanName: 'Test Plan' },
+    LoadingPlanItem: { PositionX: 0, PositionY: 0, Length: 1.2, Width: 0.8, Rotated: false, Sequence: 0 },
+  };
+
+  const base = defaults[entity] ?? {};
+  const guid = `mock-${entity.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  return {
+    getGuid: () => guid,
+    get: (attr: string) => overrides[attr] ?? base[attr],
+    set: () => undefined,
+    getReference: () => undefined,
+    getReferences: () => [],
+    getAttributes: () => Object.keys(base),
+  } as unknown as MxObject & T;
+};

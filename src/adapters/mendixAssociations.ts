@@ -1,4 +1,5 @@
 import { getObjectGuid, isMxObject } from "./mendixRuntime";
+import type { MxObject } from "../types/mx";
 
 const getAssociationGuid = (obj: unknown, associationNames: readonly string[]): string | undefined => {
   if (!isMxObject(obj)) {
@@ -25,32 +26,30 @@ export const getReferenceGuids = (obj: unknown, associationNames: readonly strin
     return [];
   }
 
-  for (const associationName of associationNames) {
-    const guids: string[] = [];
-    try {
-      const value = obj.get(associationName);
-      if (Array.isArray(value)) {
-        for (const entry of value) {
-          const guid = getObjectGuid(entry);
-          if (guid) {
-            guids.push(guid);
-          }
-        }
-      } else if (value !== null && value !== undefined && value !== "") {
-        const guid = getObjectGuid(value);
-        if (guid) {
-          guids.push(guid);
-        }
-      }
-    } catch {
-      continue;
-    }
+  for (const name of associationNames) {
+    const guids = readGuidsFromAssociation(obj, name);
     if (guids.length > 0) {
       return [...new Set(guids)];
     }
   }
   return [];
 };
+
+function readGuidsFromAssociation(obj: MxObject, name: string): string[] {
+  try {
+    const value = obj.get(name);
+    if (Array.isArray(value)) {
+      return value.map((g) => getObjectGuid(g)).filter((g): g is string => !!g);
+    }
+    if (value !== null && value !== undefined && value !== "") {
+      const guid = getObjectGuid(value);
+      return guid ? [guid] : [];
+    }
+  } catch {
+    // Try next candidate
+  }
+  return [];
+}
 
 export const filterByAssociationGuid = (
   objects: unknown[],

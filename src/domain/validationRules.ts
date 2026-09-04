@@ -15,7 +15,8 @@ export interface ValidationResult {
 export const validateItem = (
   item: RectLike & Partial<{ rotation: Rotation }>,
   bounds: RectLike,
-  others: Array<RectLike & Partial<{ rotation: Rotation }>>,
+  allItems: Array<RectLike & Partial<{ rotation: Rotation }>>,
+  excludeIndex: number = -1,
   scale: AxisScale = DEFAULT_AXIS_SCALE
 ): ValidationResult => {
   const errors: ValidationError[] = [];
@@ -24,7 +25,8 @@ export const validateItem = (
     errors.push("OUT_OF_BOUNDS");
   }
 
-  const hasOverlap = others.some((other) => overlaps(item, other, scale));
+  // Check overlaps, skipping the item at excludeIndex
+  const hasOverlap = allItems.some((other, idx) => idx !== excludeIndex && overlaps(item, other, scale));
 
   if (hasOverlap) {
     errors.push("OVERLAP");
@@ -78,9 +80,9 @@ export const validateAll = (
   const itemErrors: Record<string, ValidationError[]> = {};
 
   // 1. Validate each item against bounds and overlaps
-  for (const item of items) {
-    const others = items.filter((other) => other.id !== item.id);
-    const result = validateItem(item, bounds, others, options?.scale ?? DEFAULT_AXIS_SCALE);
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    const result = validateItem(item, bounds, items, i, options?.scale ?? DEFAULT_AXIS_SCALE);
     if (!result.valid) {
       allErrors.push(...result.errors);
       itemErrors[item.id] = result.errors;

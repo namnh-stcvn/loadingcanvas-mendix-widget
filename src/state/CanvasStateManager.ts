@@ -2,10 +2,13 @@ import type { CanvasState } from "./CanvasState";
 import type { StateListener } from "./CanvasStateListener";
 
 /**
- * Deep-clone a CanvasState using JSON round-trip.
- * Avoids structuredClone (unavailable in Node <17 / older jsdom).
+ * Deep-clone a CanvasState using structuredClone when available,
+ * falling back to JSON round-trip for older environments.
  */
 function cloneState(state: CanvasState): CanvasState {
+  if (typeof structuredClone === 'function') {
+    return structuredClone(state);
+  }
   return JSON.parse(JSON.stringify(state)) as CanvasState;
 }
 
