@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 import type { CargoItem } from "../viewModels/CargoItem";
 
@@ -61,6 +61,8 @@ export const CargoCard: React.FC<CargoCardProps> = ({
       ? `${CARD_SELECTED_BORDER_WIDTH}px solid ${CARD_SELECTED_BORDER_COLOR}`
       : `${CARD_BORDER_WIDTH}px solid ${borderColor}`;
 
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
     <div
       style={{
@@ -69,7 +71,9 @@ export const CargoCard: React.FC<CargoCardProps> = ({
         left: item.x,
 
         top: item.y,
-      }}>
+      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}>
       <div
         data-id={item.id}
         onMouseDown={onMouseDown}
@@ -123,12 +127,14 @@ export const CargoCard: React.FC<CargoCardProps> = ({
         {item.widthM && `width: ${item.widthM}m`}
       </div>
  */}
-      <RotationHandle
-        onMouseDown={(e) => {
-          e.stopPropagation();
-          onRotate(item.id);
-        }}
-      />
+      {isHovered && !item.isLocked && (
+        <RotationHandle
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            onRotate(item.id);
+          }}
+        />
+      )}
     </div>
   );
 };
