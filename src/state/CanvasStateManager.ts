@@ -6,7 +6,7 @@ import type { StateListener } from "./CanvasStateListener";
  * falling back to JSON round-trip for older environments.
  */
 function cloneState(state: CanvasState): CanvasState {
-  if (typeof structuredClone === 'function') {
+  if (typeof structuredClone === "function") {
     return structuredClone(state);
   }
   return JSON.parse(JSON.stringify(state)) as CanvasState;

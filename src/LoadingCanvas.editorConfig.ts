@@ -1,7 +1,5 @@
 import { LoadingCanvasPreviewProps } from "../typings/LoadingCanvasProps";
 
-export type Platform = "web" | "desktop";
-
 export type Properties = PropertyGroup[];
 
 type PropertyGroup = {

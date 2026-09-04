@@ -16,7 +16,7 @@ export const loadMendixObject = async <T = unknown>(guid: string): Promise<T | n
     });
   }
   // Dev fallback: use mock factory
-  return createMockMxObject('TransportOrder', { id: guid }) as T;
+  return createMockMxObject("TransportOrder", { id: guid }) as T;
 };
 
 export const loadMendixObjects = async <T = unknown>(guids: string[]): Promise<T[]> => {
@@ -37,7 +37,7 @@ export const loadMendixObjects = async <T = unknown>(guids: string[]): Promise<T
     });
   }
   // Dev fallback: use mock factory
-  return guids.map((g) => createMockMxObject('TransportOrder', { id: g }) as T);
+  return guids.map((g) => createMockMxObject("TransportOrder", { id: g }) as T);
 };
 
 export const loadMendixList = async <T = unknown>(xpath: string): Promise<T[]> => {

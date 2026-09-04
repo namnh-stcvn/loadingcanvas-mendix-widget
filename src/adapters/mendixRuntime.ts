@@ -112,15 +112,20 @@ export const setMxDecimalAttribute = (obj: unknown, attribute: string, value: nu
  * Provides default values for common entity types.
  */
 export const createMockMxObject = <T extends Record<string, unknown>>(
-  entity: 'TruckSelection' | 'TransportOrder' | 'PackingUnit' | 'PackingType' | 'PackingPlan' | 'LoadingPlanItem',
+  entity: "TruckSelection" | "TransportOrder" | "PackingUnit" | "PackingType" | "PackingPlan" | "LoadingPlanItem",
   overrides: Partial<T> = {}
 ): MxObject & T => {
   const defaults: Record<string, Record<string, unknown>> = {
-    TruckSelection: { internalLengthMeter: 13.6, internalWidthMeter: 2.45, internalHeightMeter: 2.7, maxLoadMeters: 13.6 },
-    TransportOrder: { Name: 'Test Order', TransportOrderID: 'TO-001' },
+    TruckSelection: {
+      internalLengthMeter: 13.6,
+      internalWidthMeter: 2.45,
+      internalHeightMeter: 2.7,
+      maxLoadMeters: 13.6,
+    },
+    TransportOrder: { Name: "Test Order", TransportOrderID: "TO-001" },
     PackingUnit: { Length: 1.2, Width: 0.8, Height: 1.0, WeightKg: 500 },
-    PackingType: { Name: 'EUR Pallet', Length: 1.2, Width: 0.8, Height: 1.0 },
-    PackingPlan: { PlanName: 'Test Plan' },
+    PackingType: { Name: "EUR Pallet", Length: 1.2, Width: 0.8, Height: 1.0 },
+    PackingPlan: { PlanName: "Test Plan" },
     LoadingPlanItem: { PositionX: 0, PositionY: 0, Length: 1.2, Width: 0.8, Rotated: false, Sequence: 0 },
   };
 

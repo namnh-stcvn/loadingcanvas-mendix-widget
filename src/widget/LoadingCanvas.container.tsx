@@ -71,7 +71,7 @@ export const LoadingCanvasContainer = (props: LoadingCanvasProps): ReactElement 
         // PARALLEL: cargo + plan both depend only on truck/scale
         const [cargo, plan] = await Promise.all([
           transportOrderGuids.length > 0 ? loadCargoItems(transportOrderGuids, result.scale) : Promise.resolve([]),
-          result.truckGuid ? loadPackingPlan(result.truckGuid, result.scale) : Promise.resolve([])
+          result.truckGuid ? loadPackingPlan(result.truckGuid, result.scale) : Promise.resolve([]),
         ]);
         if (cancelled) return;
         setAvailableCargo(cargo);

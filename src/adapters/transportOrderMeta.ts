@@ -87,7 +87,7 @@ export const buildTransportOrderMeta = async (rawOrders: unknown[]): Promise<Map
   // PARALLEL: load products and companies simultaneously
   const [productObjects, companyObjects] = await Promise.all([
     allProductGuids.length > 0 ? loadMendixObjects(allProductGuids) : Promise.resolve([]),
-    allCompanyGuids.length > 0 ? loadMendixObjects(allCompanyGuids) : Promise.resolve([])
+    allCompanyGuids.length > 0 ? loadMendixObjects(allCompanyGuids) : Promise.resolve([]),
   ]);
 
   for (const productObj of productObjects) {

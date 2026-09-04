@@ -104,7 +104,14 @@ describe("validationRules", () => {
 
   describe("validateLoadMeters", () => {
     const scale = { widthScale: 100, heightScale: 100 };
-    const makeCargo = (id: string, x: number, y: number, length: number, width: number, rotation: 0 | 90 | 180 | 270 = 0): CargoItem => ({
+    const makeCargo = (
+      id: string,
+      x: number,
+      y: number,
+      length: number,
+      width: number,
+      rotation: 0 | 90 | 180 | 270 = 0
+    ): CargoItem => ({
       id,
       name: id,
       x,
@@ -165,7 +172,14 @@ describe("validationRules", () => {
   describe("validateAll", () => {
     const fullScale = { widthScale: 100, heightScale: 50 };
     const wideBounds = { x: 0, y: 0, length: 200, width: 200 };
-    const makeCargo = (id: string, x: number, y: number, length: number, width: number, rotation: 0 | 90 | 180 | 270 = 0): CargoItem => ({
+    const makeCargo = (
+      id: string,
+      x: number,
+      y: number,
+      length: number,
+      width: number,
+      rotation: 0 | 90 | 180 | 270 = 0
+    ): CargoItem => ({
       id,
       name: id,
       x,
