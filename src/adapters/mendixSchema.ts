@@ -37,6 +37,22 @@ export const TRANSPORT_ORDER_PRODUCT_ASSOCIATIONS: readonly string[] = [
   "TCSTransportModule.TransportOrder_DataModelModule.Product",
   "TransportOrder_Product",
 ];
+// Runtime names verified against DB join tables (see docs/PACKING_PLAN_ENTITY.md):
+// tcstransportmodule$transportorder_producer,
+// tcstransportmodule$transportorder_company_from,
+// tcstransportmodule$transportorder_company_to -> all point at DataModelModule.Company.
+export const TRANSPORT_ORDER_PRODUCER_ASSOCIATIONS: readonly string[] = [
+  "TCSTransportModule.TransportOrder_Producer",
+  "TransportOrder_Producer",
+];
+export const TRANSPORT_ORDER_COMPANY_FROM_ASSOCIATIONS: readonly string[] = [
+  "TCSTransportModule.TransportOrder_Company_From",
+  "TransportOrder_Company_From",
+];
+export const TRANSPORT_ORDER_COMPANY_TO_ASSOCIATIONS: readonly string[] = [
+  "TCSTransportModule.TransportOrder_Company_To",
+  "TransportOrder_Company_To",
+];
 export const PACKING_UNIT_PACKING_TYPE_ASSOCIATIONS: readonly string[] = [
   "DataModelModule.PackingUnit_PackingType",
   "DataModelModule.PackingUnit_DataModelModule.PackingType",

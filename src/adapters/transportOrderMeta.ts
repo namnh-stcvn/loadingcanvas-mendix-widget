@@ -2,20 +2,45 @@ import { isMendixRuntime, getObjectGuid } from "./mendixRuntime";
 import { getReferenceGuids } from "./mendixAssociations";
 import { loadMendixObjects } from "./mendixLoaders";
 import { toPlainObject } from "./mendixMappers";
-import { TRANSPORT_ORDER_PRODUCT_ASSOCIATIONS } from "./mendixSchema";
+import {
+  TRANSPORT_ORDER_PRODUCT_ASSOCIATIONS,
+  TRANSPORT_ORDER_PRODUCER_ASSOCIATIONS,
+  TRANSPORT_ORDER_COMPANY_FROM_ASSOCIATIONS,
+  TRANSPORT_ORDER_COMPANY_TO_ASSOCIATIONS,
+} from "./mendixSchema";
 
 export interface TransportOrderMeta {
   transportOrderNo?: string;
   productName?: string;
+  producerName?: string; // TransportOrder -> Producer (Company.Name)
+  companyFromName?: string; // TransportOrder -> Company_From (Company.Name)
+  companyToName?: string; // TransportOrder -> Company_To (Company.Name)
 }
 
-// Builds TransportOrderNo + Product Name metadata keyed by TransportOrder GUID.
-// Product references are read from already-loaded order objects; Product objects
-// are batch-loaded once for every referenced GUID.
+// Per-order GUID bundles collected in the first pass, keyed by order GUID.
+interface OrderReferenceGuids {
+  productGuids: string[];
+  producerGuids: string[];
+  fromGuids: string[];
+  toGuids: string[];
+}
+
+const readName = (plain: Record<string, unknown>): string | undefined => {
+  const name = String(plain.Name ?? plain.name ?? "").trim();
+  return name || undefined;
+};
+
+const resolveFirstName = (guids: string[], namesByGuid: Map<string, string>): string | undefined =>
+  guids.map((g) => namesByGuid.get(g)).find(Boolean);
+
+// Builds TransportOrderNo + Product name + Company names (Producer/From/To)
+// metadata keyed by TransportOrder GUID. Product and Company references are read
+// from already-loaded order objects; the referenced entities are batch-loaded once
+// per entity type (Company covers all three popup roles).
 export const buildTransportOrderMeta = async (rawOrders: unknown[]): Promise<Map<string, TransportOrderMeta>> => {
   const metaByOrderGuid = new Map<string, TransportOrderMeta>();
-  const productGuidsByOrderGuid = new Map<string, string[]>();
-  const ordersWithoutProduct: string[] = [];
+  const guidsByOrderGuid = new Map<string, OrderReferenceGuids>();
+  const ordersWithMissingMeta: string[] = [];
 
   for (const raw of rawOrders) {
     const orderGuid = getObjectGuid(raw);
@@ -24,27 +49,37 @@ export const buildTransportOrderMeta = async (rawOrders: unknown[]): Promise<Map
     }
     const plain = toPlainObject(raw);
     const transportOrderNo = String(plain.TransportOrderNo ?? plain.transportOrderNo ?? "").trim();
+
     const productGuids = getReferenceGuids(raw, TRANSPORT_ORDER_PRODUCT_ASSOCIATIONS);
-    if (productGuids.length > 0) {
-      productGuidsByOrderGuid.set(orderGuid, productGuids);
-    } else if (isMendixRuntime()) {
-      // Silent empty would hide a Domain Model association-name mismatch; surface
-      // the tried candidates so the console shows exactly what was attempted.
-      ordersWithoutProduct.push(orderGuid);
+    const producerGuids = getReferenceGuids(raw, TRANSPORT_ORDER_PRODUCER_ASSOCIATIONS);
+    const fromGuids = getReferenceGuids(raw, TRANSPORT_ORDER_COMPANY_FROM_ASSOCIATIONS);
+    const toGuids = getReferenceGuids(raw, TRANSPORT_ORDER_COMPANY_TO_ASSOCIATIONS);
+
+    if (isMendixRuntime() && [productGuids, producerGuids, fromGuids, toGuids].some((g) => g.length === 0)) {
+      ordersWithMissingMeta.push(orderGuid);
     }
+
+    guidsByOrderGuid.set(orderGuid, { productGuids, producerGuids, fromGuids, toGuids });
     metaByOrderGuid.set(orderGuid, { transportOrderNo: transportOrderNo || undefined });
   }
 
-  if (ordersWithoutProduct.length > 0 && isMendixRuntime()) {
+  if (ordersWithMissingMeta.length > 0 && isMendixRuntime()) {
     console.warn(
-      `buildTransportOrderMeta: ${ordersWithoutProduct.length}/${rawOrders.length} TransportOrders have no readable Product reference (tried: ${TRANSPORT_ORDER_PRODUCT_ASSOCIATIONS.join(
-        ", "
-      )}); Product name will be missing in tooltips`
+      `buildTransportOrderMeta: ${ordersWithMissingMeta.length}/${rawOrders.length} TransportOrders miss a Product/Producer/Company_From/Company_To reference (tried: ${[
+        "Product",
+        ...TRANSPORT_ORDER_PRODUCT_ASSOCIATIONS,
+        "Producer",
+        ...TRANSPORT_ORDER_PRODUCER_ASSOCIATIONS,
+        "Company_From",
+        ...TRANSPORT_ORDER_COMPANY_FROM_ASSOCIATIONS,
+        "Company_To",
+        ...TRANSPORT_ORDER_COMPANY_TO_ASSOCIATIONS,
+      ].join(", ")}); popup fields will be missing`
     );
   }
 
   const productNamesByGuid = new Map<string, string>();
-  const allProductGuids = [...new Set([...productGuidsByOrderGuid.values()].flat())];
+  const allProductGuids = [...new Set([...guidsByOrderGuid.values()].flatMap((g) => g.productGuids))];
   if (allProductGuids.length > 0) {
     const productObjects = await loadMendixObjects(allProductGuids);
     for (const productObj of productObjects) {
@@ -52,8 +87,7 @@ export const buildTransportOrderMeta = async (rawOrders: unknown[]): Promise<Map
       if (!productGuid) {
         continue;
       }
-      const productPlain = toPlainObject(productObj);
-      const name = String(productPlain.Name ?? productPlain.name ?? "").trim();
+      const name = readName(toPlainObject(productObj));
       if (name) {
         productNamesByGuid.set(productGuid, name);
       } else if (isMendixRuntime()) {
@@ -62,10 +96,35 @@ export const buildTransportOrderMeta = async (rawOrders: unknown[]): Promise<Map
     }
   }
 
-  for (const [orderGuid, productGuids] of productGuidsByOrderGuid) {
+  const companyNamesByGuid = new Map<string, string>();
+  const allCompanyGuids = [
+    ...new Set([...guidsByOrderGuid.values()].flatMap((g) => [...g.producerGuids, ...g.fromGuids, ...g.toGuids])),
+  ];
+  if (allCompanyGuids.length > 0) {
+    const companyObjects = await loadMendixObjects(allCompanyGuids);
+    for (const companyObj of companyObjects) {
+      const companyGuid = getObjectGuid(companyObj);
+      if (!companyGuid) {
+        continue;
+      }
+      const name = readName(toPlainObject(companyObj));
+      if (name) {
+        companyNamesByGuid.set(companyGuid, name);
+      } else if (isMendixRuntime()) {
+        console.warn(`buildTransportOrderMeta: Company ${companyGuid} loaded but has no readable Name attribute`);
+      }
+    }
+  }
+
+  for (const [orderGuid, guids] of guidsByOrderGuid) {
     const meta = metaByOrderGuid.get(orderGuid) ?? {};
-    const productName = productGuids.map((guid) => productNamesByGuid.get(guid)).find(Boolean);
-    metaByOrderGuid.set(orderGuid, { ...meta, productName });
+    metaByOrderGuid.set(orderGuid, {
+      transportOrderNo: meta.transportOrderNo,
+      productName: resolveFirstName(guids.productGuids, productNamesByGuid),
+      producerName: resolveFirstName(guids.producerGuids, companyNamesByGuid),
+      companyFromName: resolveFirstName(guids.fromGuids, companyNamesByGuid),
+      companyToName: resolveFirstName(guids.toGuids, companyNamesByGuid),
+    });
   }
 
   return metaByOrderGuid;

@@ -32,6 +32,9 @@ export interface TransportOrderData {
   name?: string;
   transportOrderNo?: string; // Transport Order Number
   productName?: string; // Product name from TransportOrder -> Product association
+  producerName?: string; // Company name via TransportOrder -> Producer association
+  companyFromName?: string; // Company name via TransportOrder -> Company_From association
+  companyToName?: string; // Company name via TransportOrder -> Company_To association
   packingUnit?: PackingUnitData;
   quantity?: number;
 }
@@ -45,6 +48,9 @@ export interface TransportOrderData {
  * @param quantity - Quantity of items this transport order represents (default 1)
  * @param transportOrderNo - Transport Order Number (optional)
  * @param productName - Product name from TransportOrder -> Product association (optional)
+ * @param producerName - Producer company name (optional)
+ * @param companyFromName - From company name (optional)
+ * @param companyToName - To company name (optional)
  * @returns A CargoItem view model ready for the canvas
  */
 export const packingUnitToCargoItem = (
@@ -53,7 +59,10 @@ export const packingUnitToCargoItem = (
   position: { x: number; y: number } = { x: 0, y: 0 },
   quantity: number = 1,
   transportOrderNo?: string,
-  productName?: string
+  productName?: string,
+  producerName?: string,
+  companyFromName?: string,
+  companyToName?: string
 ): CargoItem => {
   const color = packingUnit.packingType === "pallet" ? "orange" : "blue";
   const name = packingUnit.name ?? `Cargo ${packingUnit.id}`;
@@ -75,6 +84,9 @@ export const packingUnitToCargoItem = (
     quantity,
     transportOrderNo,
     productName,
+    producerName,
+    companyFromName,
+    companyToName,
   };
 };
 
@@ -95,7 +107,10 @@ export const transportOrdersToCargoItems = (
         { x: 0, y: 0 },
         order.quantity ?? 1,
         order.transportOrderNo,
-        order.productName
+        order.productName,
+        order.producerName,
+        order.companyFromName,
+        order.companyToName
       )
     );
 };
@@ -153,14 +168,15 @@ export const packingTypeFromColor = (color: string | undefined): "pallet" | "box
 
 // Merges the associated PackingUnit values (Name/Length/Width/Height/packing type) into the
 // TransportOrder data. The CargoItem id stays based on the TransportOrder GUID so the save
-// flow can restore the TransportOrder association correctly.
+// flow can restore the TransportOrder association correctly. The optional `meta` carries the
+// tooltip/popup names (Product + Producer/From/To companies) resolved in transportOrderMeta.
 export const applyPackingUnitData = (
   order: TransportOrderData,
   unitPlain: Record<string, unknown> | null,
   packingTypeValue?: string | null,
-  productName?: string
+  meta?: Pick<TransportOrderData, "productName" | "producerName" | "companyFromName" | "companyToName">
 ): TransportOrderData => {
-  if (!unitPlain && !productName) {
+  if (!unitPlain && !meta) {
     return order;
   }
 
@@ -169,8 +185,8 @@ export const applyPackingUnitData = (
 
   return {
     ...order,
+    ...(meta ?? {}),
     name: unitName ?? order.name,
-    productName: productName ?? order.productName,
     packingUnit: unitPlain
       ? {
           id: current?.id ?? order.id,

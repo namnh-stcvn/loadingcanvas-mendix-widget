@@ -97,7 +97,7 @@ export const loadPackingPlan = async (
       return { raw, transportOrderId };
     });
 
-    // Load TransportOrderNo + Product Name for every resolved TransportOrder.
+    // Load TransportOrderNo + Product/Company names for every resolved TransportOrder.
     const metaByOrderGuid = new Map<string, TransportOrderMeta>();
     const resolvedOrderGuids = [
       ...new Set(resolvedItems.map((r) => r.transportOrderId).filter((g): g is string => !!g)),
@@ -149,7 +149,7 @@ export const loadPackingPlan = async (
 
     const restoredItems = deserializePlan(planData, scale);
 
-    // Attach tooltip meta (TransportOrderNo / Product Name) to the restored items.
+    // Attach tooltip/popup meta (TransportOrderNo / Product / Company names) to the restored items.
     return restoredItems.map((item) => {
       const meta = metaForItem(item.id, resolvedItems, metaByOrderGuid);
       return meta ? { ...item, ...meta } : item;

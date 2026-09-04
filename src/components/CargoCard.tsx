@@ -7,6 +7,7 @@ import { fromCargoId } from "../domain/cargoIdentity";
 
 import { RotationHandle } from "./RotationHandle";
 import { CargoTooltip } from "./CargoTooltip";
+import { CargoPopup } from "./CargoPopup";
 
 import {
   CARD_ACTIVE_BORDER_WIDTH,
@@ -63,6 +64,7 @@ export const CargoCard: React.FC<CargoCardProps> = ({
       : `${CARD_BORDER_WIDTH}px solid ${borderColor}`;
 
   const [isHovered, setIsHovered] = useState(false);
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
 
   return (
     <div
@@ -78,6 +80,7 @@ export const CargoCard: React.FC<CargoCardProps> = ({
       <div
         data-id={item.id}
         onMouseDown={onMouseDown}
+        onClick={() => setIsPopupOpen((v) => !v)}
         draggable={!item.isLocked}
         onDragStart={(e) => {
           e.dataTransfer.setData("text/plain", fromCargoId(item.id));
@@ -128,7 +131,7 @@ export const CargoCard: React.FC<CargoCardProps> = ({
         {item.widthM && `width: ${item.widthM}m`}
       </div>
  */}
-      {isHovered && (
+      {isHovered && !isPopupOpen && (
         <>
           {!item.isLocked && (
             <RotationHandle
@@ -140,6 +143,15 @@ export const CargoCard: React.FC<CargoCardProps> = ({
           )}
           <CargoTooltip transportOrderNo={item.transportOrderNo} productName={item.productName} />
         </>
+      )}
+      {isPopupOpen && (
+        <CargoPopup
+          transportOrderNo={item.transportOrderNo}
+          productName={item.productName}
+          producerName={item.producerName}
+          companyFromName={item.companyFromName}
+          companyToName={item.companyToName}
+        />
       )}
     </div>
   );

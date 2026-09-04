@@ -79,7 +79,7 @@ export const loadCargoItems = async (
       }
     }
 
-    // Load TransportOrderNo + Product Name metadata for the tooltip
+    // Load TransportOrderNo + Product/Company names metadata for tooltip and popup
     const metaByOrderGuid = await buildTransportOrderMeta(rawObjs);
 
     const ordersData: TransportOrderData[] = rawObjs
@@ -96,7 +96,7 @@ export const loadCargoItems = async (
         const typeGuid = unitGuid ? unitTypeGuidByUnit.get(unitGuid) : undefined;
         const packingTypeValue = typeGuid ? (typeValueByGuid.get(typeGuid) ?? null) : null;
         const meta = orderGuid ? metaByOrderGuid.get(orderGuid) : undefined;
-        return applyPackingUnitData(order, unitPlain, packingTypeValue, meta?.productName);
+        return applyPackingUnitData(order, unitPlain, packingTypeValue, meta);
       })
       .filter((d): d is TransportOrderData => d !== null);
 

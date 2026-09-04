@@ -135,17 +135,23 @@ describe("loadCargoItems PackingUnit enrichment", () => {
     expect(items[0].color).toBe("blue");
   });
 
-  it("resolves transportOrderNo and productName tooltip meta from TransportOrder references", async () => {
+  it("resolves transportOrderNo, productName and Company names (Producer/From/To) popup meta from TransportOrder references", async () => {
     const orderObj = {
       get: (name: string): unknown => {
         if (name === "TCSTransportModule.TransportOrder_PackingUnit") {
           return ["pu-guid-1"];
         }
-        if (name === "TCSTransportModule.TransportOrder_DataModelModule.Product") {
-          return ["product-guid-1"];
-        }
         if (name === "TCSTransportModule.TransportOrder_Product") {
           return ["product-guid-1"];
+        }
+        if (name === "TCSTransportModule.TransportOrder_Producer") {
+          return ["producer-guid-1"];
+        }
+        if (name === "TCSTransportModule.TransportOrder_Company_From") {
+          return ["from-guid-1"];
+        }
+        if (name === "TCSTransportModule.TransportOrder_Company_To") {
+          return ["to-guid-1"];
         }
         if (name === "TransportOrderNo") {
           return "TO-777";
@@ -169,11 +175,20 @@ describe("loadCargoItems PackingUnit enrichment", () => {
       getAttributes: (): string[] => ["Name"],
       getGuid: (): string => "product-guid-1",
     };
+    const companyObj = (guid: string, companyName: string) => ({
+      get: (name: string): unknown => (name === "Name" ? companyName : null),
+      set: (): void => undefined,
+      getAttributes: (): string[] => ["Name"],
+      getGuid: (): string => guid,
+    });
 
     const registry: Record<string, unknown> = {
       "order-guid-1": orderObj,
       "pu-guid-1": unitObj,
       "product-guid-1": productObj,
+      "producer-guid-1": companyObj("producer-guid-1", "Producer Co"),
+      "from-guid-1": companyObj("from-guid-1", "From Co"),
+      "to-guid-1": companyObj("to-guid-1", "To Co"),
     };
     (globalThis as { mx?: unknown }).mx = {
       data: {
@@ -189,6 +204,9 @@ describe("loadCargoItems PackingUnit enrichment", () => {
     expect(items).toHaveLength(1);
     expect(items[0].transportOrderNo).toBe("TO-777");
     expect(items[0].productName).toBe("Steel Coil");
+    expect(items[0].producerName).toBe("Producer Co");
+    expect(items[0].companyFromName).toBe("From Co");
+    expect(items[0].companyToName).toBe("To Co");
   });
 
   it("pairs each order with its own PackingUnit even when the batch responds out of order", async () => {

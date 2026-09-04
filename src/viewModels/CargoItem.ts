@@ -13,4 +13,7 @@ export interface CargoItem extends GeometryItem {
   quantity?: number;
   transportOrderNo?: string; // Transport Order Number
   productName?: string; // Product name from TransportOrder -> Product association
+  producerName?: string; // Company name via TransportOrder -> Producer association
+  companyFromName?: string; // Company name via TransportOrder -> Company_From association
+  companyToName?: string; // Company name via TransportOrder -> Company_To association
 }

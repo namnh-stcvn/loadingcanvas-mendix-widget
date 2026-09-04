@@ -8,7 +8,7 @@ This repository implements a modular **LoadingCanvas** widget for drag-and-drop 
 
 The architecture follows a strict **layered separation of concerns**:
 
-- **UI layer** — React components and hooks (`LoadingCanvas`, `LoadingCanvasContainer`, `CargoCard`, `CargoTooltip`, `RotationHandle`, `GridOverlay`, `CargoList`, `useTruckCanvas`, `useCanvasState`, `useCanvasActions`, `useMouseEvents`)
+- **UI layer** — React components and hooks (`LoadingCanvas`, `LoadingCanvasContainer`, `CargoCard`, `CargoPopup`, `CargoTooltip`, `RotationHandle`, `GridOverlay`, `CargoList`, `useTruckCanvas`, `useCanvasState`, `useCanvasActions`, `useMouseEvents`)
 - **State management layer** — `CanvasStateManager` (single source of truth) and `CanvasActionDispatcher` (action routing)
 - **Engine layer** — `DragEngine`, `CollisionEngine`, `SnapEngine` (pure business logic; validation executes directly from the dispatcher via `domain/validationRules`)
 - **Domain rule layer** — geometry, snap, validation, coordinate, rotation, drag, boundary, and packing helpers
@@ -35,8 +35,9 @@ src/
 ├── package.xml                     # Widget package definition (id, name, version, author)
 │
 ├── components/
-│   ├── CargoCard.tsx               # Renders a single cargo item (position, size, border, hover tooltip, rotation handle)
+│   ├── CargoCard.tsx               # Renders a single cargo item (position, size, border, hover tooltip, click popup, rotation handle)
 │   ├── CargoList.tsx               # Debug palette: available cargo items, draggable/clickable onto the canvas
+│   ├── CargoPopup.tsx             # Click popup beside a cargo card: Order/Product/Producer/From/To
 │   ├── CargoTooltip.tsx            # Hover tooltip: TransportOrderNo + Product name for a cargo card
 │   ├── GridOverlay.tsx             # Renders a visual grid on the canvas for grid-snap visualization
 │   ├── RotationHandle.tsx          # Small grab-handle UI for rotating an item 90°
@@ -99,7 +100,7 @@ src/
 │
 ├── adapters/
 │   ├── cargoAdapter.ts             # Converts PackingUnit/TransportOrder data to CargoItem view models
-│   ├── transportOrderMeta.ts       # Loads TransportOrderNo + Product name tooltip meta for TransportOrders
+│   ├── transportOrderMeta.ts       # Loads TransportOrderNo + Product/Company names tooltip/popup meta
 │   ├── truckAdapter.ts             # Converts TruckSelection data to TruckItem view model, computes scale
 │   ├── stateAdapter.ts             # Serializes/deserializes PackingPlanData for persistence
 │   ├── mendixDataAdapter.ts        # Bridges to Mendix Data API (mx.data) for load/save
@@ -249,7 +250,7 @@ src/
 - **`CargoCard`** (`src/components/CargoCard.tsx`) — renders a single cargo item.
   - Computes the visual size via `getRotatedScreenSize()` to account for rotation.
   - Applies a border based on state: active (red, 3px), selected (blue, 3px), or default (gray, 1px).
-  - On hover shows the `RotationHandle` (unlocked items only) and the `CargoTooltip` with the item's TransportOrderNo and Product name.
+  - On hover shows the `RotationHandle` (unlocked items only) and the `CargoTooltip` with the item's TransportOrderNo and Product name; clicking the card toggles a `CargoPopup` beside it showing Order/Product/Producer/From/To company names.
 
 - **`GridOverlay`** (`src/components/GridOverlay.tsx`) — renders a visual grid on the canvas.
   - Uses a canvas-generated background pattern for crisp grid lines.
@@ -261,7 +262,7 @@ src/
 
 - **`RotationHandle`** (`src/components/RotationHandle.tsx`) — a small circular grab-handle (↻) inside the card at its top center, shown on hover; the hover tooltip hangs below the card so the two never overlap.
 
-- **`CargoTooltip`** (`src/components/CargoTooltip.tsx`) — dark hover tooltip hanging below the card showing `Order: <TransportOrderNo>` and `Product: <name>`; renders nothing when both fields are empty.
+- **`CargoPopup`** (`src/components/CargoPopup.tsx`) — dark click popup shown to the right of the card showing `Order: <TransportOrderNo>`, `Product: <name>`, `By: <producer>`, `From: <company>`, `To: <company>`; renders nothing when all fields are empty.
 
 ## Data Flow
 
