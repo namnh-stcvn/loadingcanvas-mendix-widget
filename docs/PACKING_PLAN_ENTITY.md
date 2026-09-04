@@ -81,7 +81,9 @@ The new entities integrate with the existing model via references.
 > **Runtime association names.** The MxObject `get()`/`set()` name is `OwningModule.AssociationName`
 > (e.g. `TCSTransportModule.TransportOrder_Product`), verified against the database join tables
 > (`tcstransportmodule$transportorder_packingunit`, `tcstransportmodule$transportorder_product`,
-> `datamodelmodule$packingunit_packingtype`). Descriptive spellings that embed the target module
+> `datamodelmodule$packingunit_packingtype`, `tcstransportmodule$transportorder_company_from`,
+> `tcstransportmodule$transportorder_company_to`, `tcstransportmodule$transportorder_producer`).
+> Descriptive spellings that embed the target module
 > (e.g. `TransportOrder_DataModelModule.Product`) never resolve at runtime; the adapter keeps them
 > only as bounded fallbacks. Reference sets (1-\*) return a GUID array from `get()`; single
 > references return one GUID.
@@ -95,6 +97,9 @@ TCSTransportModule.TransportOrderSequence_TruckSelection (*-1)
 TransportOrderSequence_TransportOrder (1-*)
 TCSTransportModule.TransportOrder_PackingUnit (1-*)
 TCSTransportModule.TransportOrder_Product (1-*)
+TCSTransportModule.TransportOrder_Company_From (1-*)
+TCSTransportModule.TransportOrder_Company_To (1-*)
+TCSTransportModule.TransportOrder_Producer (1-*)
 DataModelModule.PackingUnit_PackingType (1-*)
 
 List off entity with attributes:
@@ -132,6 +137,10 @@ PackingType:
 - E_PackingType (Enum, "Pallet", "Box")
 
 Product:
+- Name (String)
+...
+
+Company:
 - Name (String)
 ...
 

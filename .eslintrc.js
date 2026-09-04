@@ -36,7 +36,7 @@ module.exports = [
       // TS-aware replacement handles unused vars (base rule misfires on type positions)
       "no-unused-vars": "off",
       complexity: ["warn", 40],
-      "max-depth": ["warn", 4],
+      "max-depth": ["warn", 5],
       "max-params": ["warn", 10],
       "max-lines-per-function": ["warn", { max: 250, skipBlankLines: true, skipComments: true }],
       "max-nested-callbacks": ["warn", 3],
