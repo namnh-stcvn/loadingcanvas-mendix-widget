@@ -9,9 +9,10 @@ import {
   setMxAttribute,
   setMxDecimalAttribute,
 } from "./mendixRuntime";
-import { loadMendixList } from "./mendixLoaders";
+import { loadMendixList, loadMendixObjects } from "./mendixLoaders";
 import { filterByAssociationGuid } from "./mendixAssociations";
 import { toPlainObject } from "./mendixMappers";
+import { buildTransportOrderMeta, type TransportOrderMeta } from "./transportOrderMeta";
 import { DEFAULT_LENGTH_METER, DEFAULT_WIDTH_METER, packingTypeFromColor } from "./cargoAdapter";
 import { fromCargoId, toCargoId } from "../domain/cargoIdentity";
 import {
@@ -62,38 +63,61 @@ export const loadPackingPlan = async (
 
     const planItems = await findPackingPlanItems(planGuid);
 
+    // First pass: resolve the TransportOrder association per item so the meta
+    // (TransportOrderNo / Product Name for the tooltip) can be batch-loaded.
+    const resolvedItems = planItems.map((item) => {
+      const raw = toPlainObject(item);
+      // Association not in getAttributes(); read by mxObject.get()
+      let transportOrderId: string | null = null;
+      if (isMxObject(item)) {
+        try {
+          transportOrderId =
+            getObjectGuid(item.get(PACKING_PLAN_ITEM_TRANSPORT_ORDER_ASSOCIATION)) ??
+            getObjectGuid(item.get(PACKING_PLAN_ITEM_TRANSPORT_ORDER_ASSOCIATION_FALLBACK)) ??
+            null;
+        } catch {
+          transportOrderId = null;
+        }
+      }
+      // Plain-object fixtures may carry the association as a field.
+      if (!transportOrderId && raw.TransportOrder != null) {
+        transportOrderId = String(raw.TransportOrder);
+      }
+      if (!transportOrderId && raw.transportOrder != null) {
+        transportOrderId = String(raw.transportOrder);
+      }
+      const rawItemId = String(raw.id ?? raw.guid ?? "item");
+      if (!transportOrderId && isMendixRuntime()) {
+        // Without the association the item key would be a PackingPlanItem GUID,
+        // which silently mismatches TransportOrder-keyed cargo lists.
+        console.warn(
+          `loadPackingPlan: PackingPlanItem ${rawItemId} has no readable TransportOrder association (tried ${PACKING_PLAN_ITEM_TRANSPORT_ORDER_ASSOCIATION}); falling back to "${rawItemId}"`
+        );
+      }
+      return { raw, transportOrderId };
+    });
+
+    // Load TransportOrderNo + Product Name for every resolved TransportOrder.
+    const metaByOrderGuid = new Map<string, TransportOrderMeta>();
+    const resolvedOrderGuids = [
+      ...new Set(resolvedItems.map((r) => r.transportOrderId).filter((g): g is string => !!g)),
+    ];
+    if (resolvedOrderGuids.length > 0) {
+      try {
+        const rawOrders = await loadMendixObjects(resolvedOrderGuids);
+        for (const [guid, meta] of await buildTransportOrderMeta(rawOrders)) {
+          metaByOrderGuid.set(guid, meta);
+        }
+      } catch (err) {
+        // Meta only feeds the tooltip; a failed load must not break plan restore.
+        console.warn("loadPackingPlan: failed to load TransportOrder meta for tooltips", err);
+      }
+    }
+
     const planData: PackingPlanData = {
       truckId: truckGuid,
-      items: planItems.map((item) => {
-        const raw = toPlainObject(item);
-        // Association not in getAttributes(); read by mxObject.get()
-        let transportOrderId: string | null = null;
-        if (isMxObject(item)) {
-          try {
-            transportOrderId =
-              getObjectGuid(item.get(PACKING_PLAN_ITEM_TRANSPORT_ORDER_ASSOCIATION)) ??
-              getObjectGuid(item.get(PACKING_PLAN_ITEM_TRANSPORT_ORDER_ASSOCIATION_FALLBACK)) ??
-              null;
-          } catch {
-            transportOrderId = null;
-          }
-        }
-        // Plain-object fixtures may carry the association as a field.
-        if (!transportOrderId && raw.TransportOrder != null) {
-          transportOrderId = String(raw.TransportOrder);
-        }
-        if (!transportOrderId && raw.transportOrder != null) {
-          transportOrderId = String(raw.transportOrder);
-        }
-        const rawItemId = String(raw.id ?? raw.guid ?? "item");
-        if (!transportOrderId && isMendixRuntime()) {
-          // Without the association the item key would be a PackingPlanItem GUID,
-          // which silently mismatches TransportOrder-keyed cargo lists.
-          console.warn(
-            `loadPackingPlan: PackingPlanItem ${rawItemId} has no readable TransportOrder association (tried ${PACKING_PLAN_ITEM_TRANSPORT_ORDER_ASSOCIATION}); falling back to "${rawItemId}"`
-          );
-        }
-        const resolvedOrderId = transportOrderId ?? rawItemId;
+      items: resolvedItems.map(({ raw, transportOrderId }) => {
+        const resolvedOrderId = transportOrderId ?? String(raw.id ?? raw.guid ?? "item");
         const itemId = toCargoId(resolvedOrderId);
         // PackingPlanItem has no Name/Type attributes (docs/PACKING_PLAN_ENTITY.md); type derives from Color.
         const colorValue =
@@ -123,11 +147,36 @@ export const loadPackingPlan = async (
       }),
     };
 
-    return deserializePlan(planData, scale);
+    const restoredItems = deserializePlan(planData, scale);
+
+    // Attach tooltip meta (TransportOrderNo / Product Name) to the restored items.
+    return restoredItems.map((item) => {
+      const meta = metaForItem(item.id, resolvedItems, metaByOrderGuid);
+      return meta ? { ...item, ...meta } : item;
+    });
   } catch (err) {
     console.error("Failed to load PackingPlan:", err);
     return [];
   }
+};
+
+// Maps a restored cargo item back to its TransportOrder meta via the resolved
+// association GUID recorded during the first pass (item id keeps the "cargo-"
+// prefix and may carry an instance suffix, so match through fromCargoId).
+const metaForItem = (
+  itemId: string,
+  resolvedItems: { raw: Record<string, unknown>; transportOrderId: string | null }[],
+  metaByOrderGuid: Map<string, TransportOrderMeta>
+): TransportOrderMeta | undefined => {
+  const baseId = fromCargoId(itemId);
+  const match = resolvedItems.find((r) => {
+    const resolvedOrderId = r.transportOrderId ?? String(r.raw.id ?? r.raw.guid ?? "item");
+    return toCargoId(resolvedOrderId) === baseId || resolvedOrderId === baseId;
+  });
+  if (!match?.transportOrderId) {
+    return undefined;
+  }
+  return metaByOrderGuid.get(match.transportOrderId);
 };
 
 export const savePackingPlan = async (

@@ -11,4 +11,6 @@ export interface CargoItem extends GeometryItem {
   widthM?: number; // Footprint width in meters
   weightKg?: number; // Weight in kg for payload validation
   quantity?: number;
+  transportOrderNo?: string; // Transport Order Number
+  productName?: string; // Product name from TransportOrder -> Product association
 }

@@ -6,6 +6,7 @@ import { DEFAULT_AXIS_SCALE, getRotatedScreenSize, type AxisScale } from "../dom
 import { fromCargoId } from "../domain/cargoIdentity";
 
 import { RotationHandle } from "./RotationHandle";
+import { CargoTooltip } from "./CargoTooltip";
 
 import {
   CARD_ACTIVE_BORDER_WIDTH,
@@ -127,13 +128,18 @@ export const CargoCard: React.FC<CargoCardProps> = ({
         {item.widthM && `width: ${item.widthM}m`}
       </div>
  */}
-      {isHovered && !item.isLocked && (
-        <RotationHandle
-          onMouseDown={(e) => {
-            e.stopPropagation();
-            onRotate(item.id);
-          }}
-        />
+      {isHovered && (
+        <>
+          {!item.isLocked && (
+            <RotationHandle
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                onRotate(item.id);
+              }}
+            />
+          )}
+          <CargoTooltip transportOrderNo={item.transportOrderNo} productName={item.productName} />
+        </>
       )}
     </div>
   );

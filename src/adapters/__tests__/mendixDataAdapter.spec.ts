@@ -97,7 +97,7 @@ describe("loadCargoItems PackingUnit enrichment", () => {
     };
     const unitObj = {
       get: (name: string): unknown =>
-        name === "DataModelModule.PackingUnit_DataModelModule.PackingType" ? "pt-guid-1" : (unitAttrs[name] ?? null),
+        name === "DataModelModule.PackingUnit_PackingType" ? "pt-guid-1" : (unitAttrs[name] ?? null),
       set: (): void => undefined,
       getAttributes: (): string[] => Object.keys(unitAttrs),
       getGuid: (): string => "pu-guid-1",
@@ -135,6 +135,62 @@ describe("loadCargoItems PackingUnit enrichment", () => {
     expect(items[0].color).toBe("blue");
   });
 
+  it("resolves transportOrderNo and productName tooltip meta from TransportOrder references", async () => {
+    const orderObj = {
+      get: (name: string): unknown => {
+        if (name === "TCSTransportModule.TransportOrder_PackingUnit") {
+          return ["pu-guid-1"];
+        }
+        if (name === "TCSTransportModule.TransportOrder_DataModelModule.Product") {
+          return ["product-guid-1"];
+        }
+        if (name === "TCSTransportModule.TransportOrder_Product") {
+          return ["product-guid-1"];
+        }
+        if (name === "TransportOrderNo") {
+          return "TO-777";
+        }
+        return null;
+      },
+      set: (): void => undefined,
+      getAttributes: (): string[] => ["TransportOrderNo"],
+      getGuid: (): string => "order-guid-1",
+    };
+    const unitObj = {
+      get: (name: string): unknown =>
+        name === "Length" ? { toNumber: () => 1.2 } : name === "Width" ? { toNumber: () => 0.8 } : null,
+      set: (): void => undefined,
+      getAttributes: (): string[] => ["Length", "Width"],
+      getGuid: (): string => "pu-guid-1",
+    };
+    const productObj = {
+      get: (name: string): unknown => (name === "Name" ? "Steel Coil" : null),
+      set: (): void => undefined,
+      getAttributes: (): string[] => ["Name"],
+      getGuid: (): string => "product-guid-1",
+    };
+
+    const registry: Record<string, unknown> = {
+      "order-guid-1": orderObj,
+      "pu-guid-1": unitObj,
+      "product-guid-1": productObj,
+    };
+    (globalThis as { mx?: unknown }).mx = {
+      data: {
+        get: jest.fn((options: { guids?: string[]; callback: (result: unknown) => void }) => {
+          const requested = options.guids ?? [];
+          options.callback(requested.map((guid) => registry[guid]).filter(Boolean));
+        }),
+      },
+    };
+
+    const items = await loadCargoItems(["order-guid-1"], { widthScale: 50, heightScale: 50 });
+
+    expect(items).toHaveLength(1);
+    expect(items[0].transportOrderNo).toBe("TO-777");
+    expect(items[0].productName).toBe("Steel Coil");
+  });
+
   it("pairs each order with its own PackingUnit even when the batch responds out of order", async () => {
     const makeType = (guid: string, enumValue: string) => ({
       get: (name: string): unknown => (name === "E_PackingType" ? enumValue : null),
@@ -144,7 +200,7 @@ describe("loadCargoItems PackingUnit enrichment", () => {
     });
     const unitA = {
       get: (name: string): unknown =>
-        name === "DataModelModule.PackingUnit_DataModelModule.PackingType"
+        name === "DataModelModule.PackingUnit_PackingType"
           ? "pt-guid-A"
           : (({ Name: "Pallet A", Length: { toNumber: () => 1.2 }, Width: { toNumber: () => 0.8 } } as never)[name] ??
             null),
@@ -154,7 +210,7 @@ describe("loadCargoItems PackingUnit enrichment", () => {
     };
     const unitB = {
       get: (name: string): unknown =>
-        name === "DataModelModule.PackingUnit_DataModelModule.PackingType"
+        name === "DataModelModule.PackingUnit_PackingType"
           ? "pt-guid-B"
           : (({ Name: "Box B", Length: { toNumber: () => 0.6 }, Width: { toNumber: () => 0.4 } } as never)[name] ??
             null),

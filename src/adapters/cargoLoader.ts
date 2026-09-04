@@ -4,6 +4,7 @@ import { getReferenceGuids } from "./mendixAssociations";
 import { loadMendixObjects } from "./mendixLoaders";
 import { toPlainObject, extractTransportOrderData } from "./mendixMappers";
 import { applyPackingUnitData, transportOrdersToCargoItems, type TransportOrderData } from "./cargoAdapter";
+import { buildTransportOrderMeta } from "./transportOrderMeta";
 import {
   PACKING_TYPE_ENUM_ATTRIBUTE,
   PACKING_UNIT_PACKING_TYPE_ASSOCIATIONS,
@@ -78,6 +79,9 @@ export const loadCargoItems = async (
       }
     }
 
+    // Load TransportOrderNo + Product Name metadata for the tooltip
+    const metaByOrderGuid = await buildTransportOrderMeta(rawObjs);
+
     const ordersData: TransportOrderData[] = rawObjs
       .map((raw) => {
         // Keyed by own GUID; extractTransportOrderData also self-resolves id/guid
@@ -91,7 +95,8 @@ export const loadCargoItems = async (
         const unitPlain = unitGuid ? (unitPlainByGuid.get(unitGuid) ?? null) : null;
         const typeGuid = unitGuid ? unitTypeGuidByUnit.get(unitGuid) : undefined;
         const packingTypeValue = typeGuid ? (typeValueByGuid.get(typeGuid) ?? null) : null;
-        return applyPackingUnitData(order, unitPlain, packingTypeValue);
+        const meta = orderGuid ? metaByOrderGuid.get(orderGuid) : undefined;
+        return applyPackingUnitData(order, unitPlain, packingTypeValue, meta?.productName);
       })
       .filter((d): d is TransportOrderData => d !== null);
 

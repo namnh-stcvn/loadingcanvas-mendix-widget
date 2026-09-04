@@ -76,7 +76,15 @@ TCSLoadingMeter Module (NEW entities):
 
 ## Integration with Existing Data Model
 
-The new entities integrate with the existing model via references:
+The new entities integrate with the existing model via references.
+
+> **Runtime association names.** The MxObject `get()`/`set()` name is `OwningModule.AssociationName`
+> (e.g. `TCSTransportModule.TransportOrder_Product`), verified against the database join tables
+> (`tcstransportmodule$transportorder_packingunit`, `tcstransportmodule$transportorder_product`,
+> `datamodelmodule$packingunit_packingtype`). Descriptive spellings that embed the target module
+> (e.g. `TransportOrder_DataModelModule.Product`) never resolve at runtime; the adapter keeps them
+> only as bounded fallbacks. Reference sets (1-\*) return a GUID array from `get()`; single
+> references return one GUID.
 
 ```
 TCSLoadingMeter.TruckSelection_TCSTransportModule.Session (1-*)
@@ -86,7 +94,8 @@ DataModelModule.Resource_TechnicalDetails (1-1)
 TCSTransportModule.TransportOrderSequence_TruckSelection (*-1)
 TransportOrderSequence_TransportOrder (1-*)
 TCSTransportModule.TransportOrder_PackingUnit (1-*)
-DataModelModule.PackingUnit_DataModelModule.PackingType (1-*)
+TCSTransportModule.TransportOrder_Product (1-*)
+DataModelModule.PackingUnit_PackingType (1-*)
 
 List off entity with attributes:
 
@@ -121,6 +130,10 @@ PackingUnit:
 
 PackingType:
 - E_PackingType (Enum, "Pallet", "Box")
+
+Product:
+- Name (String)
+...
 
 NEW:
 TCSLoadingMeter.PackingPlan (1 per TruckSelection)

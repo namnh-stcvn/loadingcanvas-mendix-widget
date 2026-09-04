@@ -30,6 +30,8 @@ export const DEFAULT_WEIGHT_KG = 500;
 export interface TransportOrderData {
   id: string;
   name?: string;
+  transportOrderNo?: string; // Transport Order Number
+  productName?: string; // Product name from TransportOrder -> Product association
   packingUnit?: PackingUnitData;
   quantity?: number;
 }
@@ -41,13 +43,17 @@ export interface TransportOrderData {
  * @param scale - Pixel-to-meter scale factor
  * @param position - Initial canvas position (pixels)
  * @param quantity - Quantity of items this transport order represents (default 1)
+ * @param transportOrderNo - Transport Order Number (optional)
+ * @param productName - Product name from TransportOrder -> Product association (optional)
  * @returns A CargoItem view model ready for the canvas
  */
 export const packingUnitToCargoItem = (
   packingUnit: PackingUnitData,
   scale: { widthScale: number; heightScale: number },
   position: { x: number; y: number } = { x: 0, y: 0 },
-  quantity: number = 1
+  quantity: number = 1,
+  transportOrderNo?: string,
+  productName?: string
 ): CargoItem => {
   const color = packingUnit.packingType === "pallet" ? "orange" : "blue";
   const name = packingUnit.name ?? `Cargo ${packingUnit.id}`;
@@ -67,6 +73,8 @@ export const packingUnitToCargoItem = (
     widthM: packingUnit.widthMeter,
     weightKg: packingUnit.weightKg,
     quantity,
+    transportOrderNo,
+    productName,
   };
 };
 
@@ -80,7 +88,16 @@ export const transportOrdersToCargoItems = (
 ): CargoItem[] => {
   return orders
     .filter((order) => order.packingUnit)
-    .map((order) => packingUnitToCargoItem(order.packingUnit!, scale, { x: 0, y: 0 }, order.quantity ?? 1));
+    .map((order) =>
+      packingUnitToCargoItem(
+        order.packingUnit!,
+        scale,
+        { x: 0, y: 0 },
+        order.quantity ?? 1,
+        order.transportOrderNo,
+        order.productName
+      )
+    );
 };
 
 /**
@@ -140,28 +157,34 @@ export const packingTypeFromColor = (color: string | undefined): "pallet" | "box
 export const applyPackingUnitData = (
   order: TransportOrderData,
   unitPlain: Record<string, unknown> | null,
-  packingTypeValue?: string | null
+  packingTypeValue?: string | null,
+  productName?: string
 ): TransportOrderData => {
-  if (!unitPlain) {
+  if (!unitPlain && !productName) {
     return order;
   }
 
   const current = order.packingUnit;
-  const unitName = readNonEmptyString(unitPlain, ["Name", "name"]);
+  const unitName = unitPlain ? readNonEmptyString(unitPlain, ["Name", "name"]) : undefined;
 
   return {
     ...order,
     name: unitName ?? order.name,
-    packingUnit: {
-      id: current?.id ?? order.id,
-      name: unitName ?? current?.name,
-      lengthMeter: readPositiveNumber(unitPlain, ["Length", "length"]) ?? current?.lengthMeter ?? DEFAULT_LENGTH_METER,
-      widthMeter: readPositiveNumber(unitPlain, ["Width", "width"]) ?? current?.widthMeter ?? DEFAULT_WIDTH_METER,
-      heightMeter: readPositiveNumber(unitPlain, ["Height", "height"]) ?? current?.heightMeter ?? DEFAULT_HEIGHT_METER,
-      packingType: resolvePackingType(packingTypeValue),
-      weightKg:
-        readPositiveNumber(unitPlain, ["WeightKg", "weightKg", "GrossWeight", "grossWeight"]) ?? current?.weightKg,
-    },
+    productName: productName ?? order.productName,
+    packingUnit: unitPlain
+      ? {
+          id: current?.id ?? order.id,
+          name: unitName ?? current?.name,
+          lengthMeter:
+            readPositiveNumber(unitPlain, ["Length", "length"]) ?? current?.lengthMeter ?? DEFAULT_LENGTH_METER,
+          widthMeter: readPositiveNumber(unitPlain, ["Width", "width"]) ?? current?.widthMeter ?? DEFAULT_WIDTH_METER,
+          heightMeter:
+            readPositiveNumber(unitPlain, ["Height", "height"]) ?? current?.heightMeter ?? DEFAULT_HEIGHT_METER,
+          packingType: resolvePackingType(packingTypeValue),
+          weightKg:
+            readPositiveNumber(unitPlain, ["WeightKg", "weightKg", "GrossWeight", "grossWeight"]) ?? current?.weightKg,
+        }
+      : current,
   };
 };
 

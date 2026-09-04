@@ -209,6 +209,8 @@ export const extractTransportOrderData = (obj: unknown, fallbackGuid?: string): 
     )
   );
 
+  const transportOrderNo = String(readRawValue(raw, ["transportOrderNo", "TransportOrderNo"], ""));
+
   const name = String(
     readRawValue(
       raw,
@@ -253,6 +255,7 @@ export const extractTransportOrderData = (obj: unknown, fallbackGuid?: string): 
   return {
     id,
     name,
+    transportOrderNo: transportOrderNo || undefined,
     packingUnit,
     quantity: isNaN(quantity) ? 1 : quantity,
   };

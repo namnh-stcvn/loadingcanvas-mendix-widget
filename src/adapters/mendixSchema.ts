@@ -21,11 +21,24 @@ export const PACKING_PLAN_ITEM_ASSOCIATIONS: readonly string[] = [
 ];
 export const PACKING_PLAN_ITEM_PACKING_PLAN_ASSOCIATION = PACKING_PLAN_ITEM_ASSOCIATIONS[0];
 
+// Runtime association names verified against the Mendix database (join tables):
+// tcstransportmodule$transportorder_packingunit -> TCSTransportModule.TransportOrder_PackingUnit
+// tcstransportmodule$transportorder_product     -> TCSTransportModule.TransportOrder_Product
+// datamodelmodule$packingunit_packingtype       -> DataModelModule.PackingUnit_PackingType
+// MxObject get()/set() require the OwningModule.AssociationName form; the DB is the
+// source of truth for these names (see docs/PACKING_PLAN_ENTITY.md). Only the
+// prefix-less dev-fixture forms are kept as bounded fallbacks.
 export const TRANSPORT_ORDER_PACKING_UNIT_ASSOCIATIONS: readonly string[] = [
   "TCSTransportModule.TransportOrder_PackingUnit",
   "TransportOrder_PackingUnit",
 ];
+export const TRANSPORT_ORDER_PRODUCT_ASSOCIATIONS: readonly string[] = [
+  "TCSTransportModule.TransportOrder_Product",
+  "TCSTransportModule.TransportOrder_DataModelModule.Product",
+  "TransportOrder_Product",
+];
 export const PACKING_UNIT_PACKING_TYPE_ASSOCIATIONS: readonly string[] = [
+  "DataModelModule.PackingUnit_PackingType",
   "DataModelModule.PackingUnit_DataModelModule.PackingType",
   "PackingUnit_PackingType",
 ];
