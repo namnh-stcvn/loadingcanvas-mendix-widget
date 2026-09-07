@@ -114,11 +114,20 @@ export const loadPackingPlan = async (
       }
     }
 
+    const orderInstanceCount = new Map<string, number>();
     const planData: PackingPlanData = {
       truckId: truckGuid,
       items: resolvedItems.map(({ raw, transportOrderId }) => {
         const resolvedOrderId = transportOrderId ?? String(raw.id ?? raw.guid ?? "item");
-        const itemId = toCargoId(resolvedOrderId);
+        const baseItemId = toCargoId(resolvedOrderId);
+        // The persisted TransportOrder association only stores the order GUID; when the
+        // same order supplies several saved instances (quantity > 1) every restored id
+        // would be identical and React would collapse the duplicates into one canvas
+        // card. Append a per-instance suffix, mirroring the ids the canvas generates
+        // when items are added/dropped, and `fromCargoId` strips the suffix again.
+        const occurrence = orderInstanceCount.get(baseItemId) ?? 0;
+        orderInstanceCount.set(baseItemId, occurrence + 1);
+        const itemId = occurrence === 0 ? baseItemId : `${baseItemId}-${occurrence}`;
         // PackingPlanItem has no Name/Type attributes (docs/PACKING_PLAN_ENTITY.md); type derives from Color.
         const colorValue =
           raw.Color !== undefined || raw.color !== undefined ? String(raw.Color ?? raw.color) : undefined;

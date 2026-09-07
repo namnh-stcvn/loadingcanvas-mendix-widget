@@ -312,6 +312,53 @@ describe("loadCargoItems PackingUnit enrichment", () => {
       console.warn = originalConsoleWarn;
     }
   });
+
+  it("gives duplicate TransportOrder associations distinct instance ids so the canvas keeps every saved pallet", async () => {
+    const makeObj = (attrs: Record<string, unknown>, assoc: Record<string, unknown>) => ({
+      get: (name: string): unknown => (name in assoc ? assoc[name] : (attrs[name] ?? null)),
+      set: (): void => undefined,
+      getAttributes: (): string[] => Object.keys(attrs),
+    });
+    const planObj = makeObj({ id: "plan-guid-1" }, { "TCSLoadingMeter.PackingPlan_TruckSelection": "truck-guid-1" });
+    // Two saved pallets belong to the same TransportOrder (quantity > 1): both rows
+    // carry the identical order GUID, so restored ids must stay unique per instance.
+    const itemObjA = makeObj(
+      { id: "item-a", PositionX: { toNumber: () => 1 }, PositionY: { toNumber: () => 1 } },
+      {
+        "TCSLoadingMeter.PackingPlanItem_PackingPlan": "plan-guid-1",
+        "TCSLoadingMeter.PackingPlanItem_TransportOrder": "order-guid-1",
+      }
+    );
+    const itemObjB = makeObj(
+      { id: "item-b", PositionX: { toNumber: () => 2 }, PositionY: { toNumber: () => 2 } },
+      {
+        "TCSLoadingMeter.PackingPlanItem_PackingPlan": "plan-guid-1",
+        "TCSLoadingMeter.PackingPlanItem_TransportOrder": "order-guid-1",
+      }
+    );
+
+    (globalThis as { mx?: unknown }).mx = {
+      data: {
+        get: jest.fn((options: { guids?: string[]; xpath?: string; callback: (result: unknown) => void }) => {
+          if (options.guids) {
+            options.callback([]);
+            return;
+          }
+          if (options.xpath?.includes("PackingPlanItem")) {
+            options.callback([itemObjA, itemObjB]);
+            return;
+          }
+          options.callback([planObj]);
+        }),
+      },
+    };
+
+    const items = await loadPackingPlan("truck-guid-1", { widthScale: 50, heightScale: 50 });
+
+    expect(items).toHaveLength(2);
+    expect(items[0].id).toBe("cargo-order-guid-1");
+    expect(items[1].id).toBe("cargo-order-guid-1-1");
+  });
 });
 
 describe("savePackingPlan Decimal constructor fallback", () => {
