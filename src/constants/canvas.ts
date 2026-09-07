@@ -16,7 +16,7 @@ export const DEFAULT_MARGIN = "20px auto";
 
 // overlay
 
-export const INFO_PANEL_TOP = 550;
+export const INFO_PANEL_TOP = 536;
 export const INFO_PANEL_RIGHT = 20;
 export const INFO_PANEL_Z_INDEX = 1000;
 export const INFO_PANEL_PADDING = "4px 8px";
