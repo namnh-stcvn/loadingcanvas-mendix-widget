@@ -1,5 +1,6 @@
 import { describe, it, expect } from "@jest/globals";
-import { packCargoIntoBounds } from "../packingRules";
+import { autoLoadCargoUnits, expandCargoByQuantity, packCargoIntoBounds } from "../packingRules";
+import { fromCargoId } from "../cargoIdentity";
 import type { CargoItem } from "../../viewModels/CargoItem";
 import type { RectLike } from "../../types/geometry";
 
@@ -175,5 +176,41 @@ describe("packCargoIntoBounds", () => {
     expect(packed.weightKg).toBe(350);
     expect(packed.length).toBe(120);
     expect(packed.width).toBe(60);
+  });
+});
+
+describe("expandCargoByQuantity / autoLoadCargoUnits (Auto Load idempotence)", () => {
+  const order = (id: string, quantity: number): CargoItem => ({ ...makeCargo(id, 120, 60), quantity });
+
+  it("expands a raw list entry into one instance per quantity unit", () => {
+    const expanded = expandCargoByQuantity([order("cargo-G", 3)]);
+
+    expect(expanded.map((i) => i.id)).toEqual(["cargo-G-0", "cargo-G-1", "cargo-G-2"]);
+  });
+
+  it("passes canvas instances through unchanged when the list is empty", () => {
+    const onCanvas = [
+      makeCargo("cargo-G-0", 120, 60),
+      makeCargo("cargo-G-1", 120, 60),
+      makeCargo("cargo-G-2", 120, 60),
+    ];
+
+    expect(autoLoadCargoUnits(onCanvas, []).map((i) => i.id)).toEqual(["cargo-G-0", "cargo-G-1", "cargo-G-2"]);
+  });
+
+  it("keeps the same unit set on repeated Auto Load runs (no duplication)", () => {
+    const firstRun = autoLoadCargoUnits([], [order("cargo-G", 2), order("cargo-H", 1)]);
+    const idsAfterFirst = firstRun.map((i) => i.id);
+
+    // Second run: the canvas carries firstRun instances, the list is re-derived empty.
+    const secondRun = autoLoadCargoUnits(firstRun, []);
+
+    expect(secondRun.map((i) => i.id)).toEqual(idsAfterFirst);
+  });
+
+  it("produces ids that still resolve to the base order GUID (list stays empty)", () => {
+    const expandedIds = autoLoadCargoUnits([], [order("cargo-G", 3)]).map((i) => fromCargoId(i.id));
+
+    expect(new Set(expandedIds)).toEqual(new Set(["G"]));
   });
 });

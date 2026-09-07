@@ -127,3 +127,29 @@ export const packCargoIntoBounds = (
     unplaced: items.filter((item) => !placements.has(item)),
   };
 };
+
+// Expands raw available-cargo entries by their quantity into per-instance canvas
+// items (ids "cargo-<orderGuid>-<i>"). Canvas instances are already one unit per
+// item and must never be re-expanded; re-expanding would double the cargo on a
+// second Auto Load run and nest the instance suffix ("cargo-G-0-0"), which no
+// longer resolves back to the base order GUID via fromCargoId.
+export const expandCargoByQuantity = (cargo: CargoItem[]): CargoItem[] => {
+  const expanded: CargoItem[] = [];
+  for (const item of cargo) {
+    const quantity = item.quantity ?? 1;
+    for (let i = 0; i < quantity; i++) {
+      expanded.push({
+        ...item,
+        id: `${item.id}-${i}`,
+      });
+    }
+  }
+  return expanded;
+};
+
+// Auto Load input assembly: canvas items are units that pass through unchanged;
+// only the still-listed raw entries carry multiplicity and must be expanded first.
+export const autoLoadCargoUnits = (onCanvas: CargoItem[], stillInList: CargoItem[]): CargoItem[] => [
+  ...onCanvas,
+  ...expandCargoByQuantity(stillInList),
+];

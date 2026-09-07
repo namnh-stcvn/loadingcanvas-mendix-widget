@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type DragEvent, type ReactElement
 import { CargoCard } from "../components/CargoCard";
 import { CargoList } from "../components/CargoList";
 import { GridOverlay } from "../components/GridOverlay";
-import { packCargoIntoBounds } from "../domain/packingRules";
+import { autoLoadCargoUnits, packCargoIntoBounds } from "../domain/packingRules";
 import { useTruckCanvas } from "../hooks/useTruckCanvas";
 import {
   CANVAS_BORDER,
@@ -109,24 +109,9 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
   const handleAutoLoad = (): void => {
     const bounds = truck ?? { x: 0, y: 0, length: canvasWidth, width: canvasHeight };
 
-    // Expand cargo items by quantity (each transport order contributes N cargo items)
-    const expandByQuantity = (cargo: CargoItem[]): CargoItem[] => {
-      const expanded: CargoItem[] = [];
-      for (const item of cargo) {
-        const quantity = item.quantity ?? 1;
-        for (let i = 0; i < quantity; i++) {
-          expanded.push({
-            ...item,
-            // Generate unique IDs for each instance but keep same baseId for grouping
-            id: `${item.id}-${i}`,
-          });
-        }
-      }
-      return expanded;
-    };
-
-    const allItems = [...items, ...availableCargoItems];
-    const expandedItems = expandByQuantity(allItems);
+    // Canvas items are already per-unit instances; only the still-listed entries
+    // are expanded by quantity, so re-running Auto Load never doubles the cargo.
+    const expandedItems = autoLoadCargoUnits(items, availableCargoItems);
     const { placed, unplaced } = packCargoIntoBounds(expandedItems, bounds, scale);
     setItems(placed);
     setAutoLoadUnplaced(unplaced.length);
