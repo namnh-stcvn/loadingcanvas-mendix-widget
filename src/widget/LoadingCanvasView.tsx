@@ -17,6 +17,10 @@ import {
   TRUCK_FRAME_BORDER,
   DEFAULT_ADD_POSITION_X,
   DEFAULT_ADD_POSITION_Y,
+  TRUCK_BACKGROUND_IMAGE_WIDTH,
+  TRUCK_BACKGROUND_LOAD_X,
+  TRUCK_BACKGROUND_LOAD_Y,
+  TRUCK_BACKGROUND_LOAD_WIDTH,
 } from "../constants/canvas";
 import {
   CANVAS_BACKGROUND_COLOR,
@@ -184,6 +188,29 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
     return validation?.itemErrors?.[itemId] ?? [];
   };
 
+  // --- Truck backdrop style: scale the image so its loading-area rectangle
+  // (TRUCK_BACKGROUND_LOAD_*) lands exactly on the proportional truck frame. The
+  // frame length = truck.length px represents the truck's internal loading width;
+  // the image's loading area is TRUCK_BACKGROUND_LOAD_WIDTH raw px, so the image
+  // must be displayed at truck.length / LOAD_WIDTH × its natural size, positioned
+  // so that LOAD_X/LOAD_Y image px map onto the frame's top-left corner.
+  const truckBackdropStyle = useMemo(() => {
+    if (!truck || truck.length <= 0) {
+      return {
+        backgroundSize: "100% auto" as const,
+        backgroundPosition: "center" as const,
+      };
+    }
+    const k = truck.length / TRUCK_BACKGROUND_LOAD_WIDTH;
+    const width = Math.round(TRUCK_BACKGROUND_IMAGE_WIDTH * k);
+    const left = Math.round(truck.x - TRUCK_BACKGROUND_LOAD_X * k);
+    const top = Math.round(truck.y - TRUCK_BACKGROUND_LOAD_Y * k);
+    return {
+      backgroundSize: `${width}px 344px` as const,
+      backgroundPosition: `${left}px ${top}px` as const,
+    };
+  }, [truck]);
+
   // --- Loading state ---
   if (isLoading) {
     return (
@@ -223,8 +250,8 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
         border: CANVAS_BORDER,
         backgroundColor: CANVAS_BACKGROUND_COLOR,
         backgroundImage: `url(${truckBackground})`,
-        backgroundSize: "100% auto",
-        backgroundPosition: "center",
+        backgroundSize: truckBackdropStyle.backgroundSize,
+        backgroundPosition: truckBackdropStyle.backgroundPosition,
         backgroundRepeat: "no-repeat",
       }}>
       {/* Grid overlay */}

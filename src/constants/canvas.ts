@@ -35,6 +35,17 @@ export const GRID_OVERLAY_Z_INDEX = 1;
 
 export const TRUCK_FRAME_BORDER = "2px dashed #888";
 
+// truck background image geometry (Truck_horizontal.png: 1275 x 271 px)
+// The loading-area rectangle within the image, in raw image pixels, that must
+// be aligned to the proportional truck frame so cargo overlays the truck bed.
+
+export const TRUCK_BACKGROUND_IMAGE_WIDTH = 1275;
+export const TRUCK_BACKGROUND_IMAGE_HEIGHT = 271;
+export const TRUCK_BACKGROUND_LOAD_X = 234;
+export const TRUCK_BACKGROUND_LOAD_Y = 30;
+export const TRUCK_BACKGROUND_LOAD_WIDTH = 1030;
+export const TRUCK_BACKGROUND_LOAD_HEIGHT = 212;
+
 // placement
 
 export const DEFAULT_ADD_POSITION_X = 50;
