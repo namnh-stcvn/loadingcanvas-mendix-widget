@@ -1,5 +1,5 @@
 import { describe, it, expect } from "@jest/globals";
-import { clamp, getCanvasBounds, getTruckBounds } from "../boundaryRules";
+import { clamp, getCanvasBounds, getTruckBounds, getTruckBoundsFromItem } from "../boundaryRules";
 
 describe("boundaryRules", () => {
   describe("clamp", () => {
@@ -45,6 +45,21 @@ describe("boundaryRules", () => {
   describe("getTruckBounds", () => {
     it("should match the truck collision band used by DragEngine", () => {
       expect(getTruckBounds()).toEqual({ x: 333, y: 152, length: 1453, width: 297 });
+    });
+  });
+
+  describe("getTruckBoundsFromItem", () => {
+    it("should return the truck item's own bounds", () => {
+      const truck = { x: 333, y: 170, length: 1453, width: 262 };
+      expect(getTruckBoundsFromItem(truck)).toEqual({ x: 333, y: 170, length: 1453, width: 262 });
+    });
+
+    it("should fall back to the reserved band when truck is null", () => {
+      expect(getTruckBoundsFromItem(null)).toEqual(getTruckBounds());
+    });
+
+    it("should fall back to the reserved band when truck is undefined", () => {
+      expect(getTruckBoundsFromItem(undefined)).toEqual(getTruckBounds());
     });
   });
 });

@@ -16,6 +16,8 @@ Built with **React 18.2** (pinned via package.json `overrides`/`resolutions`, au
 - **Grid snapping** for precise positioning
 - **Real-time collision detection** and overlap validation
 - **Boundary validation** to keep items within truck limits
+- **Proportional truck frame** — the frame matches the selected truck's internal length × width (meters → pixels via the measured uniform scale) and is centered vertically in the reserved canvas band; the truck image spans the full canvas width behind the frame
+- **Frame-based validation** — drag, rotate, add, and Auto Load all validate against the proportional frame bounds instead of the full canvas band
 - **Rotation-aware load-meter (LM) validation** — counts a 90°/270° rotated cargo by the length it actually occupies along the truck
 - **Load/save packing plans** via Mendix Data API, with save failures surfaced in the info panel instead of failing silently
 - **Auto Load** button that repacks all cargo tightly into the truck (First-Fit Decreasing with optional 90° rotation)
@@ -151,6 +153,8 @@ src/
 8. `CanvasStateManager` notifies subscribers; React re-renders with updated state
 9. User clicks "Save Plan" → packing plan saved to Mendix entities
 10. User clicks "Auto Load" → `packCargoIntoBounds()` repacks every cargo (canvas + cargo list) flush into the truck frame; items that do not fit stay in the cargo list
+
+Note: the truck frame is proportional to the selected truck's internal dimensions (length × width) and centered vertically in the reserved canvas band; cargo placement, rotation, and Auto Load are validated against this frame, not the full canvas band.
 
 ---
 

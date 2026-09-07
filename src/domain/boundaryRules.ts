@@ -19,3 +19,12 @@ export const getTruckBounds = (): RectLike => ({
   length: TRUCK_CANVAS_WIDTH,
   width: TRUCK_CANVAS_HEIGHT,
 });
+
+// Bounds from the rendered truck item so validation/collision match the
+// proportional frame; falls back to the reserved band when no truck exists.
+export const getTruckBoundsFromItem = (
+  truck: { x: number; y: number; length: number; width: number } | null | undefined
+): RectLike => {
+  if (!truck) return getTruckBounds();
+  return { x: truck.x, y: truck.y, length: truck.length, width: truck.width };
+};

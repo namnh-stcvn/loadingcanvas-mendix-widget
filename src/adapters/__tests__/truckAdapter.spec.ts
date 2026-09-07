@@ -28,9 +28,9 @@ describe("truckAdapter", () => {
       expect(result.axleCount).toBe(2);
       expect(result.maxLoadMeters).toBe(12);
       expect(result.length).toBe(600); // 12 * 50
-      expect(result.width).toBe(TRUCK_CANVAS_HEIGHT); // frame pinned to canvas band
+      expect(result.width).toBe(125); // 2.5 * 50, proportional to internal width
       expect(result.x).toBe(TRUCK_CANVAS_LEFT);
-      expect(result.y).toBe(TRUCK_CANVAS_TOP);
+      expect(result.y).toBe(TRUCK_CANVAS_TOP + (TRUCK_CANVAS_HEIGHT - 125) / 2); // centered in band
       expect(result.rotation).toBe(0);
     });
 
@@ -58,7 +58,19 @@ describe("truckAdapter", () => {
       };
       const result = truckSelectionToTruckItem(truck, scale, { x: 50, y: 50 });
       expect(result.x).toBe(50);
-      expect(result.y).toBe(50);
+      expect(result.y).toBe(50 + (TRUCK_CANVAS_HEIGHT - 125) / 2); // y is the band top; frame centered inside
+    });
+
+    it("should clamp an oversized frame to the canvas band height", () => {
+      const truck = {
+        id: "truck-3",
+        internalLengthMeter: 12,
+        internalWidthMeter: 10,
+        internalHeightMeter: 2.5,
+      };
+      const result = truckSelectionToTruckItem(truck, scale);
+      expect(result.width).toBe(TRUCK_CANVAS_HEIGHT);
+      expect(result.y).toBe(TRUCK_CANVAS_TOP); // no leftover space to center into
     });
   });
 
@@ -79,7 +91,7 @@ describe("truckAdapter", () => {
       expect(result.id).toBe("truck-1");
       expect(result.code).toBe("TRUCK-001");
       expect(result.length).toBe(600);
-      expect(result.width).toBe(TRUCK_CANVAS_HEIGHT); // frame pinned to canvas band
+      expect(result.width).toBe(125); // 2.5 * 50, proportional to internal width
     });
   });
 

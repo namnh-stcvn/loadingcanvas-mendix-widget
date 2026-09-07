@@ -183,8 +183,10 @@ describe("cargoAdapter", () => {
 
   describe("cargoItemToPackingUnitData", () => {
     it("should serialize a CargoItem back to PackingUnitData", () => {
+      // A GUID-like base id (no trailing digit group) keeps fromCargoId unambiguous:
+      // "-1" in "cargo-pu-1" would be stripped as a cargo instance suffix.
       const item: CargoItem = {
-        id: "cargo-pu-1",
+        id: "cargo-pu-abc",
         name: "Pallet A",
         x: 100,
         y: 200,
@@ -199,7 +201,7 @@ describe("cargoAdapter", () => {
         weightKg: 500,
       };
       const result = cargoItemToPackingUnitData(item, scale.widthScale);
-      expect(result.id).toBe("pu-1");
+      expect(result.id).toBe("pu-abc");
       expect(result.name).toBe("Pallet A");
       // Explicit physical length wins over the pixel-derived value
       expect(result.lengthMeter).toBe(1.2);

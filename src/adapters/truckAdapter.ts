@@ -31,6 +31,11 @@ export const truckSelectionToTruckItem = (
   scale: ScalePair,
   position: { x: number; y: number } = { x: TRUCK_CANVAS_LEFT, y: TRUCK_CANVAS_TOP }
 ): TruckItem => {
+  const frameLength = Math.min(TRUCK_CANVAS_WIDTH, meterToPixel(truck.internalLengthMeter, scale.widthScale));
+  const frameWidth = Math.min(TRUCK_CANVAS_HEIGHT, meterToPixel(truck.internalWidthMeter, scale.heightScale));
+  // Center the proportional frame vertically inside the reserved canvas band
+  // so it lines up with drag bounds and the background truck image.
+  const frameY = position.y + (TRUCK_CANVAS_HEIGHT - frameWidth) / 2;
   return {
     id: truck.id,
     code: truck.code ?? "TRUCK",
@@ -39,11 +44,9 @@ export const truckSelectionToTruckItem = (
     axleCount: truck.axleCount ?? 2,
     maxLoadMeters: truck.maxLoadMeters ?? truck.internalLengthMeter,
     x: position.x,
-    y: position.y,
-    length: Math.min(TRUCK_CANVAS_WIDTH, meterToPixel(truck.internalLengthMeter, scale.widthScale)),
-    // Frame covers the reserved canvas band so it lines up with drag bounds
-    // and the background truck image; cargo keeps its own uniform scale.
-    width: TRUCK_CANVAS_HEIGHT,
+    y: frameY,
+    length: frameLength,
+    width: frameWidth,
     rotation: 0,
   };
 };
@@ -53,6 +56,11 @@ export const truckToTruckItem = (
   scale: ScalePair,
   position: { x: number; y: number } = { x: TRUCK_CANVAS_LEFT, y: TRUCK_CANVAS_TOP }
 ): TruckItem => {
+  const frameLength = Math.min(TRUCK_CANVAS_WIDTH, meterToPixel(truck.internalLengthMeter, scale.widthScale));
+  const frameWidth = Math.min(TRUCK_CANVAS_HEIGHT, meterToPixel(truck.internalWidthMeter, scale.heightScale));
+  // Center the proportional frame vertically inside the reserved canvas band
+  // so it lines up with drag bounds and the background truck image.
+  const frameY = position.y + (TRUCK_CANVAS_HEIGHT - frameWidth) / 2;
   return {
     id: truck.id,
     code: truck.code,
@@ -61,11 +69,9 @@ export const truckToTruckItem = (
     axleCount: truck.axleCount,
     maxLoadMeters: truck.maxLoadMeters ?? truck.internalLengthMeter,
     x: position.x,
-    y: position.y,
-    length: Math.min(TRUCK_CANVAS_WIDTH, meterToPixel(truck.internalLengthMeter, scale.widthScale)),
-    // Frame covers the reserved canvas band so it lines up with drag bounds
-    // and the background truck image; cargo keeps its own uniform scale.
-    width: TRUCK_CANVAS_HEIGHT,
+    y: frameY,
+    length: frameLength,
+    width: frameWidth,
     rotation: 0,
   };
 };

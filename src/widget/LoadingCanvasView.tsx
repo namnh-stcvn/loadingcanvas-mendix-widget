@@ -230,7 +230,7 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
       {/* Grid overlay */}
       <GridOverlay width={canvasWidth} height={canvasHeight} gridSize={GRID_SIZE} />
 
-      {/* Truck boundary */}
+      {/* Truck boundary (loading area) */}
       {truck && (
         <div
           style={{

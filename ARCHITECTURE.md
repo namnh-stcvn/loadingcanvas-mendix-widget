@@ -49,7 +49,7 @@ src/
 │   └── theme.ts                    # Canvas background color
 │
 ├── domain/
-│   ├── boundaryRules.ts            # clamp() — keeps values within a range; plus getCanvasBounds()/getTruckBounds() — single authority shared by both the dispatcher's OUT_OF_BOUNDS validation and DragEngine's collision clamping (kept identical by construction)
+│   ├── boundaryRules.ts            # clamp() — keeps values within a range; plus getCanvasBounds()/getTruckBounds()/getTruckBoundsFromItem() — single authority shared by both the dispatcher's OUT_OF_BOUNDS validation and DragEngine's collision clamping (kept identical by construction; getTruckBoundsFromItem() derives bounds from the rendered proportional truck frame and falls back to the reserved band)
 │   ├── coordinateRules.ts          # meterToPixel(), pixelToMeter() (pure unit conversion only)
 │   ├── dragRules.ts                # calculateDragPosition() — grid-snapped, clamped drag position
 │   ├── geometryRules.ts            # getRectangle(), isIntersecting(), overlaps(), isInsideBounds(), findCollisions()
@@ -194,8 +194,8 @@ src/
   - `getCargoItemRect()` — gets the visual rectangle of a CargoItem (accounting for rotation). Currently unused in production code (unit tests only) — kept as a documented utility until a removal decision
 
 - **`truckAdapter.ts`** — Converts between TruckSelection data (meters) and TruckItem view model (pixels).
-  - `truckSelectionToTruckItem()` — TruckSelectionData → TruckItem; the frame is pinned to the reserved canvas band (TRUCK_CANVAS_WIDTH x TRUCK_CANVAS_HEIGHT) so it aligns with drag bounds and the background image
-  - `truckToTruckItem()` — Truck business model → TruckItem (same frame pinning). Currently unused in production code (unit tests only) — kept as a documented utility until a removal decision
+  - `truckSelectionToTruckItem()` — TruckSelectionData → TruckItem; the frame is sized from the truck's internal dimensions (meters × uniform scale) and centered vertically in the reserved canvas band so it aligns with drag bounds
+  - `truckToTruckItem()` — Truck business model → TruckItem (same proportional sizing). Currently unused in production code (unit tests only) — kept as a documented utility until a removal decision
 - `computeScale()` — computes one uniform pixel-per-meter scale fitting the truck into TRUCK_CANVAS (1453x297) with padding=0; returns `{ widthScale, heightScale }` with equal values so rotation preserves rendered proportions
 
 - **`stateAdapter.ts`** — Serializes/deserializes packing plans for persistence.
@@ -337,7 +337,7 @@ src/
 
 - **Uniform scale** — `computeScale()` returns a single pixel-per-meter factor (fit-scale = min of the width/height fits; 106.838 px/m for the default 13.6m x 2.45m truck). Cargo keeps true real-world proportions on screen.
 - **Rotation** — stored `length`/`width` are base-orientation pixels; `getRotatedScreenSize()` projects rotated extents through the matching axis scales, which reduces to a plain swap while both scales are equal. This keeps a rotated rectangle a rectangle instead of distorting its shape.
-- **Truck frame** — the dashed boundary is pinned to the TRUCK_CANVAS band (1453x297 at LEFT/TOP) so it matches drag bounds and the background image. It is intentionally decoupled from the cargo scale: a cargo row spanning the full 2.45m interior width (~262px) leaves ~35px slack inside the frame.
+- **Truck frame** — the dashed boundary is drawn from the truck's internal dimensions (meters → pixels via the uniform scale) and centered vertically in the reserved TRUCK_CANVAS band (1453x297 at LEFT/TOP) so it matches drag bounds; the truck backdrop image spans the full canvas width behind it. A cargo row spanning the full 2.45m interior width (~262px) leaves ~35px slack inside the frame.
 - **Persistence round-trip** — plans store meters; `serializePlan()`/`deserializePlan()` convert through the current scale pair, so re-saving after any scale change refreshes stored values.
 
 ## Constants

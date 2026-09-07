@@ -131,7 +131,8 @@ describe("validationRules", () => {
 
     it("should return LM_EXCEEDED when total length exceeds limit", () => {
       const items = [makeCargo("a", 0, 0, 100, 50), makeCargo("b", 100, 0, 100, 50)];
-      expect(validateLoadMeters(items, 19, scale)).toEqual({ valid: false, errors: ["LM_EXCEEDED"] });
+      // 2 x 100px at 100 px/m = 2m total; 1.5m limit is exceeded
+      expect(validateLoadMeters(items, 1.5, scale)).toEqual({ valid: false, errors: ["LM_EXCEEDED"] });
     });
 
     it("should return valid for an empty item list", () => {

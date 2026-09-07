@@ -1,7 +1,7 @@
 import type { Point } from "../types/geometry";
 import type { CargoItem } from "../viewModels/CargoItem";
 import type { CanvasStateManager } from "./CanvasStateManager";
-import { getCanvasBounds, getTruckBounds } from "../domain/boundaryRules";
+import { getCanvasBounds, getTruckBoundsFromItem } from "../domain/boundaryRules";
 import { validateAll } from "../domain/validationRules";
 import { DragEngine } from "../engines/DragEngine";
 import { fromCargoId } from "../domain/cargoIdentity";
@@ -92,7 +92,13 @@ export class CanvasActionDispatcher {
       }
 
       case "DRAG_MOVE": {
-        const items = this.dragEngine.move(action.mouse, this.canvasWidth, this.canvasHeight, state.scale);
+        const items = this.dragEngine.move(
+          action.mouse,
+          this.canvasWidth,
+          this.canvasHeight,
+          state.scale,
+          getTruckBoundsFromItem(state.truck)
+        );
         // Note: dragEngine.move() already mutates this.items internally,
         // so no additional updateItems() call is needed here.
         // Transient gesture feedback stays relative to the whole canvas;
@@ -117,7 +123,11 @@ export class CanvasActionDispatcher {
         // Settled layouts are held to the truck band (BR-22): the gesture-time
         // canvas-relative feedback must not hide out-of-band results after release.
         const settled = this.manager.getState();
-        const validation = validateAll(settled.cargos, getTruckBounds(), buildValidationOptions(settled));
+        const validation = validateAll(
+          settled.cargos,
+          getTruckBoundsFromItem(settled.truck),
+          buildValidationOptions(settled)
+        );
         this.manager.updateState((current) => ({
           ...current,
           activeItemId: null,
@@ -133,9 +143,9 @@ export class CanvasActionDispatcher {
           break;
         }
 
-        const nextCargos = this.dragEngine.rotateItem(action.itemId, getTruckBounds(), state.scale);
+        const nextCargos = this.dragEngine.rotateItem(action.itemId, getTruckBoundsFromItem(state.truck), state.scale);
         this.dragEngine.updateItems(nextCargos);
-        const validation = validateAll(nextCargos, getTruckBounds(), buildValidationOptions(state));
+        const validation = validateAll(nextCargos, getTruckBoundsFromItem(state.truck), buildValidationOptions(state));
 
         this.manager.updateState((current) => ({
           ...current,
@@ -152,7 +162,11 @@ export class CanvasActionDispatcher {
         const newItem = { ...action.item };
         const updatedCargos = [...state.cargos, newItem];
         this.dragEngine.updateItems(updatedCargos);
-        const validation = validateAll(updatedCargos, getTruckBounds(), buildValidationOptions(state));
+        const validation = validateAll(
+          updatedCargos,
+          getTruckBoundsFromItem(state.truck),
+          buildValidationOptions(state)
+        );
         this.manager.updateState((current) => ({
           ...current,
           cargos: updatedCargos,
@@ -163,7 +177,11 @@ export class CanvasActionDispatcher {
 
       case "SET_ITEMS": {
         this.dragEngine.updateItems(action.items);
-        const validation = validateAll(action.items, getTruckBounds(), buildValidationOptions(state));
+        const validation = validateAll(
+          action.items,
+          getTruckBoundsFromItem(state.truck),
+          buildValidationOptions(state)
+        );
         this.manager.updateState((current) => ({
           ...current,
           cargos: action.items,
@@ -178,7 +196,11 @@ export class CanvasActionDispatcher {
         // We use fromCargoId to extract the base transport order GUID
         const remainingCargos = state.cargos.filter((item) => fromCargoId(item.id) !== action.baseId);
         this.dragEngine.updateItems(remainingCargos);
-        const validation = validateAll(remainingCargos, getTruckBounds(), buildValidationOptions(state));
+        const validation = validateAll(
+          remainingCargos,
+          getTruckBoundsFromItem(state.truck),
+          buildValidationOptions(state)
+        );
         this.manager.updateState((current) => ({
           ...current,
           cargos: remainingCargos,
