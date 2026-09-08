@@ -186,12 +186,12 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
   // the image's loading area is TRUCK_BACKGROUND_LOAD_WIDTH raw px, so the image
   // must be displayed at truck.length / LOAD_WIDTH × its natural size, positioned
   // so that LOAD_X/LOAD_Y image px map onto the frame's top-left corner.
-  const truckBackdropStyle = useMemo(() => {
+  // Image pinned at canvas (0,0). The frame + cargo shift by sceneOffset so they
+  // stay aligned with the image's loading band. Purely visual — data coords (and
+  // therefore drag/collision math) are unchanged.
+  const truckBackdrop = useMemo(() => {
     if (!truck || truck.length <= 0) {
-      return {
-        backgroundSize: "100% auto" as const,
-        backgroundPosition: "center" as const,
-      };
+      return { backgroundSize: "100% auto" as const, sceneOffset: { x: 0, y: 0 } };
     }
     const k = truck.length / TRUCK_BACKGROUND_LOAD_WIDTH;
     const width = Math.round(TRUCK_BACKGROUND_IMAGE_WIDTH * k);
@@ -199,7 +199,7 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
     const top = Math.round(truck.y - TRUCK_BACKGROUND_LOAD_Y * k);
     return {
       backgroundSize: `${width}px 344px` as const,
-      backgroundPosition: `${left}px ${top}px` as const,
+      sceneOffset: { x: -left, y: -top },
     };
   }, [truck]);
 
@@ -242,28 +242,31 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
         border: CANVAS_BORDER,
         backgroundColor: CANVAS_BACKGROUND_COLOR,
         backgroundImage: `url(${truckBackground})`,
-        backgroundSize: truckBackdropStyle.backgroundSize,
-        backgroundPosition: truckBackdropStyle.backgroundPosition,
+        backgroundSize: truckBackdrop.backgroundSize,
+        backgroundPosition: "0px 0px",
         backgroundRepeat: "no-repeat",
       }}>
       {/* Grid overlay */}
       <GridOverlay width={canvasWidth} height={canvasHeight} gridSize={GRID_SIZE} />
 
-      {/* Truck boundary (loading area) */}
-      {truck && (
-        <div
-          style={{
-            position: "absolute",
-            left: truck.x,
-            top: truck.y,
-            width: truck.length,
-            height: truck.width,
-            border: TRUCK_FRAME_BORDER,
-            boxSizing: "border-box",
-            pointerEvents: "none",
-          }}
-        />
-      )}
+      {/* Truck boundary + cargo shift with the backdrop image (visual only) */}
+      <div style={{ transform: `translate(${truckBackdrop.sceneOffset.x}px, ${truckBackdrop.sceneOffset.y}px)` }}>
+        {/* Truck boundary (loading area) */}
+        {truck && (
+          <div
+            style={{
+              position: "absolute",
+              left: truck.x,
+              top: truck.y,
+              width: truck.length,
+              height: truck.width,
+              border: TRUCK_FRAME_BORDER,
+              boxSizing: "border-box",
+              pointerEvents: "none",
+            }}
+          />
+        )}
+      </div>
 
       {/* Info panel overlay */}
       <div
@@ -352,22 +355,24 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
         }}
       />
 
-      {/* Cargo cards on canvas */}
-      {items.map((item) => (
-        <CargoCard
-          key={item.id}
-          item={item}
-          isActive={activeItemId === item.id}
-          selectedIds={selectedIds}
-          hasError={getItemErrors(item.id).length > 0}
-          scale={scale}
-          onMouseDown={(e) => handleMouseDown(e, item.id)}
-          onRotate={handleRotate}
-          isPopupOpen={popupItemId === item.id}
-          onTogglePopup={() => handleTogglePopup(item.id)}
-          canvasWidth={canvasWidth}
-        />
-      ))}
+      {/* Cargo cards on canvas — same visual shift as the truck frame */}
+      <div style={{ transform: `translate(${truckBackdrop.sceneOffset.x}px, ${truckBackdrop.sceneOffset.y}px)` }}>
+        {items.map((item) => (
+          <CargoCard
+            key={item.id}
+            item={item}
+            isActive={activeItemId === item.id}
+            selectedIds={selectedIds}
+            hasError={getItemErrors(item.id).length > 0}
+            scale={scale}
+            onMouseDown={(e) => handleMouseDown(e, item.id)}
+            onRotate={handleRotate}
+            isPopupOpen={popupItemId === item.id}
+            onTogglePopup={() => handleTogglePopup(item.id)}
+            canvasWidth={canvasWidth}
+          />
+        ))}
+      </div>
     </div>
   );
 };
