@@ -119,14 +119,14 @@ export const CargoList = React.memo<CargoListProps>(({ availableItems, onAddCarg
             }}>
             {cargo.quantity ?? 1 /*  + "x " + (cargo.type === "pallet" ? "📦" : "🟦") */}
           </div>
-          <span
+          {/* <span
             style={{
               fontSize: CARGO_LIST_NAME_FONT_SIZE,
               marginTop: CARGO_LIST_NAME_MARGIN_TOP,
               color: CARGO_LIST_NAME_COLOR,
             }}>
             {cargo.name}
-          </span>
+          </span> */}
         </div>
       ))}
     </div>

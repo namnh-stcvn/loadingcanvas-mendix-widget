@@ -14,10 +14,10 @@ export const CARGO_LIST_PANEL_COLOR = "#666";
 export const CARGO_LIST_PANEL_GAP = 8;
 
 // chip
-export const CARGO_LIST_CHIP_WIDTH = 40;
-export const CARGO_LIST_CHIP_HEIGHT = 40;
+export const CARGO_LIST_CHIP_WIDTH = 20;
+export const CARGO_LIST_CHIP_HEIGHT = 20;
 export const CARGO_LIST_CHIP_BORDER = "2px solid #333";
-export const CARGO_LIST_CHIP_BORDER_RADIUS = 4;
+export const CARGO_LIST_CHIP_BORDER_RADIUS = 2;
 export const CARGO_LIST_CHIP_FONT_SIZE = 8;
 export const CARGO_LIST_CHIP_COLOR = "#fff";
 export const CARGO_LIST_CHIP_FONT_WEIGHT = "bold";
