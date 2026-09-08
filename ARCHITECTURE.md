@@ -250,7 +250,7 @@ src/
 - **`CargoCard`** (`src/components/CargoCard.tsx`) — renders a single cargo item.
   - Computes the visual size via `getRotatedScreenSize()` to account for rotation.
   - Applies a border based on state: active (red, 3px), selected (blue, 3px), or default (gray, 1px).
-  - On hover shows the `RotationHandle` (unlocked items only) and the `CargoTooltip` with the item's TransportOrderNo and Product name; double-clicking the card toggles a `CargoPopup` beside it showing Order/Product/Producer/From/To company names. Only one popup is open at a time — double-clicking another card moves the popup to it.
+  - On hover shows the `RotationHandle` (unlocked items only) and the `CargoTooltip` with the item's TransportOrderNo and Product name; double-clicking the card toggles a `CargoPopup` beside it showing Order/Product/Producer/From/To company names. Only one popup is open at a time — double-clicking another card moves the popup to it. The popup renders on the right of the card by default and flips to the left when it would otherwise overflow the canvas right edge.
 
 - **`GridOverlay`** (`src/components/GridOverlay.tsx`) — renders a visual grid on the canvas.
   - Uses a canvas-generated background pattern for crisp grid lines.
@@ -262,7 +262,7 @@ src/
 
 - **`RotationHandle`** (`src/components/RotationHandle.tsx`) — a small circular grab-handle (↻) inside the card at its top center, shown on hover; the hover tooltip hangs below the card so the two never overlap.
 
-- **`CargoPopup`** (`src/components/CargoPopup.tsx`) — dark double-click popup shown to the right of the card showing `Order: <TransportOrderNo>`, `Product: <name>`, `By: <producer>`, `From: <company>`, `To: <company>`; renders nothing when all fields are empty.
+- **`CargoPopup`** (`src/components/CargoPopup.tsx`) — dark double-click popup shown beside the card (right side by default, or the left side when it would overflow the canvas) showing `Order: <TransportOrderNo>`, `Product: <name>`, `By: <producer>`, `From: <company>`, `To: <company>`; renders nothing when all fields are empty.
 
 ## Data Flow
 

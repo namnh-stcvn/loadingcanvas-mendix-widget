@@ -7,7 +7,7 @@ import { fromCargoId } from "../domain/cargoIdentity";
 
 import { RotationHandle } from "./RotationHandle";
 import { CargoTooltip } from "./CargoTooltip";
-import { CargoPopup } from "./CargoPopup";
+import { CargoPopup, POPUP_MAX_WIDTH, POPUP_MARGIN_OFFSET } from "./CargoPopup";
 
 import {
   CARD_ACTIVE_BORDER_WIDTH,
@@ -18,6 +18,11 @@ import {
   CARD_SELECTED_BORDER_COLOR,
   CARD_ERROR_BORDER_COLOR,
 } from "../constants/card";
+
+export const computePopupSide = (cardX: number, cardWidth: number, canvasWidth: number): "left" | "right" => {
+  const spaceRight = canvasWidth - (cardX + cardWidth);
+  return spaceRight >= POPUP_MAX_WIDTH + POPUP_MARGIN_OFFSET ? "right" : "left";
+};
 
 interface CargoCardProps {
   item: CargoItem;
@@ -34,6 +39,8 @@ interface CargoCardProps {
 
   onTogglePopup: () => void;
 
+  canvasWidth: number;
+
   hasError: boolean;
 
   scale?: AxisScale;
@@ -48,6 +55,7 @@ export const CargoCard = React.memo<CargoCardProps>(
     onRotate,
     isPopupOpen,
     onTogglePopup,
+    canvasWidth,
     hasError,
     scale = DEFAULT_AXIS_SCALE,
   }) => {
@@ -71,6 +79,8 @@ export const CargoCard = React.memo<CargoCardProps>(
         : `${CARD_BORDER_WIDTH}px solid ${borderColor}`;
 
     const [isHovered, setIsHovered] = useState(false);
+
+    const popupSide = computePopupSide(item.x, size.length, canvasWidth);
 
     return (
       <div
@@ -129,6 +139,7 @@ export const CargoCard = React.memo<CargoCardProps>(
             producerName={item.producerName}
             companyFromName={item.companyFromName}
             companyToName={item.companyToName}
+            side={popupSide}
           />
         )}
       </div>

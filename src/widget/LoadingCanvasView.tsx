@@ -365,6 +365,7 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
           onRotate={handleRotate}
           isPopupOpen={popupItemId === item.id}
           onTogglePopup={() => handleTogglePopup(item.id)}
+          canvasWidth={canvasWidth}
         />
       ))}
     </div>

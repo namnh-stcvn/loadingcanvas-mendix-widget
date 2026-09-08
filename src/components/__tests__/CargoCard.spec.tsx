@@ -2,7 +2,8 @@ import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render } from "@testing-library/react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import type { CargoItem } from "../../viewModels/CargoItem";
-import { CargoCard } from "../CargoCard";
+import { DEFAULT_CANVAS_WIDTH } from "../../constants/canvas";
+import { CargoCard, computePopupSide } from "../CargoCard";
 
 const makeItem = (overrides: Partial<CargoItem> = {}): CargoItem => ({
   id: "cargo-1",
@@ -23,7 +24,7 @@ const makeItem = (overrides: Partial<CargoItem> = {}): CargoItem => ({
   ...overrides,
 });
 
-const renderCard = (isPopupOpen: boolean) => {
+const renderCard = (isPopupOpen: boolean, canvasWidth = DEFAULT_CANVAS_WIDTH) => {
   const item = makeItem();
   const onTogglePopup = jest.fn();
   const utils = render(
@@ -36,6 +37,7 @@ const renderCard = (isPopupOpen: boolean) => {
       isPopupOpen={isPopupOpen}
       onTogglePopup={onTogglePopup}
       hasError={false}
+      canvasWidth={canvasWidth}
     />
   );
   const card = utils.container.querySelector(`[data-id="${item.id}"]`);
@@ -67,5 +69,25 @@ describe("CargoCard popup interaction", () => {
   it("hides the popup when isPopupOpen is false", () => {
     const { queryAllByText } = renderCard(false);
     expect(queryAllByText((_content, element) => element?.textContent === "From:FromCo").length).toBe(0);
+  });
+});
+
+describe("computePopupSide", () => {
+  it("shows the popup on the right when there is plenty of room", () => {
+    expect(computePopupSide(10, 120, DEFAULT_CANVAS_WIDTH)).toBe("right");
+  });
+
+  it("flips the popup to the left when it would overflow the right edge", () => {
+    expect(computePopupSide(1500, 120, DEFAULT_CANVAS_WIDTH)).toBe("left");
+  });
+
+  it("keeps the popup on the right at the exact fit boundary", () => {
+    // spaceRight = 1800 - (1472 + 0) = 328 = POPUP_MAX_WIDTH + POPUP_MARGIN_OFFSET
+    expect(computePopupSide(1472, 0, DEFAULT_CANVAS_WIDTH)).toBe("right");
+  });
+
+  it("flips to the left just below the fit boundary", () => {
+    // spaceRight = 1800 - (1473 + 0) = 327, one pixel short of the 328 threshold
+    expect(computePopupSide(1473, 0, DEFAULT_CANVAS_WIDTH)).toBe("left");
   });
 });

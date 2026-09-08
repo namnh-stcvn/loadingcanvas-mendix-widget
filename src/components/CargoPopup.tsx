@@ -1,11 +1,17 @@
 import type { FC, ReactElement } from "react";
 
+export const POPUP_MAX_WIDTH = 320;
+
+export const POPUP_MARGIN_OFFSET = 8;
+
 interface CargoPopupProps {
   transportOrderNo?: string;
   productName?: string;
   producerName?: string;
   companyFromName?: string;
   companyToName?: string;
+
+  side?: "left" | "right";
 }
 
 const Row = ({ label, value }: { label: string; value?: string }): ReactElement | null =>
@@ -16,28 +22,34 @@ const Row = ({ label, value }: { label: string; value?: string }): ReactElement 
     </div>
   ) : null;
 
-// Double-click popup shown to the right of a cargo card, alongside the hover
-// tooltip. See ARCHITECTURE.md -> CargoCard/CargoPopup.
+// Double-click popup shown beside a cargo card, alongside the hover tooltip.
+// Renders on the right by default; flips to the left when it would overflow the
+// canvas right edge. See ARCHITECTURE.md -> CargoCard/CargoPopup.
 export const CargoPopup: FC<CargoPopupProps> = ({
   transportOrderNo,
   productName,
   producerName,
   companyFromName,
   companyToName,
+  side = "right",
 }) => {
   if (!transportOrderNo && !productName && !producerName && !companyFromName && !companyToName) {
     return null;
   }
 
+  const offset =
+    side === "left"
+      ? { right: "100%", marginRight: POPUP_MARGIN_OFFSET }
+      : { left: "100%", marginLeft: POPUP_MARGIN_OFFSET };
+
   return (
     <div
       style={{
         position: "absolute",
-        left: "100%",
-        marginLeft: 8,
+        ...offset,
         top: 0,
         minWidth: 220,
-        maxWidth: 320,
+        maxWidth: POPUP_MAX_WIDTH,
         padding: "8px 12px",
         backgroundColor: "rgba(0, 0, 0, 0.85)",
         color: "#fff",
