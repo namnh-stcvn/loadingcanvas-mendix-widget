@@ -4,6 +4,7 @@ import type { CargoItem } from "../viewModels/CargoItem";
 
 import { DEFAULT_AXIS_SCALE, getRotatedScreenSize, type AxisScale } from "../domain/rotationRules";
 import { fromCargoId } from "../domain/cargoIdentity";
+import { CARGO_LIST_CHIP_COLOR, CARGO_LIST_CHIP_FONT_WEIGHT } from "../constants/cargoList";
 
 import { RotationHandle } from "./RotationHandle";
 import { CargoTooltip } from "./CargoTooltip";
@@ -43,6 +44,8 @@ interface CargoCardProps {
 
   hasError: boolean;
 
+  number: number;
+
   scale?: AxisScale;
 }
 
@@ -57,6 +60,7 @@ export const CargoCard = React.memo<CargoCardProps>(
     onTogglePopup,
     canvasWidth,
     hasError,
+    number,
     scale = DEFAULT_AXIS_SCALE,
   }) => {
     const size = getRotatedScreenSize(
@@ -104,20 +108,26 @@ export const CargoCard = React.memo<CargoCardProps>(
           }}
           style={{
             width: size.length,
-
             height: size.width,
-
             backgroundColor: item.color,
-
             cursor: item.isLocked ? "not-allowed" : "move",
-
             userSelect: "none",
-
             border,
-
             boxSizing: "border-box",
-          }}
-        />
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}>
+          <span
+            style={{
+              fontSize: Math.min(28, Math.min(size.length, size.width) * 0.3),
+              color: CARGO_LIST_CHIP_COLOR,
+              fontWeight: CARGO_LIST_CHIP_FONT_WEIGHT,
+              lineHeight: 1,
+            }}>
+            {number}
+          </span>
+        </div>
 
         {isHovered && !isPopupOpen && (
           <>
@@ -153,6 +163,7 @@ export const CargoCard = React.memo<CargoCardProps>(
     prev.isActive === next.isActive &&
     prev.isPopupOpen === next.isPopupOpen &&
     prev.hasError === next.hasError &&
+    prev.number === next.number &&
     prev.selectedIds.length === next.selectedIds.length &&
     prev.selectedIds.every((id, i) => id === next.selectedIds[i]) &&
     prev.scale?.widthScale === next.scale?.widthScale &&

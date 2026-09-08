@@ -18,6 +18,9 @@ import {
   CARGO_LIST_CHIP_HEIGHT,
   CARGO_LIST_CHIP_BORDER,
   CARGO_LIST_CHIP_BORDER_RADIUS,
+  CARGO_LIST_CHIP_FONT_SIZE,
+  CARGO_LIST_CHIP_COLOR,
+  CARGO_LIST_CHIP_FONT_WEIGHT,
   CARGO_LIST_Z_INDEX,
 } from "../constants/cargoList";
 
@@ -27,102 +30,115 @@ interface CargoListProps {
   availableItems: CargoItem[];
   onAddCargo: (cargo: CargoItem) => void;
   onRemoveCargo?: (baseId: string) => void;
-  placedCounts: Map<string, number>;
+  placedInstances: Map<string, Set<number>>;
+  numberStart: Map<string, number>;
 }
 
-export const CargoList = React.memo<CargoListProps>(({ availableItems, onAddCargo, onRemoveCargo, placedCounts }) => {
-  const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: DragEvent<HTMLDivElement>) => {
+export const CargoList = React.memo<CargoListProps>(
+  ({ availableItems, onAddCargo, onRemoveCargo, placedInstances, numberStart }) => {
+    const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
       e.preventDefault();
-      const baseId = e.dataTransfer.getData("text/plain");
-      if (baseId && onRemoveCargo) {
-        onRemoveCargo(fromCargoId(baseId));
+      e.dataTransfer.dropEffect = "move";
+    }, []);
+
+    const handleDrop = useCallback(
+      (e: DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        const raw = e.dataTransfer.getData("text/plain");
+        const chipId = raw.startsWith(SINGLE_DRAG_PREFIX) ? raw.slice(SINGLE_DRAG_PREFIX.length) : raw;
+        if (chipId && onRemoveCargo) {
+          onRemoveCargo(fromCargoId(chipId));
+        }
+      },
+      [onRemoveCargo]
+    );
+
+    const expandedItems: { cargo: CargoItem; instanceIndex: number }[] = [];
+    for (const cargo of availableItems) {
+      const quantity = cargo.quantity ?? 1;
+      const placedSet = placedInstances.get(fromCargoId(cargo.id)) ?? new Set<number>();
+      for (let i = 0; i < quantity; i++) {
+        if (placedSet.has(i)) {
+          continue;
+        }
+        expandedItems.push({ cargo, instanceIndex: i });
       }
-    },
-    [onRemoveCargo]
-  );
-
-  const expandedItems: { cargo: CargoItem; instanceIndex: number }[] = [];
-  for (const cargo of availableItems) {
-    const quantity = cargo.quantity ?? 1;
-    const placed = placedCounts.get(fromCargoId(cargo.id)) ?? 0;
-    const remaining = Math.max(0, quantity - placed);
-    for (let i = 0; i < remaining; i++) {
-      expandedItems.push({ cargo, instanceIndex: i });
     }
-  }
 
-  if (expandedItems.length === 0) {
+    if (expandedItems.length === 0) {
+      return (
+        <div
+          style={{
+            position: "absolute",
+            bottom: CARGO_LIST_PANEL_BOTTOM,
+            left: CARGO_LIST_PANEL_LEFT,
+            padding: CARGO_LIST_PANEL_PADDING,
+            background: CARGO_LIST_PANEL_BG_EMPTY,
+            border: CARGO_LIST_PANEL_BORDER,
+            borderRadius: CARGO_LIST_PANEL_BORDER_RADIUS,
+            fontSize: CARGO_LIST_PANEL_FONT_SIZE,
+            color: CARGO_LIST_PANEL_COLOR,
+          }}>
+          No cargo items available
+        </div>
+      );
+    }
+
     return (
       <div
         style={{
           position: "absolute",
           bottom: CARGO_LIST_PANEL_BOTTOM,
           left: CARGO_LIST_PANEL_LEFT,
-          padding: CARGO_LIST_PANEL_PADDING,
-          background: CARGO_LIST_PANEL_BG_EMPTY,
+          display: "flex",
+          gap: CARGO_LIST_PANEL_GAP,
+          padding: CARGO_LIST_PANEL_PADDING_LIST,
+          background: CARGO_LIST_PANEL_BG_LIST,
           border: CARGO_LIST_PANEL_BORDER,
           borderRadius: CARGO_LIST_PANEL_BORDER_RADIUS,
-          fontSize: CARGO_LIST_PANEL_FONT_SIZE,
-          color: CARGO_LIST_PANEL_COLOR,
-        }}>
-        No cargo items available
+          zIndex: CARGO_LIST_Z_INDEX,
+          flexWrap: "wrap",
+          maxWidth: "90%",
+        }}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}>
+        {expandedItems.map(({ cargo, instanceIndex }) => (
+          <div
+            key={`${cargo.id}-${instanceIndex}`}
+            draggable
+            onDragStart={(e) => {
+              e.dataTransfer.setData("text/plain", `${SINGLE_DRAG_PREFIX}${cargo.id}-${instanceIndex}`);
+              e.dataTransfer.effectAllowed = "move";
+            }}
+            onClick={() => onAddCargo({ ...cargo, quantity: 1, id: `${cargo.id}-${instanceIndex}` })}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              cursor: "grab",
+              userSelect: "none",
+            }}
+            title={"Drag " + cargo.name + " onto canvas"}>
+            <div
+              style={{
+                width: CARGO_LIST_CHIP_WIDTH,
+                height: CARGO_LIST_CHIP_HEIGHT,
+                backgroundColor: cargo.color,
+                border: CARGO_LIST_CHIP_BORDER,
+                borderRadius: CARGO_LIST_CHIP_BORDER_RADIUS,
+                boxSizing: "border-box",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: CARGO_LIST_CHIP_FONT_SIZE,
+                color: CARGO_LIST_CHIP_COLOR,
+                fontWeight: CARGO_LIST_CHIP_FONT_WEIGHT,
+              }}>
+              {(numberStart.get(fromCargoId(cargo.id)) ?? 0) + instanceIndex + 1}
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
-
-  return (
-    <div
-      style={{
-        position: "absolute",
-        bottom: CARGO_LIST_PANEL_BOTTOM,
-        left: CARGO_LIST_PANEL_LEFT,
-        display: "flex",
-        gap: CARGO_LIST_PANEL_GAP,
-        padding: CARGO_LIST_PANEL_PADDING_LIST,
-        background: CARGO_LIST_PANEL_BG_LIST,
-        border: CARGO_LIST_PANEL_BORDER,
-        borderRadius: CARGO_LIST_PANEL_BORDER_RADIUS,
-        zIndex: CARGO_LIST_Z_INDEX,
-        flexWrap: "wrap",
-        maxWidth: "90%",
-      }}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}>
-      {expandedItems.map(({ cargo, instanceIndex }) => (
-        <div
-          key={`${cargo.id}-${instanceIndex}`}
-          draggable
-          onDragStart={(e) => {
-            e.dataTransfer.setData("text/plain", `${SINGLE_DRAG_PREFIX}${cargo.id}`);
-            e.dataTransfer.effectAllowed = "move";
-          }}
-          onClick={() => onAddCargo({ ...cargo, quantity: 1 })}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            cursor: "grab",
-            userSelect: "none",
-          }}
-          title={"Drag " + cargo.name + " onto canvas"}>
-          <div
-            style={{
-              width: CARGO_LIST_CHIP_WIDTH,
-              height: CARGO_LIST_CHIP_HEIGHT,
-              backgroundColor: cargo.color,
-              border: CARGO_LIST_CHIP_BORDER,
-              borderRadius: CARGO_LIST_CHIP_BORDER_RADIUS,
-              boxSizing: "border-box",
-            }}
-          />
-        </div>
-      ))}
-    </div>
-  );
-});
+);

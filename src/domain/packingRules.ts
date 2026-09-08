@@ -150,20 +150,23 @@ export const expandCargoByQuantity = (cargo: CargoItem[]): CargoItem[] => {
 
 // Auto Load input assembly: canvas items are units that pass through unchanged;
 // only the still-listed raw entries carry multiplicity and must be expanded first.
-// placedCounts maps base transport order ID -> count already on canvas, so partially
-// placed orders only expand by the remaining quantity (avoiding duplicates).
+// placedInstances maps base transport order ID -> the set of instance indices
+// already on canvas, so partially placed orders only expand the unplaced indices
+// (avoiding duplicate ids while preserving each unit's number).
 export const autoLoadCargoUnits = (
   onCanvas: CargoItem[],
   stillInList: CargoItem[],
-  placedCounts: Map<string, number> = new Map()
+  placedInstances: Map<string, Set<number>> = new Map()
 ): CargoItem[] => {
   const expanded: CargoItem[] = [...onCanvas];
   for (const item of stillInList) {
     const quantity = item.quantity ?? 1;
     const baseId = fromCargoId(item.id);
-    const placed = placedCounts.get(baseId) ?? 0;
-    const remaining = Math.max(0, quantity - placed);
-    for (let i = 0; i < remaining; i++) {
+    const placedSet = placedInstances.get(baseId) ?? new Set<number>();
+    for (let i = 0; i < quantity; i++) {
+      if (placedSet.has(i)) {
+        continue;
+      }
       expanded.push({
         ...item,
         id: `${item.id}-${i}`,

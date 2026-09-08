@@ -213,4 +213,13 @@ describe("expandCargoByQuantity / autoLoadCargoUnits (Auto Load idempotence)", (
 
     expect(new Set(expandedIds)).toEqual(new Set(["G"]));
   });
+
+  it("only expands instance indices that are not already placed (no id collisions)", () => {
+    const onCanvas = [makeCargo("cargo-G-0", 120, 60), makeCargo("cargo-G-3", 120, 60)];
+    const placedInstances = new Map<string, Set<number>>([["G", new Set([0, 3])]]);
+
+    const expanded = autoLoadCargoUnits(onCanvas, [order("cargo-G", 4)], placedInstances);
+
+    expect(expanded.map((i) => i.id)).toEqual(["cargo-G-0", "cargo-G-3", "cargo-G-1", "cargo-G-2"]);
+  });
 });

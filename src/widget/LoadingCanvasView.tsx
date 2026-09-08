@@ -29,7 +29,7 @@ import {
   EMPTY_STATE_COLOR,
   EMPTY_STATE_FONT_SIZE,
 } from "../constants/theme";
-import { fromCargoId } from "../domain/cargoIdentity";
+import { fromCargoId, getCargoInstanceIndex } from "../domain/cargoIdentity";
 import truckBackground from "../assets/Truck_horizontal.png";
 import type { CargoItem } from "../viewModels/CargoItem";
 import type { LoadingCanvasViewProps } from "./LoadingCanvas.properties";
@@ -86,24 +86,38 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
     truck,
   });
 
-  // Available cargo = availableCargo minus those fully placed on canvas.
-  // Counts items per transport order so partially-placed orders remain in the list.
-  const placedCounts = useMemo(() => {
-    const counts = new Map<string, number>();
+  // Exact instance indices already on canvas per transport order (Map<baseId, Set<index>>).
+  // Keeping the exact indices (not just a count) preserves per-unit id/number stability.
+  const placedInstances = useMemo(() => {
+    const placed = new Map<string, Set<number>>();
     for (const item of items) {
       const baseId = fromCargoId(item.id);
-      counts.set(baseId, (counts.get(baseId) ?? 0) + 1);
+      const set = placed.get(baseId) ?? new Set<number>();
+      set.add(getCargoInstanceIndex(item.id));
+      placed.set(baseId, set);
     }
-    return counts;
+    return placed;
   }, [items]);
 
+  // Cumulative numbering offset per transport order, computed once from the full
+  // availableCargo list so numbers never shift when a previous order is fully placed.
+  const numberStart = useMemo(() => {
+    const start = new Map<string, number>();
+    let offset = 0;
+    for (const cargo of availableCargo) {
+      start.set(fromCargoId(cargo.id), offset);
+      offset += cargo.quantity ?? 1;
+    }
+    return start;
+  }, [availableCargo]);
+
+  // Available cargo = availableCargo minus those fully placed on canvas.
   const availableCargoItems = useMemo(() => {
     return availableCargo.filter((p) => {
       const baseId = fromCargoId(p.id);
-      const placed = placedCounts.get(baseId) ?? 0;
-      return placed < (p.quantity ?? 1);
+      return (placedInstances.get(baseId)?.size ?? 0) < (p.quantity ?? 1);
     });
-  }, [availableCargo, placedCounts]);
+  }, [availableCargo, placedInstances]);
 
   // --- Save plan handler ---
   const handleSavePlan = (): void => {
@@ -120,7 +134,7 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
   const handleAutoLoad = (): void => {
     const bounds = truck ?? { x: 0, y: 0, length: canvasWidth, width: canvasHeight };
 
-    const expandedItems = autoLoadCargoUnits(items, availableCargoItems, placedCounts);
+    const expandedItems = autoLoadCargoUnits(items, availableCargoItems, placedInstances);
     const { placed, unplaced } = packCargoIntoBounds(expandedItems, bounds, scale);
     setItems(placed);
     setAutoLoadUnplaced(unplaced.length);
@@ -151,8 +165,10 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
     e.preventDefault();
     const rawId = e.dataTransfer.getData("text/plain");
     const isSingle = rawId.startsWith("single:");
-    const palletId = isSingle ? rawId.slice("single:".length) : rawId;
-    const pallet = availableCargoItems.find((p) => p.id === palletId);
+    // Payload is the full chip id (cargo-<orderGuid>-<instanceIndex>), so the dropped
+    // item keeps the exact number shown on the chip.
+    const chipId = isSingle ? rawId.slice("single:".length) : rawId;
+    const pallet = availableCargoItems.find((p) => fromCargoId(p.id) === fromCargoId(chipId));
     if (!pallet) {
       return;
     }
@@ -169,13 +185,12 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
 
     const quantity = isSingle ? 1 : (pallet.quantity ?? 1);
     for (let i = 0; i < quantity; i++) {
-      // Offset each item slightly so they don't overlap exactly
       const newItem = {
         ...pallet,
         x: x + i * 20,
         y: y + i * 20,
-        // Generate unique IDs for each item but keep same baseId for grouping
-        id: `${pallet.id}-${i}`,
+        // Single drops keep the chip's exact id; bulk drops generate instance ids.
+        id: isSingle ? chipId : `${pallet.id}-${i}`,
       };
       addItem(newItem);
     }
@@ -345,7 +360,8 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
       {/* Cargo list (debug view) */}
       <CargoList
         availableItems={availableCargoItems}
-        placedCounts={placedCounts}
+        placedInstances={placedInstances}
+        numberStart={numberStart}
         onAddCargo={(cargo: CargoItem) => {
           addItem({
             ...cargo,
@@ -364,6 +380,7 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
           <CargoCard
             key={item.id}
             item={item}
+            number={(numberStart.get(fromCargoId(item.id)) ?? 0) + getCargoInstanceIndex(item.id) + 1}
             isActive={activeItemId === item.id}
             selectedIds={selectedIds}
             hasError={getItemErrors(item.id).length > 0}

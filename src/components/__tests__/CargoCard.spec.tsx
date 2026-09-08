@@ -32,6 +32,7 @@ const renderCard = (isPopupOpen: boolean, canvasWidth = DEFAULT_CANVAS_WIDTH) =>
       item={item}
       isActive={false}
       selectedIds={[]}
+      number={1}
       onMouseDown={(_e: ReactMouseEvent<HTMLDivElement>) => undefined}
       onRotate={(_itemId: string) => undefined}
       isPopupOpen={isPopupOpen}

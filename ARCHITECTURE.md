@@ -248,6 +248,7 @@ src/
   - Handles save/load plan via `mendixDataAdapter.ts`; `handleSavePlan` wraps `savePackingPlan()` in a try/catch and surfaces failures through a `saveError` view-model field (kept in the info panel) instead of failing silently.
 
 - **`CargoCard`** (`src/components/CargoCard.tsx`) — renders a single cargo item.
+  - Displays the continuous cargo number **centered on the card** (same number shown on the cargo chip it came from).
   - Computes the visual size via `getRotatedScreenSize()` to account for rotation.
   - Applies a border based on state: active (red, 3px), selected (blue, 3px), or default (gray, 1px).
   - On hover shows the `RotationHandle` (unlocked items only) and the `CargoTooltip` with the item's TransportOrderNo and Product name; double-clicking the card toggles a `CargoPopup` beside it showing Order/Product/Producer/From/To company names. Only one popup is open at a time — double-clicking another card moves the popup to it. The popup renders on the right of the card by default and flips to the left when it would otherwise overflow the canvas right edge.
@@ -258,8 +259,9 @@ src/
 
 - **`CargoList`** (`src/components/CargoList.tsx`) — debug palette of available cargo items, rendered as a bottom-left overlay.
   - Each transport order with quantity N is expanded into N individual chips (one per packing unit).
-  - Chips are draggable (HTML5 DnD carries `single:<cargoId>` for single-item drop) or clickable to add one item via `onAddCargo`.
-  - Tracks `placedCounts` to show only unplaced items (partially-placed orders remain in the list).
+  - Chips carry **continuous numbering across all transport orders** (TO1 → 1..44, TO2 → 45..49, ...) derived from `numberStart` + instance index; numbers never change after a partial placement.
+  - Chips are draggable (HTML5 DnD carries `single:<cargo-id>-<instanceIndex>` for a single-unit drop) or clickable to add one item via `onAddCargo`.
+  - Tracks `placedInstances` (`Map<baseId, Set<instanceIndex>>`) to hide only the placed chips without renumbering.
   - Shows "No cargo items available" when nothing is left to place.
 
 - **`RotationHandle`** (`src/components/RotationHandle.tsx`) — a small circular grab-handle (↻) inside the card at its top center, shown on hover; the hover tooltip hangs below the card so the two never overlap.
@@ -285,7 +287,7 @@ src/
 11. **React re-renders** the cargo cards at their new positions.
 12. **Mouse up** dispatches `END_DRAG`, which calls `dragEngine.endDrag()` and clears `activeItemId`.
 13. **User clicks "Save Plan"** → `handleSavePlan` → `onSavePlan(items, scale)` → container's `handleSavePlan` → `savePackingPlan()` → deletes existing plan items + creates new ones via `mx.data`.
-14. **User clicks "Auto Load"** → `handleAutoLoad` calls `autoLoadCargoUnits(items, availableCargoItems, placedCounts)` which merges canvas items with expanded available cargo (respecting `placedCounts` to avoid duplicates), then calls `packCargoIntoBounds()` (First-Fit Decreasing, optional 90° rotation, flush edge-to-edge placement inside the truck frame), then dispatches `SET_ITEMS` with the packed result so validation runs as usual; items that do not fit remain in the cargo list and their count is shown in the info panel.
+14. **User clicks "Auto Load"** → `handleAutoLoad` calls `autoLoadCargoUnits(items, availableCargoItems, placedInstances)` which merges canvas items with expanded available cargo (skipping instance indices already placed), then calls `packCargoIntoBounds()` (First-Fit Decreasing, optional 90° rotation, flush edge-to-edge placement inside the truck frame), then dispatches `SET_ITEMS` with the packed result so validation runs as usual; items that do not fit remain in the cargo list and their count is shown in the info panel.
 
 ## Domain Rules
 
@@ -304,9 +306,9 @@ src/
   - Items sit **flush edge-to-edge** (candidate positions are exact neighbor edges, no grid snapping), and the first item hugs the bounds origin even when it is not a grid multiple.
   - Optional 90° rotation (`options.allowRotation`, default on): tried only when 0° has no valid spot; ties keep 0°.
   - Returns `{ placed, unplaced }`; input order is preserved within each group and all cargo identity fields (id, name, color, metric sizes, weight) are untouched — only `x`, `y`, `rotation` are recomputed.
-- `autoLoadCargoUnits(onCanvas, stillInList, placedCounts?)` — assembles items for Auto Load.
+- `autoLoadCargoUnits(onCanvas, stillInList, placedInstances?)` — assembles items for Auto Load.
   - Canvas items pass through unchanged (already per-unit instances with instance suffix).
-  - Available items are expanded by remaining quantity (`quantity - placed`) using `placedCounts` to avoid duplicating items already on canvas.
+  - Available items are expanded one instance per quantity unit, skipping instance indices already present in `placedInstances` (a `Map<baseId, Set<instanceIndex>>`) so partially placed orders never produce duplicate ids.
 - `expandCargoByQuantity(cargo)` — expands raw cargo entries by their quantity into per-instance items (ids `cargo-<orderGuid>-<i>`).
 
 ### Rotation (`rotationRules.ts`)
