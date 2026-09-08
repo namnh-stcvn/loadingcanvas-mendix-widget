@@ -257,7 +257,9 @@ src/
   - Does not interfere with drag-and-drop or mouse events (pointerEvents: none).
 
 - **`CargoList`** (`src/components/CargoList.tsx`) — debug palette of available cargo items, rendered as a bottom-left overlay.
-  - Each item shows a color swatch, its name, and its pixel size; items are draggable (HTML5 DnD carries the cargo ID) or clickable to add via `onAddCargo`.
+  - Each transport order with quantity N is expanded into N individual chips (one per packing unit).
+  - Chips are draggable (HTML5 DnD carries `single:<cargoId>` for single-item drop) or clickable to add one item via `onAddCargo`.
+  - Tracks `placedCounts` to show only unplaced items (partially-placed orders remain in the list).
   - Shows "No cargo items available" when nothing is left to place.
 
 - **`RotationHandle`** (`src/components/RotationHandle.tsx`) — a small circular grab-handle (↻) inside the card at its top center, shown on hover; the hover tooltip hangs below the card so the two never overlap.
@@ -283,7 +285,7 @@ src/
 11. **React re-renders** the cargo cards at their new positions.
 12. **Mouse up** dispatches `END_DRAG`, which calls `dragEngine.endDrag()` and clears `activeItemId`.
 13. **User clicks "Save Plan"** → `handleSavePlan` → `onSavePlan(items, scale)` → container's `handleSavePlan` → `savePackingPlan()` → deletes existing plan items + creates new ones via `mx.data`.
-14. **User clicks "Auto Load"** → `handleAutoLoad` merges canvas items + available cargo list, calls the pure `packCargoIntoBounds()` (First-Fit Decreasing, optional 90° rotation, flush edge-to-edge placement inside the truck frame), then dispatches `SET_ITEMS` with the packed result so validation runs as usual; items that do not fit remain in the cargo list and their count is shown in the info panel.
+14. **User clicks "Auto Load"** → `handleAutoLoad` calls `autoLoadCargoUnits(items, availableCargoItems, placedCounts)` which merges canvas items with expanded available cargo (respecting `placedCounts` to avoid duplicates), then calls `packCargoIntoBounds()` (First-Fit Decreasing, optional 90° rotation, flush edge-to-edge placement inside the truck frame), then dispatches `SET_ITEMS` with the packed result so validation runs as usual; items that do not fit remain in the cargo list and their count is shown in the info panel.
 
 ## Domain Rules
 
@@ -302,6 +304,10 @@ src/
   - Items sit **flush edge-to-edge** (candidate positions are exact neighbor edges, no grid snapping), and the first item hugs the bounds origin even when it is not a grid multiple.
   - Optional 90° rotation (`options.allowRotation`, default on): tried only when 0° has no valid spot; ties keep 0°.
   - Returns `{ placed, unplaced }`; input order is preserved within each group and all cargo identity fields (id, name, color, metric sizes, weight) are untouched — only `x`, `y`, `rotation` are recomputed.
+- `autoLoadCargoUnits(onCanvas, stillInList, placedCounts?)` — assembles items for Auto Load.
+  - Canvas items pass through unchanged (already per-unit instances with instance suffix).
+  - Available items are expanded by remaining quantity (`quantity - placed`) using `placedCounts` to avoid duplicating items already on canvas.
+- `expandCargoByQuantity(cargo)` — expands raw cargo entries by their quantity into per-instance items (ids `cargo-<orderGuid>-<i>`).
 
 ### Rotation (`rotationRules.ts`)
 

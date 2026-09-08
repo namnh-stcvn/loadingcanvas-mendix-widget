@@ -88,7 +88,7 @@ src/
 ├── components/                # UI components
 │   ├── CargoCard.tsx          # Renders a single cargo item
 │   ├── GridOverlay.tsx        # Visual grid on canvas
-│   ├── CargoList.tsx          # Debug palette: available cargo items
+│   ├── CargoList.tsx          # Debug palette: individual cargo chips (one per packing unit)
 │   └── RotationHandle.tsx     # Rotation handle UI
 ├── constants/                 # Configuration values
 │   ├── canvas.ts              # Canvas dimensions, grid, rotation
