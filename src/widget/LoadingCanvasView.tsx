@@ -125,6 +125,13 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
     setVerifyResult({ placed: items.length, expected: availableCargo.length });
   };
 
+  // Only one cargo info popup is open at a time; double-clicking another card
+  // moves the popup to it, double-clicking the same card closes it.
+  const [popupItemId, setPopupItemId] = useState<string | null>(null);
+  const handleTogglePopup = (itemId: string): void => {
+    setPopupItemId((current) => (current === itemId ? null : itemId));
+  };
+
   // A changed item count invalidates the previous verification result.
   useEffect(() => {
     setVerifyResult(null);
@@ -356,6 +363,8 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
           scale={scale}
           onMouseDown={(e) => handleMouseDown(e, item.id)}
           onRotate={handleRotate}
+          isPopupOpen={popupItemId === item.id}
+          onTogglePopup={() => handleTogglePopup(item.id)}
         />
       ))}
     </div>

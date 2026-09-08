@@ -30,13 +30,27 @@ interface CargoCardProps {
 
   onRotate: (itemId: string) => void;
 
+  isPopupOpen: boolean;
+
+  onTogglePopup: () => void;
+
   hasError: boolean;
 
   scale?: AxisScale;
 }
 
 export const CargoCard = React.memo<CargoCardProps>(
-  ({ item, isActive, selectedIds, onMouseDown, onRotate, hasError, scale = DEFAULT_AXIS_SCALE }) => {
+  ({
+    item,
+    isActive,
+    selectedIds,
+    onMouseDown,
+    onRotate,
+    isPopupOpen,
+    onTogglePopup,
+    hasError,
+    scale = DEFAULT_AXIS_SCALE,
+  }) => {
     const size = getRotatedScreenSize(
       {
         length: item.length,
@@ -57,7 +71,6 @@ export const CargoCard = React.memo<CargoCardProps>(
         : `${CARD_BORDER_WIDTH}px solid ${borderColor}`;
 
     const [isHovered, setIsHovered] = useState(false);
-    const [isPopupOpen, setIsPopupOpen] = useState(false);
 
     return (
       <div
@@ -73,7 +86,7 @@ export const CargoCard = React.memo<CargoCardProps>(
         <div
           data-id={item.id}
           onMouseDown={onMouseDown}
-          onClick={() => setIsPopupOpen((v) => !v)}
+          onDoubleClick={onTogglePopup}
           draggable={!item.isLocked}
           onDragStart={(e) => {
             e.dataTransfer.setData("text/plain", fromCargoId(item.id));
@@ -127,6 +140,7 @@ export const CargoCard = React.memo<CargoCardProps>(
     prev.item.y === next.item.y &&
     prev.item.rotation === next.item.rotation &&
     prev.isActive === next.isActive &&
+    prev.isPopupOpen === next.isPopupOpen &&
     prev.hasError === next.hasError &&
     prev.selectedIds.length === next.selectedIds.length &&
     prev.selectedIds.every((id, i) => id === next.selectedIds[i]) &&

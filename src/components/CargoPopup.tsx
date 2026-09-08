@@ -16,7 +16,7 @@ const Row = ({ label, value }: { label: string; value?: string }): ReactElement 
     </div>
   ) : null;
 
-// Click popup shown to the right of a cargo card on click, alongside the hover
+// Double-click popup shown to the right of a cargo card, alongside the hover
 // tooltip. See ARCHITECTURE.md -> CargoCard/CargoPopup.
 export const CargoPopup: FC<CargoPopupProps> = ({
   transportOrderNo,
