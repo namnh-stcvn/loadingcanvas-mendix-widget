@@ -24,8 +24,7 @@ const makeItem = (overrides: Partial<CargoItem> = {}): CargoItem => ({
   ...overrides,
 });
 
-const renderCard = (isPopupOpen: boolean, canvasWidth = DEFAULT_CANVAS_WIDTH) => {
-  const item = makeItem();
+const renderCard = (isPopupOpen: boolean, canvasWidth = DEFAULT_CANVAS_WIDTH, item: CargoItem = makeItem()) => {
   const onTogglePopup = jest.fn();
   const utils = render(
     <CargoCard
@@ -70,6 +69,17 @@ describe("CargoCard popup interaction", () => {
   it("hides the popup when isPopupOpen is false", () => {
     const { queryAllByText } = renderCard(false);
     expect(queryAllByText((_content, element) => element?.textContent === "From:FromCo").length).toBe(0);
+  });
+});
+
+describe("CargoCard drag payload", () => {
+  it("carries the single-unit prefixed full id on drag start", () => {
+    const dataTransfer = { setData: jest.fn(), effectAllowed: "none" };
+    const { card } = renderCard(false, DEFAULT_CANVAS_WIDTH, makeItem({ id: "cargo-G-3" }));
+
+    fireEvent.dragStart(card, { dataTransfer });
+
+    expect(dataTransfer.setData).toHaveBeenCalledWith("text/plain", "single:cargo-G-3");
   });
 });
 

@@ -165,34 +165,41 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
     e.preventDefault();
     const rawId = e.dataTransfer.getData("text/plain");
     const isSingle = rawId.startsWith("single:");
-    // Payload is the full chip id (cargo-<orderGuid>-<instanceIndex>), so the dropped
-    // item keeps the exact number shown on the chip.
     const chipId = isSingle ? rawId.slice("single:".length) : rawId;
-    const pallet = availableCargoItems.find((p) => fromCargoId(p.id) === fromCargoId(chipId));
-    if (!pallet) {
-      return;
-    }
-
-    // Calculate drop position relative to canvas
     const canvas = canvasRef.current;
     if (!canvas) {
       return;
     }
-
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    const quantity = isSingle ? 1 : (pallet.quantity ?? 1);
+    // Already-on-canvas card being moved: replace its position (keep rotation etc.).
+    // Checked first so a fully-placed order (absent from availableCargoItems) still moves.
+    const existing = items.find((i) => i.id === chipId);
+    if (existing) {
+      setItems(items.map((i) => (i.id === chipId ? { ...i, x, y } : i)));
+      return;
+    }
+
+    // Chip dropped from the cargo list: add exactly that single unit.
+    if (isSingle) {
+      const pallet = availableCargoItems.find((p) => fromCargoId(p.id) === fromCargoId(chipId));
+      if (!pallet) {
+        return;
+      }
+      addItem({ ...pallet, x, y, id: chipId });
+      return;
+    }
+
+    // Legacy bulk drop with a bare order id: expand the order's full quantity.
+    const pallet = availableCargoItems.find((p) => fromCargoId(p.id) === fromCargoId(chipId));
+    if (!pallet) {
+      return;
+    }
+    const quantity = pallet.quantity ?? 1;
     for (let i = 0; i < quantity; i++) {
-      const newItem = {
-        ...pallet,
-        x: x + i * 20,
-        y: y + i * 20,
-        // Single drops keep the chip's exact id; bulk drops generate instance ids.
-        id: isSingle ? chipId : `${pallet.id}-${i}`,
-      };
-      addItem(newItem);
+      addItem({ ...pallet, x: x + i * 20, y: y + i * 20, id: `${pallet.id}-${i}` });
     }
   };
 

@@ -3,7 +3,6 @@ import React, { useState, type MouseEvent as ReactMouseEvent } from "react";
 import type { CargoItem } from "../viewModels/CargoItem";
 
 import { DEFAULT_AXIS_SCALE, getRotatedScreenSize, type AxisScale } from "../domain/rotationRules";
-import { fromCargoId } from "../domain/cargoIdentity";
 import { CARGO_LIST_CHIP_COLOR, CARGO_LIST_CHIP_FONT_WEIGHT } from "../constants/cargoList";
 
 import { RotationHandle } from "./RotationHandle";
@@ -103,7 +102,7 @@ export const CargoCard = React.memo<CargoCardProps>(
           onDoubleClick={onTogglePopup}
           draggable={!item.isLocked}
           onDragStart={(e) => {
-            e.dataTransfer.setData("text/plain", fromCargoId(item.id));
+            e.dataTransfer.setData("text/plain", `single:${item.id}`);
             e.dataTransfer.effectAllowed = "move";
           }}
           style={{

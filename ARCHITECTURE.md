@@ -249,6 +249,7 @@ src/
 
 - **`CargoCard`** (`src/components/CargoCard.tsx`) — renders a single cargo item.
   - Displays the continuous cargo number **centered on the card** (same number shown on the cargo chip it came from).
+  - Cards are draggable (HTML5 DnD carries `single:<full-unit-id>`, matching cargo chips); dropping an already-placed card back on the canvas **moves** it (position update, not a duplicate), while dragging it to the cargo list removes its transport order.
   - Computes the visual size via `getRotatedScreenSize()` to account for rotation.
   - Applies a border based on state: active (red, 3px), selected (blue, 3px), or default (gray, 1px).
   - On hover shows the `RotationHandle` (unlocked items only) and the `CargoTooltip` with the item's TransportOrderNo and Product name; double-clicking the card toggles a `CargoPopup` beside it showing Order/Product/Producer/From/To company names. Only one popup is open at a time — double-clicking another card moves the popup to it. The popup renders on the right of the card by default and flips to the left when it would otherwise overflow the canvas right edge.
