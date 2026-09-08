@@ -2,6 +2,7 @@ import type { CargoItem } from "../viewModels/CargoItem";
 import type { Point, RectLike, Rotation } from "../types/geometry";
 import { findCollisions, isInsideBounds } from "./geometryRules";
 import { DEFAULT_AXIS_SCALE, getRotatedScreenSize, type AxisScale } from "./rotationRules";
+import { fromCargoId } from "./cargoIdentity";
 
 export interface PackingOptions {
   allowRotation?: boolean;
@@ -149,7 +150,25 @@ export const expandCargoByQuantity = (cargo: CargoItem[]): CargoItem[] => {
 
 // Auto Load input assembly: canvas items are units that pass through unchanged;
 // only the still-listed raw entries carry multiplicity and must be expanded first.
-export const autoLoadCargoUnits = (onCanvas: CargoItem[], stillInList: CargoItem[]): CargoItem[] => [
-  ...onCanvas,
-  ...expandCargoByQuantity(stillInList),
-];
+// placedCounts maps base transport order ID -> count already on canvas, so partially
+// placed orders only expand by the remaining quantity (avoiding duplicates).
+export const autoLoadCargoUnits = (
+  onCanvas: CargoItem[],
+  stillInList: CargoItem[],
+  placedCounts: Map<string, number> = new Map()
+): CargoItem[] => {
+  const expanded: CargoItem[] = [...onCanvas];
+  for (const item of stillInList) {
+    const quantity = item.quantity ?? 1;
+    const baseId = fromCargoId(item.id);
+    const placed = placedCounts.get(baseId) ?? 0;
+    const remaining = Math.max(0, quantity - placed);
+    for (let i = 0; i < remaining; i++) {
+      expanded.push({
+        ...item,
+        id: `${item.id}-${i}`,
+      });
+    }
+  }
+  return expanded;
+};

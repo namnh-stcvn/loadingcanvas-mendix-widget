@@ -18,22 +18,19 @@ import {
   CARGO_LIST_CHIP_HEIGHT,
   CARGO_LIST_CHIP_BORDER,
   CARGO_LIST_CHIP_BORDER_RADIUS,
-  CARGO_LIST_CHIP_FONT_SIZE,
-  CARGO_LIST_CHIP_COLOR,
-  CARGO_LIST_CHIP_FONT_WEIGHT,
-  CARGO_LIST_NAME_FONT_SIZE,
-  CARGO_LIST_NAME_MARGIN_TOP,
-  CARGO_LIST_NAME_COLOR,
   CARGO_LIST_Z_INDEX,
 } from "../constants/cargoList";
+
+const SINGLE_DRAG_PREFIX = "single:";
 
 interface CargoListProps {
   availableItems: CargoItem[];
   onAddCargo: (cargo: CargoItem) => void;
   onRemoveCargo?: (baseId: string) => void;
+  placedCounts: Map<string, number>;
 }
 
-export const CargoList = React.memo<CargoListProps>(({ availableItems, onAddCargo, onRemoveCargo }) => {
+export const CargoList = React.memo<CargoListProps>(({ availableItems, onAddCargo, onRemoveCargo, placedCounts }) => {
   const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
@@ -50,7 +47,17 @@ export const CargoList = React.memo<CargoListProps>(({ availableItems, onAddCarg
     [onRemoveCargo]
   );
 
-  if (availableItems.length === 0) {
+  const expandedItems: { cargo: CargoItem; instanceIndex: number }[] = [];
+  for (const cargo of availableItems) {
+    const quantity = cargo.quantity ?? 1;
+    const placed = placedCounts.get(fromCargoId(cargo.id)) ?? 0;
+    const remaining = Math.max(0, quantity - placed);
+    for (let i = 0; i < remaining; i++) {
+      expandedItems.push({ cargo, instanceIndex: i });
+    }
+  }
+
+  if (expandedItems.length === 0) {
     return (
       <div
         style={{
@@ -82,18 +89,20 @@ export const CargoList = React.memo<CargoListProps>(({ availableItems, onAddCarg
         border: CARGO_LIST_PANEL_BORDER,
         borderRadius: CARGO_LIST_PANEL_BORDER_RADIUS,
         zIndex: CARGO_LIST_Z_INDEX,
+        flexWrap: "wrap",
+        maxWidth: "90%",
       }}
       onDragOver={handleDragOver}
       onDrop={handleDrop}>
-      {availableItems.map((cargo) => (
+      {expandedItems.map(({ cargo, instanceIndex }) => (
         <div
-          key={cargo.id}
+          key={`${cargo.id}-${instanceIndex}`}
           draggable
           onDragStart={(e) => {
-            e.dataTransfer.setData("text/plain", cargo.id);
+            e.dataTransfer.setData("text/plain", `${SINGLE_DRAG_PREFIX}${cargo.id}`);
             e.dataTransfer.effectAllowed = "move";
           }}
-          onClick={() => onAddCargo(cargo)}
+          onClick={() => onAddCargo({ ...cargo, quantity: 1 })}
           style={{
             display: "flex",
             flexDirection: "column",
@@ -110,23 +119,8 @@ export const CargoList = React.memo<CargoListProps>(({ availableItems, onAddCarg
               border: CARGO_LIST_CHIP_BORDER,
               borderRadius: CARGO_LIST_CHIP_BORDER_RADIUS,
               boxSizing: "border-box",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: CARGO_LIST_CHIP_FONT_SIZE,
-              color: CARGO_LIST_CHIP_COLOR,
-              fontWeight: CARGO_LIST_CHIP_FONT_WEIGHT,
-            }}>
-            {cargo.quantity ?? 1 /*  + "x " + (cargo.type === "pallet" ? "📦" : "🟦") */}
-          </div>
-          {/* <span
-            style={{
-              fontSize: CARGO_LIST_NAME_FONT_SIZE,
-              marginTop: CARGO_LIST_NAME_MARGIN_TOP,
-              color: CARGO_LIST_NAME_COLOR,
-            }}>
-            {cargo.name}
-          </span> */}
+            }}
+          />
         </div>
       ))}
     </div>

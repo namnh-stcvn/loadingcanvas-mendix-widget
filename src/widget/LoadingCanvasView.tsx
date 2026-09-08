@@ -86,13 +86,24 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
     truck,
   });
 
-  // Available cargo = availableCargo minus those already on the canvas.
-  // Derived from canvas items (single source of truth), so the list always
-  // reflects reality after drag-in, plan load, or canvas reset.
+  // Available cargo = availableCargo minus those fully placed on canvas.
+  // Counts items per transport order so partially-placed orders remain in the list.
+  const placedCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of items) {
+      const baseId = fromCargoId(item.id);
+      counts.set(baseId, (counts.get(baseId) ?? 0) + 1);
+    }
+    return counts;
+  }, [items]);
+
   const availableCargoItems = useMemo(() => {
-    const canvasIds = new Set(items.map((i) => fromCargoId(i.id)));
-    return availableCargo.filter((p) => !canvasIds.has(fromCargoId(p.id)));
-  }, [availableCargo, items]);
+    return availableCargo.filter((p) => {
+      const baseId = fromCargoId(p.id);
+      const placed = placedCounts.get(baseId) ?? 0;
+      return placed < (p.quantity ?? 1);
+    });
+  }, [availableCargo, placedCounts]);
 
   // --- Save plan handler ---
   const handleSavePlan = (): void => {
@@ -109,9 +120,7 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
   const handleAutoLoad = (): void => {
     const bounds = truck ?? { x: 0, y: 0, length: canvasWidth, width: canvasHeight };
 
-    // Canvas items are already per-unit instances; only the still-listed entries
-    // are expanded by quantity, so re-running Auto Load never doubles the cargo.
-    const expandedItems = autoLoadCargoUnits(items, availableCargoItems);
+    const expandedItems = autoLoadCargoUnits(items, availableCargoItems, placedCounts);
     const { placed, unplaced } = packCargoIntoBounds(expandedItems, bounds, scale);
     setItems(placed);
     setAutoLoadUnplaced(unplaced.length);
@@ -140,7 +149,9 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
   // --- Drag-and-drop from cargo list to canvas ---
   const handlePalletDrop = (e: DragEvent<HTMLDivElement>): void => {
     e.preventDefault();
-    const palletId = e.dataTransfer.getData("text/plain");
+    const rawId = e.dataTransfer.getData("text/plain");
+    const isSingle = rawId.startsWith("single:");
+    const palletId = isSingle ? rawId.slice("single:".length) : rawId;
     const pallet = availableCargoItems.find((p) => p.id === palletId);
     if (!pallet) {
       return;
@@ -156,8 +167,7 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // Add cargo to canvas at drop position, creating multiple items based on quantity
-    const quantity = pallet.quantity ?? 1;
+    const quantity = isSingle ? 1 : (pallet.quantity ?? 1);
     for (let i = 0; i < quantity; i++) {
       // Offset each item slightly so they don't overlap exactly
       const newItem = {
@@ -335,20 +345,13 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
       {/* Cargo list (debug view) */}
       <CargoList
         availableItems={availableCargoItems}
+        placedCounts={placedCounts}
         onAddCargo={(cargo: CargoItem) => {
-          // Add cargo to canvas at a default position, creating multiple items based on quantity
-          const quantity = cargo.quantity ?? 1;
-          for (let i = 0; i < quantity; i++) {
-            // Offset each item slightly so they don't overlap exactly
-            const newItem = {
-              ...cargo,
-              x: DEFAULT_ADD_POSITION_X + i * 20,
-              y: DEFAULT_ADD_POSITION_Y + i * 20,
-              // Generate unique IDs for each item but keep same baseId for grouping
-              id: `${cargo.id}-${i}`,
-            };
-            addItem(newItem);
-          }
+          addItem({
+            ...cargo,
+            x: DEFAULT_ADD_POSITION_X,
+            y: DEFAULT_ADD_POSITION_Y,
+          });
         }}
         onRemoveCargo={(baseId: string) => {
           removeItem(baseId);
