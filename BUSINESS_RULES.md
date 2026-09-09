@@ -96,8 +96,8 @@ These rules cover: trucks, cargo, placement, capacity, positioning, collision ha
 ## 9. Auto Load (Automatic Packing) Rules
 
 - **BR-23** — Auto Load repacks **all** cargo into the truck: both cargo already on the canvas and cargo still in the available-cargo list.
-- **BR-24** — Bigger footprints are packed **first** (largest area first), so small items fill leftover gaps instead of blocking large ones.
-- **BR-25** — Placement fills from the **top-left corner** in shelf-like rows, and items sit **flush edge-to-edge** with no gaps and no overlaps.
+- **BR-24** — Auto Load maximizes the **number of loaded packing units** first; among layouts that load the same number of units, it minimizes the **used load meters** (BR-17), then used width, then the number of 90° turns (upright preference, BR-26).
+- **BR-25** — Placement fills from the **top-left corner**, and items sit **flush edge-to-edge** with no gaps and no overlaps. Small/medium loads are solved to the load-meter-optimal layout; larger loads use a deterministic bottom-left skyline fill that approximates it.
 - **BR-26** — During automatic packing, items may be turned by up to 90° to fit; when both orientations fit equally well, the upright (0°) orientation is preferred.
 - **BR-27** — Cargo that does not fit anywhere **remains in the available-cargo list**, and the user is told how many items did not fit.
 

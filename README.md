@@ -99,6 +99,7 @@ src/
 │   ├── coordinateRules.ts     # Meter/pixel conversion (pure; DOM-free)
 │   ├── dragRules.ts           # Drag position calculations
 │   ├── geometryRules.ts       # Intersection checks
+│   ├── packingOptimizer.ts    # Exact anytime auto-packing (max units, then min load meters) for the Auto Load button
 │   ├── packingRules.ts        # Auto-packing (First-Fit Decreasing) for the Auto Load button
 │   ├── rotationRules.ts       # 90° rotation logic
 │   ├── snapRules.ts           # Snapping logic
@@ -152,7 +153,7 @@ src/
 7. `CanvasActionDispatcher` routes actions to engines (drag, snap, collision, validation)
 8. `CanvasStateManager` notifies subscribers; React re-renders with updated state
 9. User clicks "Save Plan" → packing plan saved to Mendix entities
-10. User clicks "Auto Load" → `packCargoIntoBounds()` repacks every cargo (canvas + cargo list) flush into the truck frame; items that do not fit stay in the cargo list
+10. User clicks "Auto Load" → `packCargoIntoBounds()` repacks every cargo (canvas + cargo list) flush into the truck frame: small/medium loads are solved exactly to maximize loaded units then minimize load meters, larger loads use a deterministic skyline fill; items that do not fit stay in the cargo list
 
 Note: the truck frame is proportional to the selected truck's internal dimensions (length × width) and centered vertically in the reserved canvas band; cargo placement, rotation, and Auto Load are validated against this frame, not the full canvas band.
 

@@ -1,11 +1,17 @@
 import type { CargoItem } from "../viewModels/CargoItem";
-import type { Point, RectLike, Rotation } from "../types/geometry";
+import type { RectLike, Rotation } from "../types/geometry";
 import { findCollisions, isInsideBounds } from "./geometryRules";
+import { optimizePacking } from "./packingOptimizer";
 import { DEFAULT_AXIS_SCALE, getRotatedScreenSize, type AxisScale } from "./rotationRules";
 import { fromCargoId } from "./cargoIdentity";
 
 export interface PackingOptions {
   allowRotation?: boolean;
+  // Units at or below this count are packed by the exact anytime solver; larger
+  // loads fall back to the deterministic skyline heuristic.
+  exactLimit?: number;
+  // Wall-clock budget (ms) handed to the exact solver.
+  timeLimitMs?: number;
 }
 
 export interface PackingResult {
@@ -30,75 +36,135 @@ const getVisualSize = (item: CargoItem, rotation: Rotation, scale: AxisScale): S
   return getRotatedScreenSize({ length: item.length, width: item.width }, rotation, scale);
 };
 
-// First-Fit Decreasing: bigger footprints are placed first so small items
-// fill the remaining gaps instead of blocking large ones.
+// Larger footprints are placed first so small items fill the remaining gaps
+// instead of blocking large ones.
 const byAreaDescending = (a: CargoItem, b: CargoItem): number => b.length * b.width - a.length * a.width;
 
-// Corner candidates: bounds origin plus right/bottom/top edges of every placed
-// rect, kept as EXACT values so items sit flush edge-to-edge (no gaps, no
-// overlaps). Sorted by (y, x) this yields a stable shelf-like fill from top-left.
-const collectCandidates = (occupied: RectLike[], bounds: RectLike): Point[] => {
-  const xs = new Set<number>([bounds.x]);
-  const ys = new Set<number>([bounds.y]);
-  for (const rect of occupied) {
-    xs.add(rect.x + rect.length);
-    ys.add(rect.y + rect.width);
-    ys.add(rect.y);
-  }
+// Loads at or below this unit count are packed by the proven-optimal anytime
+// search; bigger loads use the skyline heuristic further down.
+const DEFAULT_EXACT_UNIT_LIMIT = 16;
 
-  const points: Point[] = [];
-  for (const y of ys) {
-    for (const x of xs) {
-      points.push({ x, y });
-    }
-  }
-  return points.sort((a, b) => a.y - b.y || a.x - b.x);
-};
+const EPSILON = 1e-4;
 
-const clampIntoBounds = (pos: Point, size: Size2D, bounds: RectLike): Point => ({
-  x: Math.min(Math.max(pos.x, bounds.x), Math.max(bounds.x, bounds.x + bounds.length - size.length)),
-  y: Math.min(Math.max(pos.y, bounds.y), Math.max(bounds.y, bounds.y + bounds.width - size.width)),
-});
+interface SkylineSegment {
+  x: number;
+  y: number;
+  width: number;
+}
 
-const isFreeSpot = (rect: RectLike, occupied: RectLike[], bounds: RectLike, scale: AxisScale): boolean => {
-  return isInsideBounds(rect, bounds, scale) && findCollisions(rect, occupied, scale).length === 0;
-};
-
-// Returns the best (smallest y, then x) placement across the allowed
-// orientations; strict comparison keeps 0° winning ties over 90°.
-const findFirstFit = (
+// Bottom-left skyline spot: anchor at every segment, bridge neighbours until
+// the footprint fits; the deepest frontier in the span sets the top edge. 0°
+// wins strict (y, x) ties over 90° (BR-26).
+const findSkylineSpot = (
   item: CargoItem,
-  occupied: RectLike[],
+  segments: SkylineSegment[],
   bounds: RectLike,
   scale: AxisScale,
   allowRotation: boolean
-): Placement | null => {
+): { x: number; y: number; rotation: Rotation } | null => {
+  let best: { x: number; y: number; rotation: Rotation } | null = null;
   const orientations: Rotation[] = allowRotation ? ORIENTATIONS : [0];
-  const candidates = collectCandidates(occupied, bounds);
-  let best: Placement | null = null;
-
   for (const rotation of orientations) {
     const size = getVisualSize(item, rotation, scale);
-
-    for (const candidate of candidates) {
-      const pos = clampIntoBounds(candidate, size, bounds);
-      if (!isFreeSpot({ ...pos, ...size }, occupied, bounds, scale)) {
-        continue;
+    for (let start = 0; start < segments.length; start++) {
+      let spanWidth = 0;
+      let top = bounds.y;
+      for (let index = start; index < segments.length && spanWidth < size.length; index++) {
+        spanWidth += segments[index].width;
+        top = Math.max(top, segments[index].y);
       }
-      if (!best || pos.y < best.y || (pos.y === best.y && pos.x < best.x)) {
-        best = { x: pos.x, y: pos.y, rotation };
+      if (spanWidth < size.length) continue;
+      if (top + size.width > bounds.y + bounds.width + EPSILON) continue;
+      const x = segments[start].x;
+      if (!best || top < best.y || (top === best.y && x < best.x)) {
+        best = { x, y: top, rotation };
       }
-      break;
     }
   }
-
   return best;
 };
 
-// Repacks all given cargo items into bounds using First-Fit Decreasing with
-// optional 90° rotation. Items sit flush edge-to-edge (no gaps); anything
-// that does not fit anywhere is returned in `unplaced`. Input item order is
-// preserved inside each group.
+// Raises the frontier across the placed span to the rect's bottom edge; free
+// pockets under uneven spans are sacrificed (standard skyline approximation).
+const updateSkyline = (segments: SkylineSegment[], rect: RectLike): SkylineSegment[] => {
+  const next: SkylineSegment[] = [];
+  for (const segment of segments) {
+    const segmentEnd = segment.x + segment.width;
+    if (segmentEnd <= rect.x + EPSILON || segment.x >= rect.x + rect.length - EPSILON) {
+      next.push(segment);
+      continue;
+    }
+    const leftWidth = rect.x - segment.x;
+    if (leftWidth > EPSILON) {
+      next.push({ x: segment.x, y: segment.y, width: leftWidth });
+    }
+    const coveredStart = Math.max(segment.x, rect.x);
+    const coveredEnd = Math.min(segmentEnd, rect.x + rect.length);
+    if (coveredEnd - coveredStart > EPSILON) {
+      next.push({ x: coveredStart, y: rect.y + rect.width, width: coveredEnd - coveredStart });
+    }
+    const rightWidth = segmentEnd - (rect.x + rect.length);
+    if (rightWidth > EPSILON) {
+      next.push({ x: rect.x + rect.length, y: segment.y, width: rightWidth });
+    }
+  }
+  const merged: SkylineSegment[] = [];
+  for (const segment of next.sort((a, b) => a.x - b.x)) {
+    const previous = merged[merged.length - 1];
+    if (
+      previous &&
+      Math.abs(previous.y - segment.y) <= EPSILON &&
+      Math.abs(previous.x + previous.width - segment.x) <= EPSILON
+    ) {
+      previous.width += segment.width;
+    } else {
+      merged.push({ ...segment });
+    }
+  }
+  return merged;
+};
+
+// Deterministic dense fallback for loads beyond the exact solver's unit limit:
+// bottom-left skyline frontier with optional 90° rotation, flush edge-to-edge.
+const packSkylineIntoBounds = (
+  items: CargoItem[],
+  bounds: RectLike,
+  scale: AxisScale,
+  allowRotation: boolean
+): PackingResult => {
+  const sorted = [...items].sort(byAreaDescending);
+  let segments: SkylineSegment[] = [{ x: bounds.x, y: bounds.y, width: bounds.length }];
+  const occupied: RectLike[] = [];
+  const placements = new Map<CargoItem, Placement>();
+
+  for (const item of sorted) {
+    const spot = findSkylineSpot(item, segments, bounds, scale, allowRotation);
+    if (!spot) {
+      continue;
+    }
+    const size = getVisualSize(item, spot.rotation, scale);
+    const rect: RectLike = { x: spot.x, y: spot.y, length: size.length, width: size.width };
+    if (!isInsideBounds(rect, bounds, scale) || findCollisions(rect, occupied, scale).length > 0) {
+      // The frontier math above already guarantees free space; skip rather than
+      // corrupt the layout if floating-point drift ever disagrees.
+      continue;
+    }
+    occupied.push(rect);
+    segments = updateSkyline(segments, rect);
+    placements.set(item, { x: rect.x, y: rect.y, rotation: spot.rotation });
+  }
+
+  return {
+    placed: items.filter((item) => placements.has(item)).map((item) => ({ ...item, ...placements.get(item)! })),
+    unplaced: items.filter((item) => !placements.has(item)),
+  };
+};
+
+// Repacks all given cargo items into bounds. Small/medium loads are solved
+// exactly (maximize placed units, then minimize used length, width, and 90°
+// turns) under a wall-clock budget; larger loads use the skyline heuristic.
+// Items sit flush edge-to-edge (no gaps); anything that does not fit anywhere
+// is returned in `unplaced`. Input item order is preserved inside each group.
 export const packCargoIntoBounds = (
   items: CargoItem[],
   bounds: RectLike,
@@ -106,27 +172,10 @@ export const packCargoIntoBounds = (
   options: PackingOptions = {}
 ): PackingResult => {
   const allowRotation = options.allowRotation ?? true;
-
-  const sorted = [...items].sort(byAreaDescending);
-  const occupied: RectLike[] = [];
-  const placements = new Map<CargoItem, Placement>();
-
-  for (const item of sorted) {
-    const placement = findFirstFit(item, occupied, bounds, scale, allowRotation);
-    if (!placement) {
-      continue;
-    }
-    const size = getVisualSize(item, placement.rotation, scale);
-    // Visual extents only — storing `rotation` here would make geometryRules
-    // apply the rotation a second time and corrupt every later overlap check.
-    occupied.push({ x: placement.x, y: placement.y, length: size.length, width: size.width });
-    placements.set(item, placement);
+  if (items.length <= (options.exactLimit ?? DEFAULT_EXACT_UNIT_LIMIT)) {
+    return optimizePacking(items, bounds, scale, { allowRotation, timeLimitMs: options.timeLimitMs });
   }
-
-  return {
-    placed: items.filter((item) => placements.has(item)).map((item) => ({ ...item, ...placements.get(item)! })),
-    unplaced: items.filter((item) => !placements.has(item)),
-  };
+  return packSkylineIntoBounds(items, bounds, scale, allowRotation);
 };
 
 // Expands raw available-cargo entries by their quantity into per-instance canvas

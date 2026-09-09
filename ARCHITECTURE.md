@@ -53,7 +53,8 @@ src/
 │   ├── coordinateRules.ts          # meterToPixel(), pixelToMeter() (pure unit conversion only)
 │   ├── dragRules.ts                # calculateDragPosition() — grid-snapped, clamped drag position
 │   ├── geometryRules.ts            # getRectangle(), isIntersecting(), overlaps(), isInsideBounds(), findCollisions()
-│   ├── packingRules.ts             # packCargoIntoBounds() — First-Fit Decreasing auto-packing with optional 90° rotation
+│   ├── packingOptimizer.ts     # optimizePacking() — exact anytime branch-and-bound auto-packing (max units, then min load meters)
+│   ├── packingRules.ts             # packCargoIntoBounds() — routes small loads to the exact solver, large loads to the skyline heuristic
 │   ├── rotationRules.ts            # rotate90(), isVerticalRotation(), getRotatedScreenSize()
 │   ├── snapRules.ts                # snapToGrid(), snapPosition()
 │   ├── validationRules.ts          # validateItem(), validateLoadMeters(), validateAll()
@@ -237,7 +238,7 @@ src/
   - Renders the canvas with truck boundary, cargo items, info panel, grid overlay, and cargo list.
   - Handles drag-and-drop from the cargo list onto the canvas (HTML5 DnD); newly added/dropped cargo is placed at the raw position (list clicks default to `{x: 50, y: 50}`), which may fall outside the truck band and be flagged `OUT_OF_BOUNDS` until the user drags it into place.
   - Displays validation status (colors, errors) in the info panel.
-  - Provides the info-panel buttons: **Save Plan**, **Load Plan**, and **Auto Load** (repacks every cargo — on canvas plus still in the list — tightly into the truck frame via `packCargoIntoBounds()`; items that do not fit stay in the cargo list and a red notice reports their count).
+  - Provides the info-panel buttons: **Save Plan**, **Load Plan**, and **Auto Load** (repacks every cargo — on canvas plus still in the list — tightly into the truck frame via `packCargoIntoBounds()`; small/medium loads are solved exactly to maximize loaded units then minimize load meters, larger loads use a deterministic skyline fill; items that do not fit stay in the cargo list and a red notice reports their count).
   - Shows a "Save failed" notice in the info panel when the container reports a `saveError`.
 
 - **`LoadingCanvasContainer`** (`src/widget/LoadingCanvas.container.tsx`) — the Mendix bridge.
@@ -288,7 +289,7 @@ src/
 11. **React re-renders** the cargo cards at their new positions.
 12. **Mouse up** dispatches `END_DRAG`, which calls `dragEngine.endDrag()` and clears `activeItemId`.
 13. **User clicks "Save Plan"** → `handleSavePlan` → `onSavePlan(items, scale)` → container's `handleSavePlan` → `savePackingPlan()` → deletes existing plan items + creates new ones via `mx.data`.
-14. **User clicks "Auto Load"** → `handleAutoLoad` calls `autoLoadCargoUnits(items, availableCargoItems, placedInstances)` which merges canvas items with expanded available cargo (skipping instance indices already placed), then calls `packCargoIntoBounds()` (First-Fit Decreasing, optional 90° rotation, flush edge-to-edge placement inside the truck frame), then dispatches `SET_ITEMS` with the packed result so validation runs as usual; items that do not fit remain in the cargo list and their count is shown in the info panel.
+14. **User clicks "Auto Load"** → `handleAutoLoad` calls `autoLoadCargoUnits(items, availableCargoItems, placedInstances)` which merges canvas items with expanded available cargo (skipping instance indices already placed), then calls `packCargoIntoBounds()` (small/medium loads: exact branch-and-bound that maximizes loaded units then minimizes load meters under a wall-clock budget; larger loads: deterministic bottom-left skyline fill with optional 90° rotation, flush edge-to-edge placement inside the truck frame), then dispatches `SET_ITEMS` with the packed result so validation runs as usual; items that do not fit remain in the cargo list and their count is shown in the info panel.
 
 ## Domain Rules
 
@@ -300,13 +301,18 @@ src/
 - `isInsideBounds(item, bounds, scale?)` — checks if an item (accounting for rotation) is fully within bounds.
 - `findCollisions(target, items, scale?)` — filters items that overlap the target.
 
-### Packing (`packingRules.ts`)
+### Packing (`packingRules.ts`, `packingOptimizer.ts`)
 
 - `packCargoIntoBounds(items, bounds, scale?, options?)` — pure auto-packing used by the **Auto Load** button.
-  - First-Fit Decreasing: sorts by visual area descending, then places each item at the first candidate position (bounds origin plus right/bottom edges of placed rects, ordered by y then x) that passes `isInsideBounds` + `findCollisions`.
-  - Items sit **flush edge-to-edge** (candidate positions are exact neighbor edges, no grid snapping), and the first item hugs the bounds origin even when it is not a grid multiple.
-  - Optional 90° rotation (`options.allowRotation`, default on): tried only when 0° has no valid spot; ties keep 0°.
+  - Routes by load size: loads at or below `options.exactLimit` (default 16 units) go to the exact solver; larger loads fall back to the skyline heuristic.
   - Returns `{ placed, unplaced }`; input order is preserved within each group and all cargo identity fields (id, name, color, metric sizes, weight) are untouched — only `x`, `y`, `rotation` are recomputed.
+- `optimizePacking(items, bounds, scale?, options?)` — exact anytime branch-and-bound solver (`packingOptimizer.ts`).
+  - Objective (lexicographic): **maximize placed units**, then **minimize used length** (load meters, BR-17), then used width, then the number of 90° turns (upright preference, BR-26).
+  - Normal-form placement theorem: an optimal packing exists where every item's left edge is the bounds-left or a placed right edge and every top edge is the bounds-top or a placed bottom edge, so the search explores a finite corner-candidate set. Identical-footprint units are grouped and explored in canonical (non-decreasing position) order to avoid redundant permutations.
+  - Prunes by a free-area count upper bound and by lexicographic dominance; runs under `options.timeLimitMs` (default 400 ms) and returns the best layout found so far on expiry, so the result is never worse than the greedy seed.
+  - Optional 90° rotation (`options.allowRotation`, default on): tried only when 0° has no valid spot; ties keep 0°.
+- `packSkylineIntoBounds(...)` — deterministic bottom-left skyline fallback for large loads (`packingRules.ts`).
+  - Maintains a frontier of free horizontal segments; each item anchors at the lowest-y segment that can bridge its width, with optional 90° rotation, filling flush edge-to-edge.
 - `autoLoadCargoUnits(onCanvas, stillInList, placedInstances?)` — assembles items for Auto Load.
   - Canvas items pass through unchanged (already per-unit instances with instance suffix).
   - Available items are expanded one instance per quantity unit, skipping instance indices already present in `placedInstances` (a `Map<baseId, Set<instanceIndex>>`) so partially placed orders never produce duplicate ids.

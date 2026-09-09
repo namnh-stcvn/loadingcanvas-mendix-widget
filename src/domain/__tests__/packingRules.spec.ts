@@ -127,7 +127,12 @@ describe("packCargoIntoBounds", () => {
     expect(first.x).toBe(333);
     expect(first.y).toBe(152);
 
-    const rects: RectLike[] = placed.map(({ x, y, length, width }) => ({ x, y, length, width }));
+    const rects: RectLike[] = placed.map(({ x, y, length, width, rotation }) => ({
+      x,
+      y,
+      length: rotation === 90 ? width : length,
+      width: rotation === 90 ? length : width,
+    }));
     for (let i = 0; i < rects.length; i++) {
       expect(isInside(rects[i], truckFrame)).toBe(true);
       for (let j = i + 1; j < rects.length; j++) {
@@ -135,12 +140,10 @@ describe("packCargoIntoBounds", () => {
       }
     }
 
-    // Uniform pallets form one tight shelf: same top edge, zero gap between neighbours.
-    const inRow = placed.slice().sort((a, b) => a.x - b.x);
-    expect(inRow.every((item) => item.y === 152)).toBe(true);
-    for (let i = 1; i < inRow.length; i++) {
-      expect(inRow[i].x - inRow[i - 1].x).toBeCloseTo(inRow[i - 1].length, 6);
-    }
+    // Load meters shrink below the naive single shelf of seven upright pallets
+    // because the packer mixes 90° turns to stack units towards the front.
+    const usedLength = Math.max(...rects.map((rect) => rect.x + rect.length)) - truckFrame.x;
+    expect(usedLength).toBeLessThan(7 * 1.2 * 106.84);
   });
 
   it("places items flush edge-to-edge horizontally and vertically", () => {
@@ -176,6 +179,64 @@ describe("packCargoIntoBounds", () => {
     expect(packed.weightKg).toBe(350);
     expect(packed.length).toBe(120);
     expect(packed.width).toBe(60);
+  });
+
+  it("finds the length-optimal layout for small loads via the exact solver", () => {
+    // First-fit shelf loads B and C to the right of A (used length 200 px);
+    // the optimum stacks B and C underneath A (used length 120 px).
+    const items = [makeCargo("A", 120, 60), makeCargo("B", 80, 40), makeCargo("C", 40, 40)];
+
+    const { placed, unplaced } = packCargoIntoBounds(items, TRUCK);
+
+    expect(unplaced).toEqual([]);
+    const usedLength = Math.max(...placed.map((item) => item.x + (item.rotation === 90 ? item.width : item.length)));
+    expect(usedLength).toBe(120);
+  });
+
+  it("routes large loads through the skyline and still fills tight shelves", () => {
+    const bounds: RectLike = { x: 0, y: 0, length: 300, width: 90 };
+    const items = Array.from({ length: 18 }, (_, i) => makeCargo(`pallet-${i}`, 50, 30));
+
+    const { placed, unplaced } = packCargoIntoBounds(items, bounds);
+
+    expect(unplaced).toEqual([]);
+    expect(placed).toHaveLength(18);
+    expect([...new Set(placed.map((item) => item.y))].sort((a, b) => a - b)).toEqual([0, 30, 60]);
+
+    const rects: RectLike[] = placed.map(({ x, y, length, width }) => ({ x, y, length, width }));
+    for (let i = 0; i < rects.length; i++) {
+      expect(isInside(rects[i], bounds)).toBe(true);
+      for (let j = i + 1; j < rects.length; j++) {
+        expect(rectsOverlap(rects[i], rects[j])).toBe(false);
+      }
+    }
+  });
+
+  it("keeps skyline output valid for mixed large loads", () => {
+    const bounds: RectLike = { x: 333, y: 152, length: 1453, width: 297 };
+    const scale = { widthScale: 106.84, heightScale: 106.84 };
+    const sizes = [
+      [1.2 * 106.84, 0.8 * 106.84],
+      [0.9 * 106.84, 0.6 * 106.84],
+      [1.5 * 106.84, 0.9 * 106.84],
+    ];
+    const items = Array.from({ length: 30 }, (_, i) => makeCargo(`unit-${i}`, sizes[i % 3][0], sizes[i % 3][1]));
+
+    const { placed } = packCargoIntoBounds(items, bounds, scale);
+
+    expect(placed.length).toBeGreaterThan(0);
+    const rects: RectLike[] = placed.map(({ x, y, length, width, rotation }) => ({
+      x,
+      y,
+      length: rotation === 90 ? width : length,
+      width: rotation === 90 ? length : width,
+    }));
+    for (let i = 0; i < rects.length; i++) {
+      expect(isInside(rects[i], bounds)).toBe(true);
+      for (let j = i + 1; j < rects.length; j++) {
+        expect(rectsOverlap(rects[i], rects[j])).toBe(false);
+      }
+    }
   });
 });
 
