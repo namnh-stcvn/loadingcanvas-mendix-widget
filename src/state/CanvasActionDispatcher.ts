@@ -1,10 +1,10 @@
-import type { Point } from "../types/geometry";
-import type { CargoItem } from "../viewModels/CargoItem";
+import type { Point } from "../core/types/geometry";
+import type { CargoItem } from "../core/types/viewModels/CargoItem";
 import type { CanvasStateManager } from "./CanvasStateManager";
-import { getCanvasBounds, getTruckBoundsFromItem } from "../domain/boundaryRules";
-import { validateAll } from "../domain/validationRules";
-import { DragEngine } from "../engines/DragEngine";
-import { fromCargoId } from "../domain/cargoIdentity";
+import { getCanvasBounds, getTruckBoundsFromItem } from "../domain/rules/boundaryRules";
+import { validateAll } from "../domain/rules/validationRules";
+import { DragEngine } from "../domain/engines/DragEngine";
+import { fromCargoId } from "../core/utils/cargoId";
 
 export type CanvasAction =
   | { type: "SELECT"; ids: string[] }

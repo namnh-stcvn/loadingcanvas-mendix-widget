@@ -2,8 +2,6 @@
 
 This document describes the **business rules** of the LoadingCanvas widget: the behavioral contract that governs truck loading and packing planning. It states _what_ the system enforces, not _how_ it is implemented. Technical design lives in `ARCHITECTURE.md`; the persistence entity design lives in `docs/PACKING_PLAN_ENTITY.md`.
 
-The architecture follows a **Pragmatic Domain-Centric Architecture** where business rules are implemented in the Domain layer (`src/domain/`). This separation ensures business logic is framework-agnostic and fully testable.
-
 All measurements use metric units: meters for length/width/height, kilograms for weight.
 
 ---

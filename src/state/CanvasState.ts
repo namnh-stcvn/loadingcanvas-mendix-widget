@@ -1,6 +1,6 @@
-import type { CargoItem } from "../viewModels/CargoItem";
-import type { TruckItem } from "../viewModels/TruckItem";
-import type { ValidationResult } from "../domain/validationRules";
+import type { CargoItem } from "../core/types/viewModels/CargoItem";
+import type { TruckItem } from "../core/types/viewModels/TruckItem";
+import type { ValidationResult } from "../domain/rules/validationRules";
 
 // Ownership model (single source of truth per field): this state layer holds
 // selection truth (selectedIds / activeItemId); DragState inside DragEngine is
