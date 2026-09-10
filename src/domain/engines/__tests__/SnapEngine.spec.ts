@@ -1,6 +1,6 @@
 import { describe, it, expect } from "@jest/globals";
 import { SnapEngine } from "../SnapEngine";
-import type { RectLike, Rotation } from "../../types/geometry";
+import type { RectLike, Rotation } from "../../../core/types/geometry";
 
 interface TestItem extends RectLike {
   id: string;

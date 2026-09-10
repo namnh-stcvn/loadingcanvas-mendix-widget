@@ -3,7 +3,7 @@ import type { CargoItem } from "../../core/types/viewModels/CargoItem";
 import { fromCargoId } from "../../core/utils/cargoId";
 
 import {
-  CARGO_LIST_PANEL_BOTTOM,
+  CARGO_LIST_PANEL_TOP,
   CARGO_LIST_PANEL_LEFT,
   CARGO_LIST_PANEL_PADDING,
   CARGO_LIST_PANEL_PADDING_LIST,
@@ -70,7 +70,7 @@ export const CargoList = React.memo<CargoListProps>(
         <div
           style={{
             position: "absolute",
-            bottom: CARGO_LIST_PANEL_BOTTOM,
+            top: CARGO_LIST_PANEL_TOP,
             left: CARGO_LIST_PANEL_LEFT,
             padding: CARGO_LIST_PANEL_PADDING,
             background: CARGO_LIST_PANEL_BG_EMPTY,
@@ -88,7 +88,7 @@ export const CargoList = React.memo<CargoListProps>(
       <div
         style={{
           position: "absolute",
-          bottom: CARGO_LIST_PANEL_BOTTOM,
+          top: CARGO_LIST_PANEL_TOP,
           left: CARGO_LIST_PANEL_LEFT,
           display: "flex",
           gap: CARGO_LIST_PANEL_GAP,

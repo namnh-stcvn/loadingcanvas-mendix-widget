@@ -1,11 +1,10 @@
 import { describe, it, expect } from "@jest/globals";
 import { serializePlan, deserializePlan } from "../stateAdapter";
-import type { CargoItem } from "../../viewModels/CargoItem";
-import type { CanvasState } from "../../state/CanvasState";
+import type { PackingPlanState } from "../stateAdapter";
+import type { CargoItem } from "../../../core/types/viewModels/CargoItem";
 
 describe("stateAdapter", () => {
   const scale = 50;
-  const canvasScale = { widthScale: 50, heightScale: 50 };
 
   const createCargoItem = (overrides: Partial<CargoItem> = {}): CargoItem => ({
     id: "cargo-1",
@@ -24,7 +23,7 @@ describe("stateAdapter", () => {
     ...overrides,
   });
 
-  const createCanvasState = (cargos: CargoItem[]): CanvasState => ({
+  const createCanvasState = (cargos: CargoItem[]): PackingPlanState => ({
     truck: {
       id: "truck-1",
       code: "TRUCK-001",
@@ -39,10 +38,6 @@ describe("stateAdapter", () => {
       rotation: 0,
     },
     cargos,
-    selectedIds: [],
-    activeItemId: null,
-    validation: { valid: true, errors: [] },
-    scale: canvasScale,
   });
 
   describe("serializePlan", () => {

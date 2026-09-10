@@ -2,86 +2,19 @@
 
 ## Architecture Rules
 
-### Layer Structure
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the complete architecture documentation including layer structure, dependency direction, layer responsibilities, and import patterns.
 
-The codebase follows a **Pragmatic Domain-Centric Architecture** with these layers:
+## Business Rules
 
-1. **Core** (`src/core/`) — Shared kernel with zero dependencies
-2. **Domain** (`src/domain/`) — Business logic (depends only on Core)
-3. **State** (`src/state/`) — State management (depends on Domain + Core)
-4. **Infrastructure** (`src/infrastructure/`) — External integrations (depends on Domain + Core)
-5. **Presentation** (`src/presentation/`) — UI layer (depends on State + Domain + Core)
+See [BUSINESS_RULES.md](BUSINESS_RULES.md) for the business rules (BR-01 through BR-44) that govern truck loading and packing planning.
 
-### Dependency Direction
+**Key principles:**
 
-**Preserve dependency direction:**
-```
-Presentation → State → Domain → Core
-Infrastructure → Domain → Core
-```
-
-### Layer Responsibilities
-
-- **Core** — Pure types, utilities, constants. Zero project dependencies.
-- **Domain** — Business rules and engines. Zero React/Mendix/browser dependencies.
-- **State** — State management and action orchestration. No business logic.
-- **Infrastructure** — Mendix integration and data mapping. Only layer with Mendix runtime access.
-- **Presentation** — React components and hooks. Thin UI layer.
-
-### Key Constraints
-
+- **Dependency direction**: Presentation → State → Domain → Core; Infrastructure → Domain → Core
 - **UI must never depend directly on Mendix runtime APIs** — use infrastructure layer
 - **Domain modules must not import React, Mendix APIs, browser globals, or widget framework APIs**
-- **Core modules must not import from other project layers**
-- **Adapters are the only layer allowed to interact directly with Mendix runtime objects**
-- **State layer orchestrates domain engines but doesn't contain business logic**
-- **Presentation components should be pure (props in, UI out)**
-
-### Allowed Import Patterns
-
-```typescript
-// Core - no project imports
-import type { Point } from "./geometry";
-import Big from "big.js";
-
-// Domain - Core only
-import type { CargoItem } from "../../core/types/viewModels";
-import { meterToPixel } from "../../core/utils/coordinates";
-
-// State - Domain + Core
-import { DragEngine } from "../../domain/engines/DragEngine";
-import { fromCargoId } from "../../core/utils/cargoId";
-
-// Infrastructure - Domain + Core
-import { getRotatedScreenSize } from "../../domain/rules/rotationRules";
-import { pixelToMeter } from "../../core/utils/coordinates";
-
-// Presentation - State + Domain + Core
-import { CanvasStateManager } from "../../state/CanvasStateManager";
-import { getRotatedScreenSize } from "../../domain/rules/rotationRules";
-```
-
-### Forbidden Import Patterns
-
-```typescript
-// Domain importing React
-import React from "react";
-
-// Domain importing Mendix
-import { mx } from "mendix";
-
-// Domain importing browser APIs
-const el = document.getElementById("app");
-
-// Core importing project layers
-import { DragEngine } from "../domain/engines/DragEngine";
-
-// Presentation importing Mendix directly
-import { mx } from "mendix";
-
-// State containing business logic
-const isValid = items.every(item => isInsideBounds(item, bounds));
-```
+- **Presentation to Infrastructure is allowed only from the composition root** (`src/LoadingCanvas.tsx`, `src/presentation/widget/LoadingCanvas.container.tsx`)
+- **Interaction machine** - `CanvasController` (State layer) owns the manager, dispatcher, and interaction engines; hooks are thin React adapters over it
 
 ### General Rules
 
@@ -166,16 +99,7 @@ When fixing a bug or error:
 
 ## State Ownership & Single Source of Truth
 
-Every state value must have a clear owner:
-
-- Persisted business data belongs to Mendix/application persistence.
-- Widget domain state belongs to the widget state layer.
-- Interaction state belongs to the relevant hook/engine.
-- Temporary UI state belongs to the component when appropriate.
-- Do not duplicate the same state across multiple layers without a synchronization strategy.
-- Do not use localStorage as an implicit second source of truth; Mendix persistence must not silently compete with localStorage or in-memory fallback state.
-- Derived values should be calculated rather than independently stored when practical.
-- Avoid deriving persistent business state from transient UI state without explicit mapping.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for state ownership guidelines. Every state value must have a clear owner — do not duplicate the same state across multiple layers without a synchronization strategy.
 
 ## AI Agent Rules
 
@@ -268,6 +192,8 @@ Before completing a task, inspect the final diff and remove unrelated modificati
 
 ### 4. XPath and association constraint
 
+See [docs/MENDIX_ENTITY.md](docs/MENDIX_ENTITY.md) for the entity design, XPath queries, and association names.
+
 - Do NOT use complex XPath association constraints like `//Entity[module$entity_assoc = 'guid']`; they easily cause HTTP 560.
 - Prefer fetching with a simple XPath (`//Module.Entity`), then filter the association in JavaScript using the MxObject API.
 - If multiple association names must be tried, the candidate list must live in the adapter, log the final error, and be testable; do not swallow the whole error making it look like there is no data.
@@ -277,6 +203,7 @@ Before completing a task, inspect the final diff and remove unrelated modificati
 
 - Mendix Decimal attributes like `PositionX`, `PositionY`, `Width`, `Height`, `HeightMeters`, `WeightKg` do not accept plain JavaScript numbers.
 - Before `set()`, convert using the Big.js runtime; do not pass decimal numbers directly.
+
 # Encourage using the Decimal constructor from MxObject
 
 use-decimal-constructor:
@@ -289,42 +216,36 @@ pattern: "window.require\\(['\\\"]big.js['\\\"]\\)"
 domain-framework-isolation:
 description: "Domain layer must not import React, Mendix APIs, browser globals, or widget framework APIs."
 severity: error
-pattern: "src/domain/.*from.*['\"]react['\"]|src/domain/.*from.*['\"]mendix['\"]|src/domain/.*window\\.|src/domain/.*document\\."
+pattern: "src/domain/._from._['\"]react['\"]|src/domain/._from._['\"]mendix['\"]|src/domain/.*window\\.|src/domain/.*document\\."
 
 # Core layer zero dependencies
 
 core-zero-dependencies:
 description: "Core layer must not import from other project layers."
 severity: error
-pattern: "src/core/.*from.*['\"]\\.\\./(domain|state|infrastructure|presentation)/"
+pattern: "src/core/._from._['\"]\\.\\./(domain|state|infrastructure|presentation)/"
 
 # Infrastructure Mendix gateway
 
 infrastructure-mendix-gateway:
 description: "Only infrastructure layer can import Mendix runtime APIs."
 severity: error
-pattern: "src/(domain|state|presentation)/.*from.*['\"]mendix['\"]"
+pattern: "src/(domain|state|presentation)/._from._['\"]mendix['\"]"
 
 # Presentation Mendix isolation
 
 presentation-mendix-isolation:
 description: "Presentation layer must not directly call Mendix APIs."
 severity: error
-pattern: "src/presentation/.*from.*['\"]mendix['\"]"
+pattern: "src/presentation/._from._['\"]mendix['\"]"
 
-# UI business logic
+# Infrastructure must not depend on State
 
-ui-business-logic:
-description: "UI components should not contain business logic; delegate to state/domain."
-severity: warning
-pattern: "src/presentation/components/.*from.*['\"]\\.\\./\\.\\./domain/"
+infrastructure-no-state:
+description: "Infrastructure must never import from the State layer; persist the PackingPlanState slice, not the live-store shape."
+severity: error
+pattern: "src/infrastructure/._from._['\"]\\.\\./(\\.\\.)*)*state/"
 
-# State business logic
-
-state-business-logic:
-description: "State layer should not contain business logic; delegate to domain."
-severity: warning
-pattern: "src/state/.*from.*['\"]\\.\\./domain/rules/"
 - Do not call `window.require("big/big")` or `window.require("big.js")`: the Mendix Dojo loader can throw `undefinedModule` and stop the debugger before the error is even caught.
 - When creating a new Mendix object, get the native Decimal constructor from the MxObject's own default value (`mxObject.get(attribute).constructor`) and create the Decimal with that constructor. Do not use a separately bundled/imported `big.js` because Mendix validation may reject a different instance even with the same API/value.
 - If a Decimal attribute has no native default value, borrow the Decimal constructor from another Decimal attribute on the same MxObject (e.g., `PositionX`, `Width`, `Height`); all Decimal attributes on the same object share the same Mendix Decimal constructor. Only when no constructor can be found, report a contextual error and stop the save; use the local `big.js` package only in dev/test.
@@ -353,6 +274,8 @@ pattern: "src/state/.*from.*['\"]\\.\\./domain/rules/"
 - **Error encountered**: loaded item ID = `cargo-96264442035466915` (TransportOrder GUID) while pallet list ID = `cargo-17169973584497070`; caused by the load fallback using the PackingPlanItem GUID instead of the TransportOrder GUID; fixed by reading the association directly.
 
 ### 7. Save/commit and data errors
+
+See [docs/MENDIX_ENTITY.md](docs/MENDIX_ENTITY.md) for the save/load flow details.
 
 - The save flow must have a clear order: find/create the plan, delete old items, create new items, commit; if an intermediate step fails, do not report the save as successful.
 - Do not call the `onSave` callback after a failed save; distinguish between Mendix results and dev fallback.

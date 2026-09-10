@@ -2,9 +2,9 @@ import { describe, it, expect } from "@jest/globals";
 import { DragEngine } from "../DragEngine";
 import { CollisionEngine } from "../CollisionEngine";
 import { SnapEngine } from "../SnapEngine";
-import type { RectLike, Rotation } from "../../types/geometry";
-import { isInsideBounds, overlaps } from "../../domain/geometryRules";
-import { getTruckBounds } from "../../domain/boundaryRules";
+import type { RectLike, Rotation } from "../../../core/types/geometry";
+import { isInsideBounds, overlaps } from "../../rules/geometryRules";
+import { getTruckBounds } from "../../rules/boundaryRules";
 
 interface TestItem extends RectLike {
   id: string;

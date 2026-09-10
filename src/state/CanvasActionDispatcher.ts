@@ -53,7 +53,7 @@ export class CanvasActionDispatcher {
   }
 
   dispatch(action: CanvasAction): void {
-    const state = this.manager.getState();
+    const state = this.manager.peekState();
 
     switch (action.type) {
       case "SELECT":
@@ -122,7 +122,7 @@ export class CanvasActionDispatcher {
         this.dragEngine.endDrag();
         // Settled layouts are held to the truck band (BR-22): the gesture-time
         // canvas-relative feedback must not hide out-of-band results after release.
-        const settled = this.manager.getState();
+        const settled = this.manager.peekState();
         const validation = validateAll(
           settled.cargos,
           getTruckBoundsFromItem(settled.truck),
@@ -211,13 +211,13 @@ export class CanvasActionDispatcher {
 
       case "UNDO": {
         this.manager.undo();
-        this.dragEngine.updateItems(this.manager.getState().cargos);
+        this.dragEngine.updateItems(this.manager.peekState().cargos);
         break;
       }
 
       case "REDO": {
         this.manager.redo();
-        this.dragEngine.updateItems(this.manager.getState().cargos);
+        this.dragEngine.updateItems(this.manager.peekState().cargos);
         break;
       }
 

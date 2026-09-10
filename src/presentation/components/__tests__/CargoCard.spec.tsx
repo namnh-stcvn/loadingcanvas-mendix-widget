@@ -1,8 +1,8 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render } from "@testing-library/react";
 import type { MouseEvent as ReactMouseEvent } from "react";
-import type { CargoItem } from "../../viewModels/CargoItem";
-import { DEFAULT_CANVAS_WIDTH } from "../../constants/canvas";
+import type { CargoItem } from "../../../core/types/viewModels/CargoItem";
+import { DEFAULT_CANVAS_WIDTH } from "../../../core/constants/canvas";
 import { CargoCard, computePopupSide } from "../CargoCard";
 
 const makeItem = (overrides: Partial<CargoItem> = {}): CargoItem => ({

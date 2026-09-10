@@ -1,13 +1,13 @@
 import { describe, it, expect, jest } from "@jest/globals";
 import { CanvasActionDispatcher } from "../CanvasActionDispatcher";
 import { CanvasStateManager } from "../CanvasStateManager";
-import { DragEngine } from "../../engines/DragEngine";
-import { CollisionEngine } from "../../engines/CollisionEngine";
-import { SnapEngine } from "../../engines/SnapEngine";
-import type { CargoItem } from "../../viewModels/CargoItem";
+import { DragEngine } from "../../domain/engines/DragEngine";
+import { CollisionEngine } from "../../domain/engines/CollisionEngine";
+import { SnapEngine } from "../../domain/engines/SnapEngine";
+import type { CargoItem } from "../../core/types/viewModels/CargoItem";
 import type { CanvasState } from "../CanvasState";
-import { isInsideBounds } from "../../domain/geometryRules";
-import { getTruckBounds } from "../../domain/boundaryRules";
+import { isInsideBounds } from "../../domain/rules/geometryRules";
+import { getTruckBounds } from "../../domain/rules/boundaryRules";
 
 describe("CanvasActionDispatcher", () => {
   const canvasWidth = 1000;

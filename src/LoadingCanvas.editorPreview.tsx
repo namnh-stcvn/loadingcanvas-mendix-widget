@@ -22,5 +22,5 @@ export function preview(_values: LoadingCanvasPreviewProps): ReactElement {
 }
 
 export function getPreviewCss(): string {
-  return require("./ui/LoadingCanvas.css");
+  return require("./presentation/widget/LoadingCanvas.css");
 }

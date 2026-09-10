@@ -1,5 +1,5 @@
 import type { TruckItem } from "../../core/types/viewModels/TruckItem";
-import type { Truck } from "../../models/Truck";
+import type { Truck } from "../../core/types/Truck";
 import { meterToPixel } from "../../core/utils/coordinates";
 import type { AxisScale } from "../../domain/rules/rotationRules";
 import {

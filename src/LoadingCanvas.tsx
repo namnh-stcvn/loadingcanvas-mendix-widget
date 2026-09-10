@@ -2,7 +2,7 @@ import { createElement, type ReactElement } from "react";
 import { LoadingCanvasContainer } from "./presentation/widget/LoadingCanvas.container";
 import type { LoadingCanvasContainerProps } from "../typings/LoadingCanvasProps";
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from "./core/constants/canvas";
-import "./ui/LoadingCanvas.css";
+import "./presentation/widget/LoadingCanvas.css";
 
 export function LoadingCanvas(props: LoadingCanvasContainerProps): ReactElement {
   const {

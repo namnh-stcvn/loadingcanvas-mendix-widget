@@ -1,6 +1,5 @@
 import type { CargoItem } from "../../core/types/viewModels/CargoItem";
-import type { CanvasState } from "../../state/CanvasState";
-import { deserializePlan, serializePlan, type PackingPlanData } from "./stateAdapter";
+import { deserializePlan, serializePlan, type PackingPlanData, type PackingPlanState } from "./stateAdapter";
 import {
   getMx,
   getObjectGuid,
@@ -190,7 +189,7 @@ const metaForItem = (
 
 export const savePackingPlan = async (
   truckGuid: string | null,
-  state: Pick<CanvasState, "truck" | "cargos">,
+  state: PackingPlanState,
   scale: { widthScale: number; heightScale: number },
   onSaveMicroflow?: () => void
 ): Promise<PackingPlanData> => {

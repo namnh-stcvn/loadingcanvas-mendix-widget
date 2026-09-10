@@ -1,8 +1,8 @@
 import { describe, it, expect } from "@jest/globals";
 import { autoLoadCargoUnits, expandCargoByQuantity, packCargoIntoBounds } from "../packingRules";
-import { fromCargoId } from "../cargoIdentity";
-import type { CargoItem } from "../../viewModels/CargoItem";
-import type { RectLike } from "../../types/geometry";
+import { fromCargoId } from "../../../core/utils/cargoId";
+import type { CargoItem } from "../../../core/types/viewModels/CargoItem";
+import type { RectLike } from "../../../core/types/geometry";
 
 const makeCargo = (id: string, length: number, width: number): CargoItem => ({
   id,

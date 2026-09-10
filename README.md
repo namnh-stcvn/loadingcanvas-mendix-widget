@@ -4,7 +4,7 @@
 
 **LoadingCanvas** is a Mendix pluggable widget for interactive truck loading and packing planning. It provides an interactive canvas where users can drag, rotate, and validate cargo items (pallet/box) within a truck boundary. The widget supports grid snapping, real-time collision detection, and integration with Mendix Data API for saving/loading packing plans.
 
-Built with **React 18.2** (pinned via package.json `overrides`/`resolutions`, automatic JSX runtime), **TypeScript**, and the **Mendix pluggable-widgets-tools** toolchain, the widget follows a strict layered architecture with clear separation of concerns between UI, state management, business logic, and domain rules.
+Built with **React 18.2** (pinned via package.json `overrides`/`resolutions`, automatic JSX runtime), **TypeScript**, and the **Mendix pluggable-widgets-tools** toolchain. See [ARCHITECTURE.md](ARCHITECTURE.md) for the detailed architecture documentation.
 
 ---
 
@@ -34,128 +34,36 @@ Built with **React 18.2** (pinned via package.json `overrides`/`resolutions`, au
 
 ## Architecture
 
-The widget follows a **strict layered architecture**:
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the complete architecture documentation, including:
 
-### 1. UI Layer
-
-- React components: `LoadingCanvas`, `CargoCard`, `GridOverlay`, `CargoList`
-- Hooks: `useTruckCanvas`, `useCanvasState`, `useMouseEvents`
-
-### 2. State Management
-
-- `CanvasStateManager` (single source of truth)
-- `CanvasActionDispatcher` (action routing)
-- Undo/redo history implementation
-
-### 3. Engine Layer
-
-- **DragEngine**: Manages drag state and position calculations
-- **CollisionEngine**: Detects overlaps and resolves conflicts
-- **SnapEngine**: Handles grid/edge/alignment snapping
-- _(validation no longer has a dedicated engine — the dispatcher validates directly via `domain/validationRules.ts`)_
-
-### 4. Domain Rule Layer
-
-- Pure functions for geometry, rotation, validation, and coordinate conversion
-- No React/DOM dependencies for testability
-
-### 5. Adapter Layer
-
-- **cargoAdapter**: Converts Mendix data to view models
-- **truckAdapter**: Converts TruckSelection data to TruckItem
-- **mendixDataAdapter**: Bridges to Mendix Data API
-
-### 6. Data Model Layer
-
-- Business models: `Truck`, `CargoItem`, `TruckItem`
-- Shared types: `Point`, `Rectangle`, `Rotation`
-
-### 7. Constants Layer
-
-- Configuration values: canvas dimensions, grid size, rotation steps
+- Layer structure (Core, Domain, State, Infrastructure, Presentation)
+- Dependency direction and import rules
+- Project structure and directory layout
+- Data flow diagrams
+- Testing strategy
 
 ---
 
 ## Project Structure
 
-```
-src/
-├── LoadingCanvas.tsx          # Main widget component
-├── LoadingCanvas.editorConfig.ts # Mendix editor configuration
-├── LoadingCanvas.editorPreview.tsx # Studio Pro preview
-├── LoadingCanvas.xml          # Mendix widget manifest
-├── package.xml                # Widget package definition
-├── components/                # UI components
-│   ├── CargoCard.tsx          # Renders a single cargo item
-│   ├── GridOverlay.tsx        # Visual grid on canvas
-│   ├── CargoList.tsx          # Debug palette: individual cargo chips (one per packing unit)
-│   └── RotationHandle.tsx     # Rotation handle UI
-├── constants/                 # Configuration values
-│   ├── canvas.ts              # Canvas dimensions, grid, rotation
-│   ├── card.ts                # Card border styles
-│   └── theme.ts               # Canvas background color
-│ ├── domain/                    # Geometry and validation rules
-│   ├── boundaryRules.ts       # Clamp values within range
-│   ├── coordinateRules.ts     # Meter/pixel conversion (pure; DOM-free)
-│   ├── dragRules.ts           # Drag position calculations
-│   ├── geometryRules.ts       # Intersection checks
-│   ├── packingOptimizer.ts    # Exact anytime auto-packing (max units, then min load meters) for the Auto Load button
-│   ├── packingRules.ts        # Auto-packing (First-Fit Decreasing) for the Auto Load button
-│   ├── rotationRules.ts       # 90° rotation logic
-│   ├── snapRules.ts           # Snapping logic
-│   ├── cargoIdentity.ts       # cargo- ID prefix helpers (toCargoId/fromCargoId)
-│   └── validationRules.ts     # Validation rules
-├── engines/                   # Core business logic engines
-│   ├── DragEngine.ts          # Drag state management
-│   ├── DragState.ts           # Engine-internal drag tracking
-│   ├── CollisionEngine.ts     # Collision detection
-│   └── SnapEngine.ts          # Snapping calculations
-├── hooks/                     # React hooks
-│   ├── useTruckCanvas.ts      # Main hook: wires engines & state
-│   ├── useCanvasState.ts      # Subscribes to state manager
-│   ├── useCanvasActions.ts    # Wraps action dispatcher
-│   ├── useMouseEvents.ts      # Global mouse event listeners
-│   └── coordinateRule.ts      # Browser→canvas coordinate conversion (DOM, kept out of domain)
-├── models/                    # Business models
-│   └── Truck.ts               # Truck dimensions and properties
-├── state/                     # State management
-│   ├── CanvasState.ts         # Canvas state interface
-│   ├── CanvasStateManager.ts  # Single source of truth
-│   ├── CanvasActionDispatcher.ts # Action routing
-├── types/                     # TypeScript type definitions
-│   ├── geometry.ts            # Point, Size, Rectangle types
-│   └── mx.d.ts                # Mendix widget framework types
-├── adapters/                  # Mendix data adapters
-│   ├── cargoAdapter.ts        # PackingUnit ↔ CargoItem conversion
-│   ├── truckAdapter.ts        # TruckSelection ↔ TruckItem
-│   ├── stateAdapter.ts        # Packing plan serialization
-│   └── mendixDataAdapter.ts   # Mendix Data API bridge
-├── widget/                    # Widget entry points
-│   ├── index.ts               # Mendix widget entry point
-│   ├── LoadingCanvas.container.tsx # Mendix bridge component
-│   └── LoadingCanvas.properties.ts # Property definitions
-```
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the complete directory structure. The codebase follows a 5-layer architecture:
+
+- `src/core/` — Shared kernel (types, utilities, constants)
+- `src/domain/` — Business logic (rules, engines, packing)
+- `src/state/` — State management (CanvasController, StateManager, ActionDispatcher)
+- `src/infrastructure/` — External integrations (Mendix bridge, adapters)
+- `src/presentation/` — UI layer (hooks, components, widget)
 
 ---
 
 ## Data Flow
 
-1. **LoadingCanvasContainer** receives props from Mendix (TruckSelection GUID, TransportOrder list, canvas dimensions, callbacks)
-2. Loads data via `mendixDataAdapter.ts`:
-   - Loads TruckSelection data → computes scale
-   - Loads TruckItem view model
-   - Loads CargoItem[] for the available cargo list
-   - Loads CargoItem[] for saved packing plan
-3. Passes view models to `LoadingCanvas` via `LoadingCanvasViewModelProps`
-4. **LoadingCanvas** initializes `useTruckCanvas` hook with view models
-5. React renders from current `CanvasState` — items, active item, selected items, validation status
-6. User interaction (mousedown on cargo card) triggers drag operations
-7. `CanvasActionDispatcher` routes actions to engines (drag, snap, collision, validation)
-8. `CanvasStateManager` notifies subscribers; React re-renders with updated state
-9. User clicks "Save Plan" → packing plan saved to Mendix entities
-10. User clicks "Auto Load" → `packCargoIntoBounds()` repacks every cargo (canvas + cargo list) flush into the truck frame: small/medium loads are solved exactly to maximize loaded units then minimize load meters, larger loads use a deterministic skyline fill; items that do not fit stay in the cargo list
+See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed data flow diagrams, including:
 
-Note: the truck frame is proportional to the selected truck's internal dimensions (length × width) and centered vertically in the reserved canvas band; cargo placement, rotation, and Auto Load are validated against this frame, not the full canvas band.
+- User interaction flow (drag, rotate, validate)
+- Data loading flow (Mendix → Infrastructure → Domain → State → Presentation)
+- Save flow (State → Infrastructure → Mendix)
+- Auto Load flow (Domain packing rules → State update → UI re-render)
 
 ---
 

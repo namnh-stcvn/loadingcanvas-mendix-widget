@@ -20,6 +20,12 @@ The architecture follows a **Pragmatic Domain-Centric Architecture** — a layer
 
 ### Why Pragmatic Domain-Centric?
 
+Traditional Clean Architecture enforces strict layer isolation, but this is impractical for a single React/Mendix widget. The pragmatic version keeps the domain at the center with zero framework dependencies while allowing:
+
+- Hooks to reach domain engines directly for performance (no redundant indirection).
+- Pure utilities + shared types to be used by every layer through the Core Shared Kernel.
+- The State layer to own a real, unit-testable interaction machine (manager + dispatcher + engines).
+
 ### Layered Architecture Overview
 
 ```
@@ -86,19 +92,55 @@ The Core layer is the **Shared Kernel** — code that can be used by any layer w
 ### Key Types
 
 #### geometry.ts
+
 ```typescript
-export interface Point { x: number; y: number; }
-export interface Size { length: number; width: number; }
-export interface Positionable { x: number; y: number; }
-export interface Sizeable { length: number; width: number; }
-export interface Rotatable { rotation: Rotation; }
+export interface Point {
+  x: number;
+  y: number;
+}
+export interface Size {
+  length: number;
+  width: number;
+}
+export interface Positionable {
+  x: number;
+  y: number;
+}
+export interface Sizeable {
+  length: number;
+  width: number;
+}
+export interface Rotatable {
+  rotation: Rotation;
+}
 export interface RectLike extends Positionable, Sizeable {}
 export interface GeometryItem extends Positionable, Sizeable, Rotatable {}
-export interface Rectangle { left: number; top: number; right: number; bottom: number; }
+export interface Rectangle {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
 export type Rotation = 0 | 90 | 180 | 270;
 ```
 
+#### Truck.ts
+```typescript
+export interface Truck {
+  id: string;
+  code: string;
+  internalLengthMeter: number;
+  internalWidthMeter: number;
+  internalHeightMeter: number;
+  maxPayloadKg: number;
+  axleCount: number;
+  truckType: "DryVan" | "Reefer" | "Flatbed" | "Container" | "Curtainsider";
+  maxLoadMeters?: number;
+}
+```
+
 #### viewModels/CargoItem.ts
+
 ```typescript
 import type { GeometryItem } from "../geometry";
 export type CargoType = "pallet" | "box";
@@ -123,12 +165,14 @@ export interface CargoItem extends GeometryItem {
 ### Key Utilities
 
 #### coordinates.ts
+
 ```typescript
 export const meterToPixel = (meter: number, scale: number): number => meter * scale;
 export const pixelToMeter = (pixel: number, scale: number): number => pixel / scale;
 ```
 
 #### cargoId.ts
+
 ```typescript
 export const CARGO_ID_PREFIX = "cargo-";
 export const toCargoId = (id: string): string =>
@@ -137,6 +181,14 @@ export const fromCargoId = (id: string): string => {
   if (!id.startsWith(CARGO_ID_PREFIX)) return id;
   const withoutPrefix = id.slice(CARGO_ID_PREFIX.length);
   const dashIndex = withoutPrefix.lastIndexOf("-");
+
+---
+
+## Domain Layer (src/domain/)
+
+### Purpose
+
+The Domain layer is the **heart of the application**. It contains all business logic: validation rules, geometry calculations, packing algorithms, and interaction engines. This layer has **zero dependencies** on React, Mendix, or browser APIs.
 
 ### Business Rules (src/domain/rules/)
 
@@ -199,12 +251,15 @@ The State layer manages application state and orchestrates domain objects. It se
 ### Directory Structure
 
 ```
+
 src/state/
-├── CanvasState.ts                 # State interface definition
-├── CanvasStateManager.ts          # State management with undo/redo
-├── CanvasStateListener.ts         # Listener type for subscriptions
-└── CanvasActionDispatcher.ts      # Action routing and orchestration
-```
+├── CanvasState.ts # State interface definition
+├── CanvasStateManager.ts # State management with undo/redo
+├── CanvasStateListener.ts # Listener type for subscriptions
+├── CanvasActionDispatcher.ts # Action routing and orchestration
+└── CanvasController.ts            # Interaction machine facade (owns manager + dispatcher + engines)`n├── CanvasController.ts            # Interaction machine facade (owns manager + dispatcher + engines)
+
+````
 
 ### Rules
 
@@ -230,9 +285,10 @@ export interface CanvasState {
   validation: ValidationResult;
   scale: { widthScale: number; heightScale: number };
 }
-```
+````
 
 #### CanvasStateManager
+
 - `getState()` — Returns deep-cloned current state
 - `setState(nextState)` — Updates state with history tracking
 - `updateState(update)` — Updates state via function
@@ -242,6 +298,22 @@ export interface CanvasState {
 - `redo()` — Redoes last undone change
 
 #### CanvasActionDispatcher
+
+#### CanvasController
+
+The main facade for the interaction machine. Owns the state manager, action dispatcher, and domain engines (DragEngine, CollisionEngine, SnapEngine). Hooks are thin React adapters over this controller.
+
+- `getState()` — Returns current state from the manager
+- `subscribe(listener)` — Subscribes to state changes
+- `dispatch(action)` — Routes actions to the dispatcher
+- `startDrag(activeId, mouse)` — Begins a drag operation
+- `move(mouse)` — Updates drag position
+- `endDrag()` — Ends drag operation
+- `rotate(itemId)` — Rotates an item
+- `addItem(item)` — Adds item to canvas
+- `setItems(items)` — Replaces all items
+- `removeItem(baseId)` — Removes item by base ID
+- `undo()` / `redo()` — History navigation
 
 ---
 
@@ -282,11 +354,11 @@ src/infrastructure/
 
 ### Mendix Bridge (src/infrastructure/mendix/)
 
-| File | Functions | Purpose |
-|------|-----------|---------|
-| mendixRuntime.ts | isMendixRuntime, getMx, getObjectGuid, isMxObject, setMxAttribute, setMxDecimalAttribute | Runtime detection and helpers |
-| mendixLoaders.ts | loadMendixObject, loadMendixObjects, loadMendixList, executeMendixAction | Data loading |
-| mendixAssociations.ts | getReferenceGuids, filterByAssociationGuid | Association handling |
+| File                  | Functions                                                                                | Purpose                       |
+| --------------------- | ---------------------------------------------------------------------------------------- | ----------------------------- |
+| mendixRuntime.ts      | isMendixRuntime, getMx, getObjectGuid, isMxObject, setMxAttribute, setMxDecimalAttribute | Runtime detection and helpers |
+| mendixLoaders.ts      | loadMendixObject, loadMendixObjects, loadMendixList, executeMendixAction                 | Data loading                  |
+| mendixAssociations.ts | getReferenceGuids, filterByAssociationGuid                                               | Association handling          |
 
 ---
 
@@ -332,20 +404,19 @@ src/presentation/
 4. **No direct Mendix calls** — Uses infrastructure layer via container
 5. **No business logic duplication** — Reuses domain rules
 
-
 ---
 
 ## Dependency Rules
 
 ### Allowed Dependencies Matrix
 
-| Layer | Core | Domain | State | Infrastructure | Presentation |
-|-------|------|--------|-------|----------------|--------------|
-| **Core** | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Domain** | ✅ | ✅ | ❌ | ❌ | ❌ |
-| **State** | ✅ | ✅ | ✅ | ❌ | ❌ |
-| **Infrastructure** | ✅ | ✅ | ❌ | ✅ | ❌ |
-| **Presentation** | ✅ | ✅ | ✅ | ❌ | ✅ |
+| Layer              | Core | Domain | State | Infrastructure | Presentation |
+| ------------------ | ---- | ------ | ----- | -------------- | ------------ |
+| **Core**           | ✅   | ❌     | ❌    | ❌             | ❌           |
+| **Domain**         | ✅   | ✅     | ❌    | ❌             | ❌           |
+| **State**          | ✅   | ✅     | ✅    | ❌             | ❌           |
+| **Infrastructure** | ✅   | ✅     | ❌    | ✅             | ❌           |
+| **Presentation**   | ✅   | ✅     | ✅    | ❌             | ✅           |
 
 ### Dependency Direction Diagram
 
@@ -390,34 +461,42 @@ src/presentation/
 ### User Interaction Flow
 
 ```
+
 User Action → Component → Hook → ActionDispatcher → StateManager
-                  │                         │
-                  │                         ▼
-                  │                   Domain Engine
-                  │                         │
-                  │                         ▼
-                  │                   Domain Rules
-                  │                         │
-                  ▼                         ▼
-              Re-render              State Update
+│ │
+│ ▼
+│ Domain Engine
+│ │
+│ ▼
+│ Domain Rules
+│ │
+▼ ▼
+Re-render State Update
+
 ```
 
 ### Data Loading Flow
 
 ```
+
 Mendix Runtime → mendixLoaders → Adapters → Domain Rules → View Models → State
+
 ```
 
 ### Save Flow
 
 ```
+
 State → Adapters → mendixMappers → mendixLoaders → Mendix Runtime
+
 ```
 
 ### Auto Load Flow
 
 ```
+
 User Action → Hook → ActionDispatcher → Domain Packing Rules → State → Re-render
+
 ```
 
 ---
@@ -428,10 +507,11 @@ User Action → Hook → ActionDispatcher → Domain Packing Rules → State →
 
 Tests live alongside the code they test:
 ```
-src/core/utils/__tests__/coordinates.spec.ts
-src/domain/rules/__tests__/validationRules.spec.ts
-src/domain/engines/__tests__/DragEngine.spec.ts
-src/state/__tests__/CanvasStateManager.spec.ts
+
+src/core/utils/**tests**/coordinates.spec.ts
+src/domain/rules/**tests**/validationRules.spec.ts
+src/domain/engines/**tests**/DragEngine.spec.ts
+src/state/**tests**/CanvasStateManager.spec.ts
 
 ---
 
@@ -450,9 +530,10 @@ src/state/__tests__/CanvasStateManager.spec.ts
 ## Mendix Integration
 
 ### Widget Manifest
+
 - **`src/presentation/widget/LoadingCanvas.xml`** — Mendix widget manifest
 - **`src/package.xml`** — Widget package definition
-- **`src/core/types/mx.ts`** — TypeScript declarations for Mendix framework
+- **`src/core/types/mx.d.ts`** — TypeScript declarations for Mendix framework
 - **`src/typings/stcvn/`** — Generated Mendix widget typings
 
 ### Mendix Data API
@@ -482,209 +563,3 @@ See `docs/PACKING_PLAN_ENTITY.md` for the full entity design.
 - The `src/core/utils/coordinates.ts` module provides conversion helpers used by all layers
 - This architecture supports future export/import, undo/redo, and Mendix data sync
 - The packing optimizer in `src/domain/packing/packingOptimizer.ts` uses a branch-and-bound algorithm for optimal placement
-src/infrastructure/adapters/__tests__/stateAdapter.spec.ts
-src/presentation/components/__tests__/CargoCard.spec.tsx
-```
-
-### Layer-Specific Testing
-
-| Layer | Coverage Target | Test Type |
-|-------|-----------------|-----------|
-| Core | 100% | Pure function tests |
-| Domain | 95% | Unit tests for rules and engines |
-| State | 90% | State transition tests |
-| Infrastructure | 80% | Adapter tests with mocks |
-| Presentation | 70% | Component render tests |
-
-### Test Examples
-
-**Core Layer:**
-```typescript
-describe("meterToPixel", () => {
-  it("converts meters to pixels correctly", () => {
-    expect(meterToPixel(1.2, 50)).toBe(60);
-  });
-});
-```
-
-**Domain Layer:**
-```typescript
-describe("validateAll", () => {
-  it("returns valid for items within bounds", () => {
-    const result = validateAll(items, bounds);
-    expect(result.valid).toBe(true);
-  });
-});
-```
-
-**State Layer:**
-```typescript
-describe("CanvasStateManager", () => {
-  it("tracks history for undo/redo", () => {
-    manager.setState(state1);
-    manager.setState(state2);
-    manager.undo();
-    expect(manager.getState()).toEqual(state1);
-  });
-});
-```
-│   (infrastructure/)   │
-└───────────────────────┘
-```
-
-### Key Constraints
-
-1. **Core has zero project dependencies** — only external libraries (big.js)
-2. **Domain has zero framework dependencies** — no React, no Mendix, no browser APIs
-3. **Infrastructure is the only Mendix gateway** — no Mendix imports elsewhere
-4. **State orchestrates domain** — doesn't contain business logic
-5. **Presentation is thin** — components are pure, hooks delegate to state/domain
-
-### Anti-Patterns to Avoid
-
-| Anti-Pattern | Description | Solution |
-|--------------|-------------|----------|
-| Domain importing React | Domain layer has React dependencies | Move to Presentation |
-| Domain importing Mendix | Domain layer has Mendix dependencies | Move to Infrastructure |
-| UI containing business logic | Components have business rules | Move to Domain |
-| State containing business logic | State has validation/calculation logic | Move to Domain |
-| Infrastructure in UI | Components call Mendix directly | Use container/component pattern |
-| Circular dependencies | Layer A imports B, B imports A | Introduce Shared Kernel |
-### Hooks (src/presentation/hooks/)
-
-| Hook | Purpose |
-|------|---------|
-| useTruckCanvas.ts | Main hook that wires engines + state together |
-| useCanvasState.ts | Subscribes to CanvasStateManager |
-| useCanvasActions.ts | Wraps CanvasActionDispatcher methods |
-| useMouseEvents.ts | Attaches mousemove/mouseup/blur listeners |
-| coordinateRule.ts | Converts browser coordinates to canvas coordinates |
-
-### Components (src/presentation/components/)
-
-| Component | Purpose |
-|-----------|---------|
-| CargoCard.tsx | Renders single cargo item with interactions |
-| CargoList.tsx | Renders available cargo items with drag-drop |
-| CargoPopup.tsx | Shows cargo details popup |
-| CargoTooltip.tsx | Shows cargo tooltip on hover |
-| GridOverlay.tsx | Renders grid lines on canvas |
-| RotationHandle.tsx | Rotation handle for 90° rotation |
-| mendixMappers.ts | toPlainObject, extractTruckData, extractTransportOrderData | Object mapping |
-| mendixSchema.ts | Entity/association/attribute constants | Schema definitions |
-
-### Data Adapters (src/infrastructure/adapters/)
-
-| File | Functions | Purpose |
-|------|-----------|---------|
-| cargoAdapter.ts | packingUnitToCargoItem, transportOrdersToCargoItems, applyPackingUnitData | Cargo mapping |
-| truckAdapter.ts | truckSelectionToTruckItem, truckToTruckItem, computeScale | Truck mapping |
-| stateAdapter.ts | serializePlan, deserializePlan | State serialization |
-| cargoLoader.ts | loadCargoItems | Load cargo from Mendix |
-| truckLoader.ts | loadTruckAndScale, loadTruckItem | Load truck from Mendix |
-| transportOrderMeta.ts | buildTransportOrderMeta | Load TO metadata |
-| planRepository.ts | loadPackingPlan, savePackingPlan | Plan persistence |
-- `dispatch(action)` — Routes actions to appropriate handlers
-- Orchestrates domain engines (DragEngine, CollisionEngine, SnapEngine)
-- Validates results using domain rules
-- Updates state via StateManager
-
-### Action Types
-```typescript
-export type CanvasAction =
-  | { type: "SELECT"; ids: string[] }
-  | { type: "DESELECT" }
-  | { type: "SET_ACTIVE_ITEM"; id: string | null }
-  | { type: "START_DRAG"; activeId: string; mouse: Point }
-  | { type: "DRAG_MOVE"; mouse: Point }
-  | { type: "END_DRAG" }
-  | { type: "ROTATE"; itemId: string }
-  | { type: "ADD_ITEM"; item: CargoItem }
-  | { type: "SET_ITEMS"; items: CargoItem[] }
-  | { type: "REMOVE_ITEM"; baseId: string }
-  | { type: "UNDO" }
-  | { type: "REDO" };
-```
-  const withoutPrefix = id.slice(CARGO_ID_PREFIX.length);
-  const dashIndex = withoutPrefix.lastIndexOf("-");
-  if (dashIndex > 0 && /^\d+$/.test(withoutPrefix.slice(dashIndex + 1))) {
-    return parseInt(withoutPrefix.slice(dashIndex + 1), 10);
-  }
-  return 0;
-};
-```
-
----
-
-## Domain Layer (src/domain/)
-
-### Purpose
-
-The Domain layer is the **heart of the application**. It contains all business logic: validation rules, geometry calculations, packing algorithms, and interaction engines. This layer has **zero dependencies** on React, Mendix, or browser APIs.
-
-### Directory Structure
-
-```
-src/domain/
-├── rules/                         # Pure business rules
-│   ├── boundaryRules.ts           # clamp, getCanvasBounds, getTruckBounds
-│   ├── geometryRules.ts           # overlaps, isInsideBounds, findCollisions
-│   ├── validationRules.ts         # validateItem, validateAll, validateLoadMeters
-│   ├── rotationRules.ts           # rotate90, getRotatedScreenSize, rotateKeepingCenter
-│   ├── dragRules.ts               # calculateDragPosition
-│   └── snapRules.ts               # snapToGrid, snapPosition
-├── engines/                       # Business engines (use domain rules)
-│   ├── DragEngine.ts              # Drag behavior with collision/snap resolution
-│   ├── CollisionEngine.ts         # Collision detection and resolution
-│   ├── SnapEngine.ts              # Grid snapping with bounds
-│   └── DragState.ts               # Drag state interface
-└── packing/                       # Packing optimization feature
-    ├── packingRules.ts            # packCargoIntoBounds, autoLoadCargoUnits
-    └── packingOptimizer.ts        # optimizePacking (exact solver)
-```
-
-### Rules
-
-1. **Core-only dependencies** — Can ONLY import from `src/core/`
-2. **Zero React dependencies** — No React, React DOM, or React hooks
-3. **Zero Mendix dependencies** — No mx.data, MxObject, or Mendix APIs
-4. **Zero browser dependencies** — No window, document, or DOM APIs
-5. **Pure and testable** — All code must be unit testable without mocks
-
-### Directory Structure
-
-```
-src/core/
-├── types/                         # Pure type definitions
-│   ├── geometry.ts                # Point, RectLike, Rotation, Size, Rectangle
-│   ├── mx.ts                      # Mendix type declarations (MxData, MxObject)
-│   └── viewModels/                # View model interfaces
-│       ├── CargoItem.ts           # Cargo item view model
-│       └── TruckItem.ts           # Truck item view model
-├── utils/                         # Pure utility functions
-│   ├── coordinates.ts             # meterToPixel, pixelToMeter
-│   └── cargoId.ts                 # toCargoId, fromCargoId, getCargoInstanceIndex
-└── constants/                     # Application constants
-    ├── canvas.ts                  # Canvas dimensions, grid size, rotation step
-    ├── card.ts                    # Card border widths and colors
-    ├── cargoList.ts               # Cargo list panel styles
-    ├── rotationHandle.ts          # Rotation handle styles
-    └── theme.ts                   # Theme colors
-```
-
-### Rules
-
-1. **Zero project dependencies** — Core cannot import from Domain, State, Infrastructure, or Presentation
-2. **Pure functions only** — All utilities must be pure (no side effects)
-3. **No framework dependencies** — No React, Mendix, or browser APIs
-4. **Fully testable** — All code must be testable without mocks
-
-Traditional Clean Architecture enforces strict layer isolation, but this can be impractical for React applications where:
-- Hooks need direct access to domain engines for performance
-- Pure utility functions are needed across all layers
-- The domain should be the center of the application
-
-Our approach combines:
-- **Clean Architecture** principles for layer separation
-- **Domain-Driven Design** focus on business logic
-- **Pragmatic React patterns** for state management

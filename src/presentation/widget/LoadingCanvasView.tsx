@@ -30,7 +30,7 @@ import {
   EMPTY_STATE_FONT_SIZE,
 } from "../../core/constants/theme";
 import { fromCargoId, getCargoInstanceIndex } from "../../core/utils/cargoId";
-import truckBackground from "../../assets/Truck_horizontal.png";
+import truckBackground from "../assets/Truck_horizontal.png";
 import type { CargoItem } from "../../core/types/viewModels/CargoItem";
 import type { LoadingCanvasViewProps } from "./LoadingCanvas.properties";
 

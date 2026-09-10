@@ -1,8 +1,13 @@
 import { describe, it, expect } from "@jest/globals";
 import { truckSelectionToTruckItem, truckToTruckItem, computeScale } from "../truckAdapter";
-import type { Truck } from "../../models/Truck";
-import { getRotatedScreenSize } from "../../domain/rotationRules";
-import { TRUCK_CANVAS_WIDTH, TRUCK_CANVAS_HEIGHT, TRUCK_CANVAS_LEFT, TRUCK_CANVAS_TOP } from "../../constants/canvas";
+import type { Truck } from "../../../core/types/Truck";
+import { getRotatedScreenSize } from "../../../domain/rules/rotationRules";
+import {
+  TRUCK_CANVAS_WIDTH,
+  TRUCK_CANVAS_HEIGHT,
+  TRUCK_CANVAS_LEFT,
+  TRUCK_CANVAS_TOP,
+} from "../../../core/constants/canvas";
 
 describe("truckAdapter", () => {
   const scale = { widthScale: 50, heightScale: 50 };

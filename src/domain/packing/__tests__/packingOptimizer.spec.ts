@@ -1,7 +1,7 @@
 import { describe, it, expect } from "@jest/globals";
 import { optimizePacking } from "../packingOptimizer";
-import type { CargoItem } from "../../viewModels/CargoItem";
-import type { RectLike } from "../../types/geometry";
+import type { CargoItem } from "../../../core/types/viewModels/CargoItem";
+import type { RectLike } from "../../../core/types/geometry";
 
 const makeCargo = (id: string, length: number, width: number): CargoItem => ({
   id,

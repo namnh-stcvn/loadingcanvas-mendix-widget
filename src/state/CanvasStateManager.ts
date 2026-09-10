@@ -28,6 +28,12 @@ export class CanvasStateManager {
     return cloneState(this.state);
   }
 
+  // Internal non-cloning read for dispatcher/controller hot paths. Callers must
+  // not mutate the returned object; it is (a reference to) the live store state.
+  peekState(): CanvasState {
+    return this.state;
+  }
+
   setState(nextState: CanvasState): void {
     const nextClone = cloneState(nextState);
     this.state = nextClone;

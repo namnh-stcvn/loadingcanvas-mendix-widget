@@ -8,9 +8,11 @@ store the saved packing arrangement for each truck (TruckSelection).
 
 ## Design Constraints
 
-- **Only 1 packing plan per truck** (no versioning)
-- **Save = delete + recreate items** (simplest approach)
-- **Load on page open** — when the widget loads, it reads the saved plan
+See [BUSINESS_RULES.md](../BUSINESS_RULES.md) for the business rules that govern packing plans (BR-32 through BR-39).
+
+- **Only 1 packing plan per truck** (no versioning) — see BR-32
+- **Save = delete + recreate items** (simplest approach) — see BR-33
+- **Load on page open** — when the widget loads, it reads the saved plan — see BR-37
 - **Do NOT modify existing Mendix model structure** — only add new entities
 
 ## Entity: PackingPlan

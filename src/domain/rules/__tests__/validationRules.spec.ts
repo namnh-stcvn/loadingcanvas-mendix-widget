@@ -1,6 +1,6 @@
 import { describe, it, expect } from "@jest/globals";
 import { validateItem, validateLoadMeters, validateAll } from "../validationRules";
-import type { CargoItem } from "../../viewModels/CargoItem";
+import type { CargoItem } from "../../../core/types/viewModels/CargoItem";
 
 describe("validationRules", () => {
   const bounds = { x: 0, y: 0, length: 1000, width: 600 };

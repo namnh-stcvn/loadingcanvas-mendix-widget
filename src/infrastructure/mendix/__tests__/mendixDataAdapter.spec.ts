@@ -9,7 +9,7 @@ import {
   savePackingPlan,
   toBig,
 } from "../mendixDataAdapter";
-import type { CanvasState } from "../../state/CanvasState";
+import type { PackingPlanState } from "../../adapters/stateAdapter";
 
 describe("mendixDataAdapter Decimal conversion", () => {
   it("always returns a Big.js value for Mendix Decimal attributes", () => {
@@ -439,7 +439,7 @@ describe("savePackingPlan Decimal constructor fallback", () => {
   });
 
   it("borrows the Decimal constructor from another attribute when LengthMeters has no default value", async () => {
-    const state: CanvasState = {
+    const state: PackingPlanState = {
       truck: null,
       cargos: [
         {
@@ -458,10 +458,6 @@ describe("savePackingPlan Decimal constructor fallback", () => {
           weightKg: 500,
         },
       ],
-      selectedIds: [],
-      activeItemId: null,
-      validation: { valid: true, errors: [] },
-      scale: { widthScale: 1, heightScale: 1 },
     };
 
     const result = await savePackingPlan("truck-1", state, { widthScale: 1, heightScale: 1 });

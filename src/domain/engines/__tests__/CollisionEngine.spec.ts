@@ -1,6 +1,6 @@
 import { describe, it, expect } from "@jest/globals";
 import { CollisionEngine } from "../CollisionEngine";
-import type { RectLike, Rotation } from "../../types/geometry";
+import type { RectLike, Rotation } from "../../../core/types/geometry";
 
 describe("CollisionEngine", () => {
   const bounds = { x: 0, y: 0, length: 1000, width: 600 };

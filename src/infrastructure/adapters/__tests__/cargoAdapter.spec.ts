@@ -8,7 +8,7 @@ import {
   resolvePackingType,
   transportOrdersToCargoItems,
 } from "../cargoAdapter";
-import type { CargoItem } from "../../viewModels/CargoItem";
+import type { CargoItem } from "../../../core/types/viewModels/CargoItem";
 
 describe("cargoAdapter", () => {
   const scale = { widthScale: 50, heightScale: 50 };

@@ -1,5 +1,5 @@
 import type { GeometryItem } from "../geometry";
-import type { Truck } from "../../../models/Truck";
+import type { Truck } from "../Truck";
 
 export interface TruckItem extends GeometryItem {
   id: Truck["id"];

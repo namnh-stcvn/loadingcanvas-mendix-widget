@@ -1,16 +1,10 @@
 import { useCallback, useMemo, useState, type MouseEvent as ReactMouseEvent, type RefObject } from "react";
 import type { CargoItem } from "../../core/types/viewModels/CargoItem";
 import type { TruckItem } from "../../core/types/viewModels/TruckItem";
-import { DragEngine } from "../../domain/engines/DragEngine";
-import { CollisionEngine } from "../../domain/engines/CollisionEngine";
-import { SnapEngine } from "../../domain/engines/SnapEngine";
-import { useMouseEvents } from "./useMouseEvents";
-import { CanvasStateManager } from "../../state/CanvasStateManager";
-import { CanvasActionDispatcher } from "../../state/CanvasActionDispatcher";
+import { CanvasController } from "../../state/CanvasController";
 import { useCanvasState } from "./useCanvasState";
-import { useCanvasActions } from "./useCanvasActions";
+import { useMouseEvents } from "./useMouseEvents";
 import { getCanvasPoint } from "./coordinateRule";
-import type { CanvasState } from "../../state/CanvasState";
 
 interface UseTruckCanvasProps {
   initialItems: CargoItem[];
@@ -34,22 +28,6 @@ interface UseTruckCanvasResult {
   removeItem: (baseId: string) => void;
 }
 
-const createInitialCanvasState = (
-  initialItems: CargoItem[],
-  scale: { widthScale: number; heightScale: number },
-  truck: TruckItem | null
-): CanvasState => ({
-  truck,
-  cargos: initialItems,
-  selectedIds: [],
-  activeItemId: null,
-  validation: {
-    valid: true,
-    errors: [],
-  },
-  scale,
-});
-
 export const useTruckCanvas = ({
   initialItems,
   canvasWidth,
@@ -58,93 +36,59 @@ export const useTruckCanvas = ({
   scale = { widthScale: 1, heightScale: 1 },
   truck = null,
 }: UseTruckCanvasProps): UseTruckCanvasResult => {
-  const collisionEngine = useMemo(() => new CollisionEngine(), []);
-  const snapEngine = useMemo(() => new SnapEngine(), []);
-  const dragEngine = useMemo(
-    () => new DragEngine<CargoItem>(initialItems, collisionEngine, snapEngine),
-    [initialItems, collisionEngine, snapEngine]
-  );
-  const stateManager = useMemo(
-    () => new CanvasStateManager(createInitialCanvasState(initialItems, scale, truck)),
-    [initialItems, scale, truck]
-  );
-  const actionDispatcher = useMemo(
-    () =>
-      new CanvasActionDispatcher(stateManager, {
-        canvasWidth,
-        canvasHeight,
-        dragEngine,
-      }),
-    [canvasWidth, canvasHeight, stateManager, dragEngine]
+  // Dataset identity change produces a fresh controller: the single restore
+  // mechanism for the whole interaction machine (manager + dispatcher + engines).
+  const controller = useMemo(
+    () => new CanvasController({ initialItems, canvasWidth, canvasHeight, scale, truck }),
+    [initialItems, canvasWidth, canvasHeight, scale, truck]
   );
 
-  const state = useCanvasState(stateManager);
-  const actions = useCanvasActions(actionDispatcher);
-
+  const state = useCanvasState(controller.stateManager);
   const [dragging, setDragging] = useState(false);
 
-  // Destructure so the useCallback dependencies below reference the stable
-  // per-action callbacks rather than the recreated `actions` object identity.
-  const {
-    startDrag,
-    dragMove: dispatchDragMove,
-    endDrag,
-    deselect,
-    rotateItem,
-    addItem,
-    setItems,
-    removeItem,
-  } = actions;
+  const startDrag = useCallback(
+    (activeId: string, mouse: { x: number; y: number }): void => {
+      controller.startDrag(activeId, mouse);
+      setDragging(true);
+    },
+    [controller]
+  );
+
+  const move = useCallback(
+    (e: MouseEvent): void => {
+      controller.move(getCanvasPoint(canvasRef.current, e.clientX, e.clientY));
+    },
+    [controller, canvasRef]
+  );
+
+  const finish = useCallback((): void => {
+    controller.endDrag();
+    setDragging(false);
+  }, [controller]);
 
   const handleMouseDown = useCallback(
     (e: ReactMouseEvent, itemId: string): void => {
       e.stopPropagation();
-      const point = getCanvasPoint(canvasRef.current, e.clientX, e.clientY);
-      startDrag(itemId, point);
-      setDragging(true);
+      startDrag(itemId, getCanvasPoint(canvasRef.current, e.clientX, e.clientY));
     },
     [canvasRef, startDrag]
   );
 
   const handleCanvasMouseDown = useCallback(
     (_e: ReactMouseEvent<HTMLDivElement>): void => {
-      deselect();
+      controller.dispatcher.dispatch({ type: "DESELECT" });
     },
-    [deselect]
+    [controller]
   );
 
-  const dragMove = useCallback(
-    (e: MouseEvent): void => {
-      const point = getCanvasPoint(canvasRef.current, e.clientX, e.clientY);
-      dispatchDragMove(point);
-    },
-    [canvasRef, dispatchDragMove]
-  );
+  const handleRotate = useCallback((itemId: string): void => controller.rotate(itemId), [controller]);
+  const addItem = useCallback((item: CargoItem): void => controller.addItem(item), [controller]);
+  const setItems = useCallback((items: CargoItem[]): void => controller.setItems(items), [controller]);
+  const removeItem = useCallback((baseId: string): void => controller.removeItem(baseId), [controller]);
 
-  const handleMouseUp = useCallback((): void => {
-    endDrag();
-    setDragging(false);
-  }, [endDrag]);
+  // Stable handlers mean the mouse listeners are attached once per gesture.
+  useMouseEvents({ dragging, moveItems: move, handleMouseUp: finish, handleCancel: finish });
 
-  const handleCancel = useCallback((): void => {
-    endDrag();
-    setDragging(false);
-  }, [endDrag]);
-
-  // Stable handlers mean useMouseEvents attaches the mousemove/mouseup/blur
-  // listeners once per gesture instead of tearing them down and re-adding them
-  // on every render triggered by each pointer-move frame.
-  useMouseEvents({
-    dragging,
-    moveItems: dragMove,
-    handleMouseUp,
-    handleCancel,
-  });
-
-  // Manager/dispatcher recreation on [initialItems, scale, truck] is the single
-  // restore mechanism: a new dataset identity produces a fresh CanvasStateManager.
-  // The dispatcher is also the single owner of dragEngine item-sync; no
-  // state-watching effect is needed here.
   return {
     items: state.cargos,
     activeItemId: state.activeItemId,
@@ -152,7 +96,7 @@ export const useTruckCanvas = ({
     validation: state.validation,
     handleMouseDown,
     handleCanvasMouseDown,
-    handleRotate: rotateItem,
+    handleRotate,
     addItem,
     setItems,
     removeItem,

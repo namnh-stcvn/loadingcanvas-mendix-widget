@@ -1,7 +1,16 @@
 import type { CargoItem } from "../../core/types/viewModels/CargoItem";
-import type { CanvasState } from "../../state/CanvasState";
+import type { TruckItem } from "../../core/types/viewModels/TruckItem";
 import { pixelToMeter } from "../../core/utils/coordinates";
 import type { AxisScale } from "../../domain/rules/rotationRules";
+
+/**
+ * The persisted slice of canvas state. Defined here (not imported from State)
+ * so the persistence layer never depends on the live-store shape.
+ */
+export interface PackingPlanState {
+  truck: TruckItem | null;
+  cargos: CargoItem[];
+}
 
 /**
  * Shape of a saved packing plan item (persisted to Mendix).
@@ -37,10 +46,7 @@ type PlanScale = AxisScale;
  * Converts all pixel coordinates back to meters using the matching axis scale.
  */
 // Only the persisted slice is serialized; interaction fields are irrelevant here.
-export const serializePlan = (
-  state: Pick<CanvasState, "truck" | "cargos">,
-  scale: number | PlanScale
-): PackingPlanData => {
+export const serializePlan = (state: PackingPlanState, scale: number | PlanScale): PackingPlanData => {
   const widthScale = typeof scale === "number" ? scale : scale.widthScale;
   const heightScale = typeof scale === "number" ? scale : scale.heightScale;
 

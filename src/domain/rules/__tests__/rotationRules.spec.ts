@@ -1,6 +1,6 @@
 import { describe, it, expect } from "@jest/globals";
 import { rotate90, isVerticalRotation, getRotatedScreenSize, rotateKeepingCenter } from "../rotationRules";
-import type { Positionable, Rotation, Size } from "../../types/geometry";
+import type { Positionable, Rotation, Size } from "../../../core/types/geometry";
 
 describe("rotationRules", () => {
   describe("rotate90", () => {

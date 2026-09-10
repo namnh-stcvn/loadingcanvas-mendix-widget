@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide documents the **compatibility matrix** and **4-step upgrade process** for the LoadingCanvas Mendix pluggable widget. The widget follows a strict **Clean Architecture** with layered separation of concerns, which means most upgrades only touch a small, well-defined surface area.
+This guide documents the **compatibility matrix** and **4-step upgrade process** for the LoadingCanvas Mendix pluggable widget. See [ARCHITECTURE.md](../ARCHITECTURE.md) for the full architecture documentation.
 
 **Widget ID:** `stcvn.loadingcanvas.LoadingCanvas`
 **Package path:** `stcvn`
@@ -36,13 +36,7 @@ This guide documents the **compatibility matrix** and **4-step upgrade process**
 
 ## Architecture Impact Analysis
 
-The Clean Architecture ensures that upgrades are **surgical** — only specific layers are affected depending on what is being upgraded.
-
-### Dependency Flow (one-directional)
-
-```
-UI (React) → Hooks → State/Engines → Domain → Adapters → Mendix
-```
+See [ARCHITECTURE.md](../ARCHITECTURE.md) for the full architecture documentation including dependency direction and layer responsibilities. The layered architecture ensures that upgrades are **surgical** — only specific layers are affected depending on what is being upgraded.
 
 ### Impact by Upgrade Type
 
@@ -368,12 +362,4 @@ If the upgrade causes issues, follow these steps to roll back:
 
 ## Architecture Decision Records (ADRs)
 
-The following ADRs document key architectural decisions that make upgrades safe:
-
-- **ADR-001:** Core business logic (engines, domain rules) is pure TypeScript with no React or Mendix dependencies.
-- **ADR-002:** Mendix integration is isolated in the adapter layer (`src/adapters/`).
-- **ADR-003:** React is confined to the UI layer (`src/components/`, `src/hooks/`, `src/widget/`).
-- **ADR-004:** Geometry and coordinate rules are framework-agnostic and DOM-independent.
-- **ADR-005:** Widget ID (`stcvn.loadingcanvas.LoadingCanvas`) is immutable across versions.
-
-See `ARCHITECTURE.md` for the full architecture documentation.
+See [ARCHITECTURE.md](../ARCHITECTURE.md) for the full architecture documentation including key architectural decisions that make upgrades safe.

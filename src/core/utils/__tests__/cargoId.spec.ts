@@ -1,5 +1,5 @@
 import { describe, it, expect } from "@jest/globals";
-import { CARGO_ID_PREFIX, fromCargoId, toCargoId, getCargoInstanceIndex } from "../cargoIdentity";
+import { CARGO_ID_PREFIX, fromCargoId, toCargoId, getCargoInstanceIndex } from "../cargoId";
 
 describe("cargoIdentity", () => {
   const guid = "17169973584497070";

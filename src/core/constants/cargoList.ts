@@ -1,7 +1,7 @@
 // CargoList — panel and chip style constants
 
 // panel (empty state & list)
-export const CARGO_LIST_PANEL_BOTTOM = 10;
+export const CARGO_LIST_PANEL_TOP = 350;
 export const CARGO_LIST_PANEL_LEFT = 10;
 export const CARGO_LIST_PANEL_PADDING = "4px 8px";
 export const CARGO_LIST_PANEL_PADDING_LIST = "8px 12px";
