@@ -46,6 +46,8 @@ interface CargoCardProps {
   number: number;
 
   scale?: AxisScale;
+
+  onBeforeNativeDrag?: () => void;
 }
 
 export const CargoCard = React.memo<CargoCardProps>(
@@ -61,6 +63,7 @@ export const CargoCard = React.memo<CargoCardProps>(
     hasError,
     number,
     scale = DEFAULT_AXIS_SCALE,
+    onBeforeNativeDrag,
   }) => {
     const size = getRotatedScreenSize(
       {
@@ -102,6 +105,7 @@ export const CargoCard = React.memo<CargoCardProps>(
           onDoubleClick={onTogglePopup}
           draggable={!item.isLocked}
           onDragStart={(e) => {
+            onBeforeNativeDrag?.();
             e.dataTransfer.setData("text/plain", `single:${item.id}`);
             e.dataTransfer.effectAllowed = "move";
           }}

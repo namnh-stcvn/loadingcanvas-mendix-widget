@@ -26,6 +26,7 @@ interface UseTruckCanvasResult {
   addItem: (item: CargoItem) => void;
   setItems: (items: CargoItem[]) => void;
   removeItem: (baseId: string) => void;
+  cancelDrag: () => void;
 }
 
 export const useTruckCanvas = ({
@@ -66,6 +67,10 @@ export const useTruckCanvas = ({
     setDragging(false);
   }, [controller]);
 
+  const cancelDrag = useCallback((): void => {
+    setDragging(false);
+  }, []);
+
   const handleMouseDown = useCallback(
     (e: ReactMouseEvent, itemId: string): void => {
       e.stopPropagation();
@@ -100,5 +105,6 @@ export const useTruckCanvas = ({
     addItem,
     setItems,
     removeItem,
+    cancelDrag,
   };
 };

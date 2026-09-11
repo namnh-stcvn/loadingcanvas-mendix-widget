@@ -24,7 +24,12 @@ const makeItem = (overrides: Partial<CargoItem> = {}): CargoItem => ({
   ...overrides,
 });
 
-const renderCard = (isPopupOpen: boolean, canvasWidth = DEFAULT_CANVAS_WIDTH, item: CargoItem = makeItem()) => {
+const renderCard = (
+  isPopupOpen: boolean,
+  canvasWidth = DEFAULT_CANVAS_WIDTH,
+  item: CargoItem = makeItem(),
+  onBeforeNativeDrag?: () => void
+) => {
   const onTogglePopup = jest.fn();
   const utils = render(
     <CargoCard
@@ -38,6 +43,7 @@ const renderCard = (isPopupOpen: boolean, canvasWidth = DEFAULT_CANVAS_WIDTH, it
       onTogglePopup={onTogglePopup}
       hasError={false}
       canvasWidth={canvasWidth}
+      onBeforeNativeDrag={onBeforeNativeDrag}
     />
   );
   const card = utils.container.querySelector(`[data-id="${item.id}"]`);
@@ -79,6 +85,17 @@ describe("CargoCard drag payload", () => {
 
     fireEvent.dragStart(card, { dataTransfer });
 
+    expect(dataTransfer.setData).toHaveBeenCalledWith("text/plain", "single:cargo-G-3");
+  });
+
+  it("calls onBeforeNativeDrag when drag starts", () => {
+    const dataTransfer = { setData: jest.fn(), effectAllowed: "none" };
+    const onBeforeNativeDrag = jest.fn();
+    const { card } = renderCard(false, DEFAULT_CANVAS_WIDTH, makeItem({ id: "cargo-G-3" }), onBeforeNativeDrag);
+
+    fireEvent.dragStart(card, { dataTransfer });
+
+    expect(onBeforeNativeDrag).toHaveBeenCalledTimes(1);
     expect(dataTransfer.setData).toHaveBeenCalledWith("text/plain", "single:cargo-G-3");
   });
 });

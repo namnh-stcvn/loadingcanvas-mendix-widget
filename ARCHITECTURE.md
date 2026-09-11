@@ -563,3 +563,4 @@ See `docs/PACKING_PLAN_ENTITY.md` for the full entity design.
 - The `src/core/utils/coordinates.ts` module provides conversion helpers used by all layers
 - This architecture supports future export/import, undo/redo, and Mendix data sync
 - The packing optimizer in `src/domain/packing/packingOptimizer.ts` uses a branch-and-bound algorithm for optimal placement
+- The cargo list and the canvas are overlapping drop zones: the list is rendered inside the canvas container, so a `drop` on the list bubbles to the canvas. `CargoList`'s `dragover`/`drop` handlers call `stopPropagation()` so the canvas `handlePalletDrop` only processes drops on open canvas area (add/move), never on list drops (which remove). Removing the `stopPropagation()` calls re-introduces a bug where list drops both remove and re-add the item.

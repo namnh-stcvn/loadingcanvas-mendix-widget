@@ -38,12 +38,17 @@ export const CargoList = React.memo<CargoListProps>(
   ({ availableItems, onAddCargo, onRemoveCargo, placedInstances, numberStart }) => {
     const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
       e.preventDefault();
+      // Stop the enclosing canvas drop zone from also processing list interactions.
+      e.stopPropagation();
       e.dataTransfer.dropEffect = "move";
     }, []);
 
     const handleDrop = useCallback(
       (e: DragEvent<HTMLDivElement>) => {
         e.preventDefault();
+        // Prevent the canvas handlePalletDrop (bubbling) from re-adding the
+        // item this handler just removed (list is rendered inside the canvas div).
+        e.stopPropagation();
         const raw = e.dataTransfer.getData("text/plain");
         const chipId = raw.startsWith(SINGLE_DRAG_PREFIX) ? raw.slice(SINGLE_DRAG_PREFIX.length) : raw;
         if (chipId && onRemoveCargo) {

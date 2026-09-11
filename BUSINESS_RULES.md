@@ -110,6 +110,7 @@ These rules cover: trucks, cargo, placement, capacity, positioning, collision ha
 - **BR-28** — Pressing an item starts interacting with it and makes it the active selection; pressing empty canvas space clears the selection.
 - **BR-29** — Several items can be selected and dragged **together** as a group. Starting a drag on an item that is not part of the current selection restricts the drag to that single item.
 - **BR-30** — Cargo enters the canvas at the **drop point** when dragged from the list, or at a default position when added by clicking it in the list.
+- **BR-30a** — Dragging a placed cargo unit from the canvas back onto the available-cargo list removes it from the canvas. All placed units of the same transport order are returned to the list together.
 - **BR-31** — Until the initial data (truck, cargo, saved plan) has finished loading, the planner shows a loading state instead of an editable canvas.
 
 ---

@@ -77,6 +77,7 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
     addItem,
     setItems,
     removeItem,
+    cancelDrag,
   } = useTruckCanvas({
     initialItems: initialCanvasItems,
     canvasWidth,
@@ -397,6 +398,7 @@ export const LoadingCanvasView = (props: LoadingCanvasViewProps): ReactElement =
             isPopupOpen={popupItemId === item.id}
             onTogglePopup={() => handleTogglePopup(item.id)}
             canvasWidth={canvasWidth}
+            onBeforeNativeDrag={cancelDrag}
           />
         ))}
       </div>
