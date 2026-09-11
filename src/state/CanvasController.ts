@@ -38,6 +38,7 @@ export class CanvasController {
       canvasWidth: options.canvasWidth,
       canvasHeight: options.canvasHeight,
       dragEngine: this.dragEngine,
+      collisionEngine: this.collisionEngine,
     });
   }
 

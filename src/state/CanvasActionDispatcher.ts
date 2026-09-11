@@ -4,6 +4,7 @@ import type { CanvasStateManager } from "./CanvasStateManager";
 import { getCanvasBounds, getTruckBoundsFromItem } from "../domain/rules/boundaryRules";
 import { validateAll } from "../domain/rules/validationRules";
 import { DragEngine } from "../domain/engines/DragEngine";
+import { CollisionEngine } from "../domain/engines/CollisionEngine";
 import { fromCargoId } from "../core/utils/cargoId";
 
 export type CanvasAction =
@@ -24,6 +25,7 @@ interface CanvasActionDispatcherOptions {
   canvasWidth: number;
   canvasHeight: number;
   dragEngine: DragEngine<CargoItem>;
+  collisionEngine: CollisionEngine;
 }
 
 /**
@@ -44,12 +46,14 @@ export class CanvasActionDispatcher {
   private canvasWidth: number;
   private canvasHeight: number;
   private dragEngine: DragEngine<CargoItem>;
+  private collisionEngine: CollisionEngine;
 
   constructor(manager: CanvasStateManager, options: CanvasActionDispatcherOptions) {
     this.manager = manager;
     this.canvasWidth = options.canvasWidth;
     this.canvasHeight = options.canvasHeight;
     this.dragEngine = options.dragEngine;
+    this.collisionEngine = options.collisionEngine;
   }
 
   dispatch(action: CanvasAction): void {
@@ -156,17 +160,22 @@ export class CanvasActionDispatcher {
       }
 
       case "ADD_ITEM": {
-        // Single sync owner: the dispatcher keeps dragEngine items in step here,
-        // so no external compensating effect is needed. New placements are
-        // validated like any other settled layout (band-relative, BR-22-visible).
-        const newItem = { ...action.item };
-        const updatedCargos = [...state.cargos, newItem];
-        this.dragEngine.updateItems(updatedCargos);
-        const validation = validateAll(
-          updatedCargos,
-          getTruckBoundsFromItem(state.truck),
-          buildValidationOptions(state)
+        // Resolve to a non-overlapping position inside the truck band (BR-21).
+        const bounds = getTruckBoundsFromItem(state.truck);
+        const existingItems = state.cargos;
+        const desiredPos = { x: action.item.x, y: action.item.y };
+        const resolvedPos = this.collisionEngine.resolveNonOverlappingPosition(
+          action.item,
+          desiredPos,
+          desiredPos,
+          existingItems,
+          bounds,
+          state.scale
         );
+        const newItem = { ...action.item, x: resolvedPos.x, y: resolvedPos.y };
+        const updatedCargos = [...existingItems, newItem];
+        this.dragEngine.updateItems(updatedCargos);
+        const validation = validateAll(updatedCargos, bounds, buildValidationOptions(state));
         this.manager.updateState((current) => ({
           ...current,
           cargos: updatedCargos,

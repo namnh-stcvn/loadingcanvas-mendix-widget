@@ -52,6 +52,7 @@ describe("CanvasActionDispatcher", () => {
       canvasWidth,
       canvasHeight,
       dragEngine,
+      collisionEngine,
     });
     return { manager, dispatcher, dragEngine };
   };
@@ -201,12 +202,13 @@ describe("CanvasActionDispatcher", () => {
       expect(manager.getState().cargos[0].rotation).toBe(90);
     });
 
-    it("flags OUT_OF_BOUNDS when the spawn position lies outside the truck band", () => {
+    it("resolves to an in-bounds position when the spawn position lies outside the truck band", () => {
       const { manager, dispatcher } = createDispatcher([]);
       dispatcher.dispatch({ type: "ADD_ITEM", item: createCargoItem({ id: "spawned", x: 50, y: 50 }) });
       const state = manager.getState();
-      expect(state.validation.valid).toBe(false);
-      expect(state.validation.errors).toContain("OUT_OF_BOUNDS");
+      expect(state.cargos).toHaveLength(1);
+      expect(isInsideBounds(state.cargos[0], getTruckBounds())).toBe(true);
+      expect(state.validation.valid).toBe(true);
     });
   });
 

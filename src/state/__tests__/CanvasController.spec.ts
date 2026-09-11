@@ -71,6 +71,24 @@ describe("CanvasController", () => {
     unsubscribe();
   });
 
+  it("addItem resolves to a non-overlapping position when desired spot is occupied", () => {
+    const controller = createController({ truck: createTruckItem() });
+    controller.addItem(createCargoItem("cargo-1", { x: 100, y: 100 }));
+
+    const first = controller.getState().cargos[0];
+    expect(first.x).toBe(100);
+    expect(first.y).toBe(100);
+
+    // Add second item at the same position — must be moved elsewhere
+    controller.addItem(createCargoItem("cargo-2", { x: 100, y: 100 }));
+
+    const second = controller.getState().cargos[1];
+    const dx = Math.abs(second.x - first.x);
+    const dy = Math.abs(second.y - first.y);
+    const itemsOverlap = dx < first.length && dy < first.width;
+    expect(itemsOverlap).toBe(false);
+  });
+
   it("setItems replaces the cargo list", () => {
     const controller = createController();
     controller.setItems([createCargoItem("cargo-1"), createCargoItem("cargo-2")]);
